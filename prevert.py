@@ -17,6 +17,7 @@ import signal
 import glob
 import tempfile
 import signal
+import optparse
 
 sys.pathconf = "."
 import load
@@ -24,6 +25,9 @@ import hackbench
 import kcompile
 
 load_modules = (hackbench, kcompile)
+
+verbose = False
+duration = 60.0
 
 # prio - SCHED_FIFO priority
 # threads - create more than one thread
@@ -71,12 +75,32 @@ def cyclictest(prio=90, threads=None, logfile=None, duration=60.0, stopev=None):
     for k in samples.keys():
         print "thread %d: %d samples" % (k, len(samples[k]))
 
+def parse_options():
+    parser = optparse.OptionParser()
+    parser.add_option("-d", "--duration", dest="duration",
+                      type="float", 
+                      help="specify length of test run in seconds")
+    parser.add_option("-v", "--verbose", dest="verbose",
+                      action="store_true", default=False,
+                      help="turn on verbose prints")
+    (options, args) = parser.parse_args()
+    verbose = options.verbose
+    duration = options.duration
+    return args
+
+def debug(str):
+    if verbose: print str
+
 def prevert():
+    args = parse_options()
     loads = []
     here = os.getcwd()
     dir = os.path.join(here, 'run')
     src = os.path.join(here, 'loadsource')
     
+    nthreads = 0
+
+    debug("setting up loads")
     for m in load_modules:
         loads.append(m.create(dir, src))
 
@@ -84,10 +108,13 @@ def prevert():
     #c = threading.Thread(name="cyclictest", target=cyclictest, args=(95, None, None, 60.0, stopev,))
     
     # start the loads
+    debug("starting loads:")
     for l in loads:
+        debug("\t%s" % l.name)
         l.start()
 
     # now wait until they're all ready
+    debug("waiting for ready from all loads")
     ready=False
     while not ready:
         for l in loads:
@@ -95,15 +122,24 @@ def prevert():
         time.sleep(1.0)
 
     # start the loads
+    debug("starting all loads")
     for l in loads:
         l.startevent.set()
+        nthreads += 1
 
-    time.sleep(60.0)
+    # wait for time to expire or thread to die
+    debug("waiting for duration (%f)" % duration)
+    stoptime = time.clock() + duration
+    while time.clock() <= stoptime:
+        time.sleep(0.5)
+        if len(threading.enumerate()) != nthreads:
+            raise RuntimeError, "load thread died!"
 
     # stop the loads
+    debug("stopping all loads")
     for l in loads:
+        debug("\t%s" % l.name)
         l.stopevent.set()
 
-    
 if __name__ == '__main__':
     prevert()
