@@ -8,34 +8,38 @@ import subprocess
 import threading
 
 class Load(threading.Thread):
-    def __init__(self, name="<unnamed>", source=None, dir=None,
-                 setup=None, build=None, run=None):
+    def __init__(self, name="<unnamed>", source=None, dir=None):
         threading.Thread.__init__(self)
         self.name = name
-        self.source = source
-        self.setupfn = setup
-        self.buildfn = build
-        self.runfn = run
-        self.dir = dir
+        self.source = source	# abs path to source archive
+        self.dir = dir		# abs path to run dir
+        self.mydir = None
         self.startevent = threading.Event()
         self.stopevent = threading.Event()
         self.ready = False
 
         if not os.path.exists(self.dir):
             os.makedirs(self.dir)
-        os.chdir(self.dir)
-        print "%s: cd'ing to %s" % (self.name, os.getcwd())
 
     def isReady(self):
         return self.ready
 
+    def setup(self, topdir, tarball):
+        pass
+
+    def build(self, dir):
+        pass
+
+    def runload(self, dir):
+        pass
+
     def run(self):
         if self.stopevent.isSet():
             return
-        self.mydir = self.setupfn(self.dir, self.source)
+        self.setup()
         if self.stopevent.isSet():
             return
-        self.buildfn(self.mydir)
+        self.build()
         self.ready = True
         while True:
             if self.stopevent.isSet():
@@ -43,6 +47,6 @@ class Load(threading.Thread):
             self.startevent.wait(1.0)
             if self.startevent.isSet():
                 break
-        self.runfn(self.mydir, self.stopevent)
+        self.runload()
 
 

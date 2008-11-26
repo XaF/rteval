@@ -1,5 +1,5 @@
 runit:
-	python prevert.py
+	python prevert.py -v
 
 clean:
 	rm -f *~ *.pyc *.pyo

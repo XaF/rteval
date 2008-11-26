@@ -13,10 +13,8 @@ import os.path
 import time
 import threading
 import subprocess
-import signal
 import glob
 import tempfile
-import signal
 import optparse
 
 sys.pathconf = "."
@@ -28,6 +26,7 @@ load_modules = (hackbench, kcompile)
 
 verbose = False
 duration = 60.0
+interrupted = False
 
 # prio - SCHED_FIFO priority
 # threads - create more than one thread
@@ -126,14 +125,18 @@ def prevert():
     for l in loads:
         l.startevent.set()
         nthreads += 1
+    
 
-    # wait for time to expire or thread to die
-    debug("waiting for duration (%f)" % duration)
-    stoptime = time.clock() + duration
-    while time.clock() <= stoptime:
-        time.sleep(0.5)
-        if len(threading.enumerate()) != nthreads:
-            raise RuntimeError, "load thread died!"
+    try:
+        # wait for time to expire or thread to die
+        debug("waiting for duration (%f)" % duration)
+        stoptime = time.clock() + duration
+        while time.clock() <= stoptime:
+            time.sleep(0.5)
+            if len(threading.enumerate()) < nthreads:
+                raise RuntimeError, "load thread died!"
+    except KeyboardInterrupt, e:
+        pass
 
     # stop the loads
     debug("stopping all loads")
