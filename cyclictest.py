@@ -9,6 +9,27 @@ import signal
 from threading import *
 
 
+class CpuData(object):
+    def __init__(self, cpu):
+        self.cpu = cpu
+        self.description = ''
+        self.samples = []
+        self.min = 100000000
+        self.max = 0
+        self.stddev = 0.0
+        self.mean = 0.0
+        self.mode = 0.0
+        self.median = 0.0
+
+    def sample(self, value):
+        samples.append(value)
+        if value > self.max: self.max = value
+        if value < self.min: self.min = value
+
+    def stats(self):
+        pass
+
+
 class Cyclictest(Thread):
     def __init__(self, duration=60.0, priority = 90, outfile = None, threads = None):
         Thread.__init__(self)
@@ -17,6 +38,18 @@ class Cyclictest(Thread):
         self.threads = threads
         self.priority = priority
         self.outfile = outfile
+        f = open('/proc/cpuinfo')
+        self.cpus = []
+        core = 0
+        for line in f:
+            if line.startswith('processor'):
+                core = int(line.split()[-1])
+                self.cpus.append(CpuData(core))
+            if line.startswith('model name'):
+                self.cpus[core].description = line.split()[-1]
+        f.close()
+        self.cores = len(self.cpus)
+        print "system has %d cpu cores" % self.cores
 
     def run(self):
         if self.outfile:
@@ -40,6 +73,7 @@ class Cyclictest(Thread):
                 break
             time.sleep(1.0)
         os.kill(signal.SIGINT, c.pid)
+        os.close(self.outhandle)
 
     def reduce(self):
         pass
