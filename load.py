@@ -8,7 +8,7 @@ import subprocess
 import threading
 
 class Load(threading.Thread):
-    def __init__(self, name="<unnamed>", source=None, dir=None):
+    def __init__(self, name="<unnamed>", source=None, dir=None, debug=False):
         threading.Thread.__init__(self)
         self.name = name
         self.source = source	# abs path to source archive
@@ -17,9 +17,13 @@ class Load(threading.Thread):
         self.startevent = threading.Event()
         self.stopevent = threading.Event()
         self.ready = False
+        self.debugging = debug
 
         if not os.path.exists(self.dir):
             os.makedirs(self.dir)
+
+    def debug(self, str):
+        if self.debugging: print str
 
     def isReady(self):
         return self.ready

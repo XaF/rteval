@@ -8,8 +8,8 @@ sys.pathconf = "."
 import load
 
 class Kcompile(load.Load):
-    def __init__(self, source=None, dir=None):
-        load.Load.__init__(self, "kcompile", source, dir)
+    def __init__(self, source=None, dir=None, debug=False):
+        load.Load.__init__(self, "kcompile", source, dir, debug)
 
     def setup(self):
         # check for existing directory
@@ -20,7 +20,7 @@ class Kcompile(load.Load):
                 kdir=d
                 break
         if kdir == None:
-            print "unpacking kernel tarball"
+            self.debug("unpacking kernel tarball")
             tarargs = ['tar', '-C', self.dir, '-x']
             if self.source.endswith(".bz2"):
                 tarargs.append("-j")
@@ -31,29 +31,29 @@ class Kcompile(load.Load):
             try:
                 subprocess.call(tarargs)
             except:
-                print "untar'ing kernel self.source failed!"
+                self.debug("untar'ing kernel self.source failed!")
                 sys.exit(-1)
             names = os.listdir('.')
             for d in names:
-                print "kcompile: checking %s\n" % d
+                self.debug("kcompile: checking %s\n" % d)
                 if d.startswith("linux-2.6"):
                     kdir=d
                     break
         if kdir == None:
-            raise RuntimeErrr, "Can't find kernel directory!"
+            raise RuntimeError, "Can't find kernel directory!"
         self.mydir = os.path.join(self.dir, kdir)
 
     def build(self):
-        print "kcompile setting up all module config file in %s" % os.getcwd()
+        self.debug("kcompile setting up all module config file in %s" % os.getcwd())
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
         subprocess.call(["make", "-C", self.mydir, "distclean", "allmodconfig"], 
                         stdin=null, stdout=null, stderr=null)
-        print "kcompile ready to run"
+        self.debug("kcompile ready to run")
 
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
-        print "starting kcompile loop"
+        self.debug("starting kcompile loop")
         args = ["make", "-C", self.mydir, "clean", "bzImage", "modules"]
         p = subprocess.Popen(args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
@@ -61,12 +61,11 @@ class Kcompile(load.Load):
             if p.poll() != None:
                 p.wait()
                 p = subprocess.Popen(args,stdin=null,stdout=null,stderr=null)
-        print "stopping kcompile"
+        self.debug("stopping kcompile")
         os.kill(p.pid, SIGTERM)
 
     
-def create(dir, source):
-    print "looking for tarball in %s" % source
+def create(dir, source, debug):
     tarball = glob.glob("%s/linux-2.6*" % source)[0]
-    return Kcompile(tarball, dir)
+    return Kcompile(tarball, dir, debug)
     

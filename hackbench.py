@@ -8,14 +8,14 @@ sys.pathconf = "."
 import load
 
 class Hackbench(load.Load):
-    def __init__(self, source=None, dir=None):
-        load.Load.__init__(self, "hackbench", source, dir)
+    def __init__(self, source=None, dir=None, debug=False):
+        load.Load.__init__(self, "hackbench", source, dir, debug)
 
     def setup(self):
         # check for existing directory
         self.mydir = os.path.join(self.dir, "hackbench")
         if not os.path.exists(self.mydir):
-            print "setting up hackbench self.source"
+            self.debug("setting up hackbench self.source")
             tarargs = ['tar', '-C', self.dir, '-x']
             if self.source.endswith(".bz2"):
                 tarargs.append("-j")
@@ -24,7 +24,7 @@ class Hackbench(load.Load):
             tarargs.append("-f")
             tarargs.append(self.source)
 
-            print "unpacking %s into %s" % (self.source, self.dir)
+            self.debug("unpacking %s into %s" % (self.source, self.dir))
             try:
                 subprocess.call(tarargs)
             except:
@@ -34,22 +34,22 @@ class Hackbench(load.Load):
                 raise RuntimeError, 'no hackbench directory!'
 
     def build(self):
-        print "building hackbench"
+        self.debug("building hackbench")
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
         if os.path.exists("hackbench"):
             os.remove("hackbench")
         subprocess.check_call(["make", "-C", self.mydir], 
                               stdin=null, stdout=null, stderr=null)
-        print "hackbench built"
+        self.debug("hackbench built")
 
     def runload(self):
         exe = os.path.join(self.mydir, "hackbench")
         if not os.path.exists(exe):
-            print "Can't find hackbench exe!"
+            self.debug("Can't find hackbench exe!")
             return
         null = os.open("/dev/null", os.O_RDWR)
-        print "starting hackbench loop in %s" % os.getcwd()
+        self.debug("starting hackbench loop in %s" % os.getcwd())
         args = [exe, "20"]
         p = subprocess.Popen(args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
@@ -57,11 +57,10 @@ class Hackbench(load.Load):
             if p.poll() != None:
                 p.wait()
                 p = subprocess.Popen(args,stdin=null,stdout=null,stderr=null)
-                print "restarting hackbench load"
-        print "stopping hackbench"
+        self.debug("stopping hackbench")
         os.kill(p.pid, SIGTERM)
 
     
-def create(dir, source):
+def create(dir, source, debug):
     tarball = glob.glob("%s/hackbench*" % source)[0]
-    return Hackbench(tarball, dir)
+    return Hackbench(tarball, dir, debug)
