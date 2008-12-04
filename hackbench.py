@@ -39,7 +39,7 @@ class Hackbench(load.Load):
         # clean up from potential previous run
         if os.path.exists("hackbench"):
             os.remove("hackbench")
-        subprocess.check_call(["make", "-C", self.mydir], 
+        subprocess.call(["make", "-C", self.mydir], 
                               stdin=null, stdout=null, stderr=null)
         self.debug("hackbench built")
 
@@ -62,5 +62,9 @@ class Hackbench(load.Load):
 
     
 def create(dir, source, debug):
-    tarball = glob.glob("%s/hackbench*" % source)[0]
+    try:
+        tarball = glob.glob("%s/hackbench*" % source)[0]
+    except:
+        print "can't find hackbench tarball in %s" % source
+        sys.exit(1)
     return Hackbench(tarball, dir, debug)

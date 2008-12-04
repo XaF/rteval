@@ -13,8 +13,6 @@ import os.path
 import time
 import threading
 import subprocess
-import glob
-import tempfile
 import optparse
 
 sys.pathconf = "."
@@ -23,14 +21,20 @@ import hackbench
 import kcompile
 import cyclictest
 
+version = "0.1"
+
 load_modules = (hackbench, kcompile)
 
+defbuilddirs = ('/tmp', '/var/tmp', '/usr/tmp')
+
+loaddir = "/usr/share/prevert-%s/loadsource" % version
+builddir = None
+keepdata = False
 verbose = False
 duration = 60.0
 interrupted = False
 
 def parse_options():
-    global verbose, duration
     parser = optparse.OptionParser()
     parser.add_option("-d", "--duration", dest="duration",
                       type="float", 
@@ -38,36 +42,54 @@ def parse_options():
     parser.add_option("-v", "--verbose", dest="verbose",
                       action="store_true", default=False,
                       help="turn on verbose prints")
+    parser.add_option("-k", "--keepdata", dest="keepdata",
+                      action="store_true", default=False,
+                      help="keep measurement data")
+    parser.add_option("-b", "--builddir", dest="builddir",
+                      type="string", default=None,
+                      help="directory for unpacking and building loads")
+    parser.add_option("-l", "--loaddir", dest="loaddir",
+                      type="string", default=loaddir,
+                      help="directory for finding loads source")
     (options, args) = parser.parse_args()
-    verbose = options.verbose
-    duration = options.duration
-    return args
+    return (options, args)
 
 def debug(str):
     if verbose: print str
 
-def prevert():
-    args = parse_options()
+def setup_builddir(dir):
+    if dir == None:
+        for d in defbuilddirs:
+            if os.path.exists(d):
+                dir = os.path.join(d, 'prevert-builddir')
+                if not os.path.exists(dir): os.mkdir(dir)
+                break
+    debug("build dir: %s" % dir)
+    return dir
 
-    loads = []
-    here = os.getcwd()
-    dir = os.path.join(here, 'run')
-    src = os.path.join(here, 'loadsource')
-    
+def prevert():
+    global loaddir, verbose, duration, keepdata, builddir
+
+    (opts, args) = parse_options()
+
+    loaddir  = opts.loaddir
+    verbose  = opts.verbose
+    duration = opts.duration
+    keepdata = opts.keepdata
+
+    builddir = setup_builddir(opts.builddir)
+
     nthreads = 0
 
     debug("setting up loads")
+    loads = []
     for m in load_modules:
-        loads.append(m.create(dir, src, verbose))
+        loads.append(m.create(builddir, loaddir, verbose))
 
     debug("setting up cyclictest")
-    c = cyclictest.Cyclictest(duration=duration)
+    c = cyclictest.Cyclictest(duration=duration, debugging=verbose)
 
     try:
-
-        # start the cyclictest thread
-        debug("starting cyclictest")
-        c.start()
 
         # start the loads
         debug("starting loads:")
@@ -83,7 +105,11 @@ def prevert():
                 ready = l.isReady()
                 time.sleep(1.0)
 
-        # start the loads
+        # start the cyclictest thread
+        debug("starting cyclictest")
+        c.start()
+
+        # turn loose the loads
         debug("starting all loads")
         for l in loads:
             l.startevent.set()
@@ -98,9 +124,6 @@ def prevert():
             time.sleep(1.0)
             if len(threading.enumerate()) < nthreads:
                 raise RuntimeError, "load thread died!"
-
-    except KeyboardInterrupt, e:
-        pass
 
     finally:
         # stop cyclictest
