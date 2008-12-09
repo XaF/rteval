@@ -34,10 +34,19 @@ verbose = False
 duration = 60.0
 interrupted = False
 
+def get_num_cores():
+    f = open('/proc/cpuinfo')
+    numcores = 0
+    for line in f:
+        if line.startswith('processor'):
+            numcores += 1
+    f.close()
+    return numcores
+
 def parse_options():
     parser = optparse.OptionParser()
     parser.add_option("-d", "--duration", dest="duration",
-                      type="float", 
+                      type="float", default=120.0,
                       help="specify length of test run in seconds")
     parser.add_option("-v", "--verbose", dest="verbose",
                       action="store_true", default=False,
@@ -79,12 +88,14 @@ def prevert():
 
     builddir = setup_builddir(opts.builddir)
 
+    num_cpu_cores = get_num_cores()
+
     nthreads = 0
 
     debug("setting up loads")
     loads = []
     for m in load_modules:
-        loads.append(m.create(builddir, loaddir, verbose))
+        loads.append(m.create(builddir, loaddir, verbose, num_cpu_cores))
 
     debug("setting up cyclictest")
     c = cyclictest.Cyclictest(duration=duration, debugging=verbose)
