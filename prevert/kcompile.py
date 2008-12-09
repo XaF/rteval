@@ -7,6 +7,9 @@ from signal import SIGTERM
 sys.pathconf = "."
 import load
 
+#kernel_prefix="linux-2.6"
+kernel_prefix="linux-2.4"
+
 class Kcompile(load.Load):
     def __init__(self, source=None, dir=None, debug=False, num_cpus=1):
         load.Load.__init__(self, "kcompile", source, dir, debug, num_cpus)
@@ -16,7 +19,7 @@ class Kcompile(load.Load):
         kdir=None
         names=os.listdir(self.dir)
         for d in names:
-            if d.startswith("linux-2.6"):
+            if d.startswith(kernel_prefix):
                 kdir=d
                 break
         if kdir == None:
@@ -33,10 +36,10 @@ class Kcompile(load.Load):
             except:
                 self.debug("untar'ing kernel self.source failed!")
                 sys.exit(-1)
-            names = os.listdir('.')
+            names = os.listdir(self.dir)
             for d in names:
                 self.debug("kcompile: checking %s\n" % d)
-                if d.startswith("linux-2.6"):
+                if d.startswith(kernel_prefix):
                     kdir=d
                     break
         if kdir == None:
@@ -67,6 +70,6 @@ class Kcompile(load.Load):
 
     
 def create(dir, source, debug, num_cpus):
-    tarball = glob.glob("%s/linux-2.6*" % source)[0]
+    tarball = glob.glob("%s*" % os.path.join(source,kernel_prefix))[0]
     return Kcompile(tarball, dir, debug, num_cpus)
     
