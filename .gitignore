@@ -3,3 +3,6 @@
 *~
 run
 loadsource/linux-*
+rpm
+tarball
+*.bz2
