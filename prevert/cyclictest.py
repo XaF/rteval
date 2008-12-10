@@ -148,7 +148,16 @@ class Cyclictest(Thread):
             latency = int(pieces[2])
             self.data[cpu].sample(latency)
             self.data['system'].sample(latency)
-        for id in self.data.keys():
+        ids = self.data.keys()
+        ids.sort()
+        if 'system' in ids:
+            ids.remove('system')
+        c = self.data['system']
+        c.reduce()
+        print "\nOverall System Statistics"
+        c.report(sys.stdout)
+        print "Individual Core Statistics"
+        for id in ids:
             c = self.data[id]
             c.reduce()
             c.report(sys.stdout)
