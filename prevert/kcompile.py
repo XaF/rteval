@@ -7,8 +7,7 @@ from signal import SIGTERM
 sys.pathconf = "."
 import load
 
-#kernel_prefix="linux-2.6"
-kernel_prefix="linux-2.4"
+kernel_prefix="linux-2.6"
 
 class Kcompile(load.Load):
     def __init__(self, source=None, dir=None, debug=False, num_cpus=1):
