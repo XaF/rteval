@@ -116,6 +116,9 @@ def prevert():
                 ready = l.isReady()
                 time.sleep(1.0)
 
+        print "starting %d loads on %d cores" % (len(loads), num_cpu_cores)
+        print "Run duration: %d seconds" % duration
+
         # start the cyclictest thread
         debug("starting cyclictest")
         c.start()
