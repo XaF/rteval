@@ -8,6 +8,9 @@ runit:
 clean:
 	rm -f prevert/*~ prevert/*.py[co] *.tar.bz2
 
+realclean: clean
+	rm -rf run tarball rpm
+
 install:
 	python setup.py --dry-run install
 
