@@ -37,8 +37,9 @@ class Hackbench(load.Load):
         self.debug("building hackbench")
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
-        if os.path.exists("hackbench"):
-            os.remove("hackbench")
+        exe = os.path.join(self.mydir, "hackbench")
+        if os.path.exists(exe):
+            os.remove(exe)
         subprocess.call(["make", "-C", self.mydir], 
                               stdin=null, stdout=null, stderr=null)
         self.debug("hackbench built")
