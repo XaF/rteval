@@ -125,7 +125,9 @@ class Cyclictest(Thread):
         else:
             cmd.append("-t")
 
-        c = subprocess.Popen(cmd, stdout=self.outhandle)
+        null = os.open('/dev/null', os.O_RDWR)
+        c = subprocess.Popen(cmd, stdout=self.outhandle, 
+                             stderr=null, stdin=null)
         self.debug("cyclictest running for %.2f seconds" % self.duration)
         stoptime = time.time() + self.duration
         while time.time() < stoptime:
