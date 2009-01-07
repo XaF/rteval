@@ -33,6 +33,7 @@ keepdata = False
 verbose = False
 duration = 60.0
 interrupted = False
+sysreport = False
 
 def get_num_cores():
     f = open('/proc/cpuinfo')
@@ -60,6 +61,9 @@ def parse_options():
     parser.add_option("-l", "--loaddir", dest="loaddir",
                       type="string", default=loaddir,
                       help="directory for finding loads source")
+    parser.add_option("-s", "--sysreport", dest="sysreport",
+                      action="store_true", default=False,
+                      help='run sysreport to collect system data')
     (options, args) = parser.parse_args()
     return (options, args)
 
@@ -150,6 +154,8 @@ def prevert():
             l.stopevent.set()
 
     c.report()
+    if sysreport:
+        subprocess.call(['/usr/sbin/sysreport', '-dmidecode'])
 
 if __name__ == '__main__':
     prevert()
