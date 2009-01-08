@@ -4,7 +4,7 @@ VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec)
 D	:=	10
 
 runit:
-	python prevert/prevert.py -v --builddir=./run --loaddir=./loadsource --duration=$(D)
+	python prevert/prevert.py -v --builddir=./run --loaddir=./loadsource --duration=$(D) --keepdata
 
 clean:
 	rm -f prevert/*~ prevert/*.py[co] *.tar.bz2
