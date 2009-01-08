@@ -153,7 +153,7 @@ class Cyclictest(Thread):
         os.kill(c.pid, signal.SIGINT)
         os.close(self.outhandle)
 
-    def report(self):
+    def report(self, handle=None):
         f = open(self.outfile)
         for line in f:
             if line.startswith("Thread"): continue
@@ -169,7 +169,10 @@ class Cyclictest(Thread):
             ids.remove('system')
         c = self.data['system']
         c.reduce()
-        r = open(self.reportfile, "w")
+        if handle:
+            r = handle
+        else:
+            r = open(self.reportfile, "w")
         r.write("\nOverall System Statistics\n")
         c.report(r)
         r.write("Individual Core Statistics\n")
@@ -177,11 +180,8 @@ class Cyclictest(Thread):
             c = self.data[id]
             c.reduce()
             c.report(r)
-        r.close()
-        # print to stdout
-        r = open(self.reportfile)
-        for l in r:  print l[:-1]
-        r.close()
+        if not handle:
+            r.close()
 
 if __name__ == '__main__':
     c = CyclicTest()
