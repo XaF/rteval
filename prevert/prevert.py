@@ -48,7 +48,7 @@ def parse_options():
     parser = optparse.OptionParser()
     parser.add_option("-d", "--duration", dest="duration",
                       type="string", default="120",
-                      help="specify length of test run in seconds")
+                      help="specify length of test run")
     parser.add_option("-v", "--verbose", dest="verbose",
                       action="store_true", default=False,
                       help="turn on verbose prints")
@@ -117,7 +117,7 @@ def prevert():
         loads.append(m.create(builddir, loaddir, verbose, num_cpu_cores))
 
     debug("setting up cyclictest")
-    c = cyclictest.Cyclictest(duration=duration, debugging=verbose)
+    c = cyclictest.Cyclictest(duration=duration, debugging=verbose, keepdata=keepdata)
 
     try:
 
@@ -170,6 +170,7 @@ def prevert():
 
     c.report()
     if sysreport:
+        print "generating sysreport"
         subprocess.call(['/usr/sbin/sysreport', '-dmidecode'])
 
 if __name__ == '__main__':
