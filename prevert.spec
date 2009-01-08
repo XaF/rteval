@@ -46,6 +46,7 @@ install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 rm -rf $RPM_BUILD_ROOT
 
 %post
+rm -f /usr/bin/prevert
 ln -s %{python_sitelib}/prevert/prevert.py /usr/bin/prevert
 
 %files
