@@ -47,7 +47,7 @@ def get_num_cores():
 def parse_options():
     parser = optparse.OptionParser()
     parser.add_option("-d", "--duration", dest="duration",
-                      type="float", default=120.0,
+                      type="string", default="120",
                       help="specify length of test run in seconds")
     parser.add_option("-v", "--verbose", dest="verbose",
                       action="store_true", default=False,
@@ -65,6 +65,21 @@ def parse_options():
                       action="store_true", default=False,
                       help='run sysreport to collect system data')
     (options, args) = parser.parse_args()
+    if options.duration:
+        mult = 1.0
+        v = options.duration.lower()
+        if v.endswith('s'):
+            v = v[:-1]
+        elif v.endswith('m'):
+            v = v[:-1]
+            mult = 60.0
+        elif v.endswith('h'):
+            v = v[:-1]
+            mult = 3600.0
+        elif v.endswith('d'):
+            v = v[:-1]
+            mult = 3600.0 * 24.0
+        options.duration = float(v) * mult
     return (options, args)
 
 def debug(str):
