@@ -82,14 +82,26 @@ class RunData(object):
 
 class Cyclictest(Thread):
     def __init__(self, duration=60.0, priority = 95, 
-                 outfile = None, threads = None, debugging=False):
+                 outfile = None, threads = None, debugging=False,
+                 keepdata = False):
         Thread.__init__(self)
         self.duration = duration
+        # if run longer than an hour, increase sample interval
+        # to 100 microseconds
+        if duration > 3600:
+            self.interval = "-i100000"
+        # if run longer than 3 hours, increase to one millisecond
+        elif duration > 3600 * 3:
+            self.interval = "-i1000000"
+        # default to 10us interval
+        else:
+            self.interval = "-i10000"
         self.stopevent = Event()
         self.threads = threads
         self.priority = priority
         self.outfile = outfile
         self.debugging = debugging
+        self.reportfile = 'cyclictest.rpt'
         f = open('/proc/cpuinfo')
         self.data = {}
         numcores = 0
@@ -117,14 +129,15 @@ class Cyclictest(Thread):
         if self.outfile:
             self.outhandle = os.open(self.outfile, os.O_RDWR)
         else:
-            (self.outhandle, self.outfile) = tempfile.mkstemp()
+            (self.outhandle, self.outfile) = tempfile.mkstemp(prefix='cyclictest-', suffix='.dat')
 
-        cmd = ['cyclictest', '-nmv', "-p%d" % self.priority]
+        cmd = ['cyclictest', self.interval, '-nmv', "-p%d" % self.priority]
         if self.threads:
             cmd.append("-t%d" % self.threads)
         else:
             cmd.append("-t")
 
+        self.debug("starting cyclictest with cmd: %s" % " ".join(cmd))
         null = os.open('/dev/null', os.O_RDWR)
         c = subprocess.Popen(cmd, stdout=self.outhandle, 
                              stderr=null, stdin=null)
@@ -156,13 +169,19 @@ class Cyclictest(Thread):
             ids.remove('system')
         c = self.data['system']
         c.reduce()
-        print "\nOverall System Statistics"
-        c.report(sys.stdout)
-        print "Individual Core Statistics"
+        r = open(self.reportfile, "w")
+        r.write("\nOverall System Statistics\n")
+        c.report(r)
+        r.write("Individual Core Statistics\n")
         for id in ids:
             c = self.data[id]
             c.reduce()
-            c.report(sys.stdout)
+            c.report(r)
+        r.close()
+        # print to stdout
+        r = open(self.reportfile)
+        for l in r:  print l[:-1]
+        r.close()
 
 if __name__ == '__main__':
     c = CyclicTest()
