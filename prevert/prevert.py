@@ -14,6 +14,7 @@ import time
 import threading
 import subprocess
 import optparse
+from datetime import datetime
 
 sys.pathconf = "."
 import load
@@ -21,7 +22,7 @@ import hackbench
 import kcompile
 import cyclictest
 
-version = "0.1"
+version = "0.2"
 
 load_modules = (hackbench, kcompile)
 
@@ -34,6 +35,7 @@ verbose = False
 duration = 60.0
 interrupted = False
 sysreport = False
+reportfile = 'prevert.rpt'
 
 def get_num_cores():
     f = open('/proc/cpuinfo')
@@ -64,6 +66,8 @@ def parse_options():
     parser.add_option("-s", "--sysreport", dest="sysreport",
                       action="store_true", default=False,
                       help='run sysreport to collect system data')
+    parser.add_option("-r", "--report", dest="reportfile",
+                      type="string", default="prevert.rpt")
     (options, args) = parser.parse_args()
     if options.duration:
         mult = 1.0
@@ -104,6 +108,7 @@ def prevert():
     verbose  = opts.verbose
     duration = opts.duration
     keepdata = opts.keepdata
+    reportfile = opts.reportfile
 
     builddir = setup_builddir(opts.builddir)
 
@@ -138,6 +143,8 @@ def prevert():
         print "starting %d loads on %d cores" % (len(loads), num_cpu_cores)
         print "Run duration: %d seconds" % duration
 
+        start = datetime.now()
+
         # start the cyclictest thread
         debug("starting cyclictest")
         c.start()
@@ -167,8 +174,27 @@ def prevert():
         for l in loads:
             debug("\t%s" % l.name)
             l.stopevent.set()
+    end = datetime.now()
+    d = end - start
+    hours = d.seconds / 3600
+    if hours: d.seconds -= (hours * 3600)
+    minutes = d.seconds / 60
+    if minutes: d.seconds -= (minutes * 60)
 
-    c.report()
+    (sys, node, release, ver, machine) = os.uname()
+    r = open(reportfile, "w")
+    r.write('%s\n' % ('-' * 72))
+    r.write(' Prevert version %s\n' % version)
+    r.write(' Node: %s\n' % node)
+    r.write(' Kernel: %s\n' % release)
+    r.write(' Arch: %s\n' % machine)
+    if ver.find(' RT ') == -1:
+        r.write(' ******* NOT AN RT KERNEL! ********\n')
+    r.write(' Run Length: %d days %d hours, %d minutes, %d seconds\n' % 
+            (d.days, hours, minutes, d.seconds))
+    c.report(r)
+    r.write('%s\n' % ('-' * 72))
+
     if sysreport:
         print "generating sysreport"
         subprocess.call(['/usr/sbin/sysreport', '-dmidecode'])
