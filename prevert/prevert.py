@@ -176,10 +176,11 @@ def prevert():
             l.stopevent.set()
     end = datetime.now()
     d = end - start
-    hours = d.seconds / 3600
-    if hours: d.seconds -= (hours * 3600)
-    minutes = d.seconds / 60
-    if minutes: d.seconds -= (minutes * 60)
+    seconds = d.seconds
+    hours = seconds / 3600
+    if hours: seconds -= (hours * 3600)
+    minutes = seconds / 60
+    if minutes: seconds -= (minutes * 60)
 
     (sys, node, release, ver, machine) = os.uname()
     r = open(reportfile, "w")
@@ -191,7 +192,7 @@ def prevert():
     if ver.find(' RT ') == -1:
         r.write(' ******* NOT AN RT KERNEL! ********\n')
     r.write(' Run Length: %d days %d hours, %d minutes, %d seconds\n' % 
-            (d.days, hours, minutes, d.seconds))
+            (d.days, hours, minutes, seconds))
     c.report(r)
     r.write('%s\n' % ('-' * 72))
 
