@@ -6,3 +6,4 @@ loadsource/linux-*
 rpm
 tarball
 *.bz2
+*.rpt
