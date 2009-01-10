@@ -46,6 +46,16 @@ def get_num_cores():
     f.close()
     return numcores
 
+def get_memory_size():
+    f = open('/proc/meminfo')
+    for l in f:
+        if l.startswith('MemTotal:'):
+            size = int(l.split()[1])
+            f.close()
+            return size
+    raise RuntimeError, "can't find memtotal in /proc/meminfo!"
+
+
 def parse_options():
     parser = optparse.OptionParser()
     parser.add_option("-d", "--duration", dest="duration",
@@ -156,6 +166,11 @@ def prevert():
             nthreads += 1
     
 
+        # open the loadavg /proc entry
+        p = open("/proc/loadavg")
+        accum = 0.0
+        samples = 0
+
         # wait for time to expire or thread to die
         debug("waiting for duration (%f)" % duration)
         stoptime = (time.time() + duration)
@@ -164,6 +179,9 @@ def prevert():
             time.sleep(1.0)
             if len(threading.enumerate()) < nthreads:
                 raise RuntimeError, "load thread died!"
+            p.seek(0)
+            accum += float(p.readline().split()[0])
+            samples += 1
 
     finally:
         # stop cyclictest
@@ -189,10 +207,12 @@ def prevert():
     r.write(' Node: %s\n' % node)
     r.write(' Kernel: %s\n' % release)
     r.write(' Arch: %s\n' % machine)
+    r.write(' Memory: %0.2fMB\n' % (get_memory_size() / 1024.0 / 1024.0))
     if ver.find(' RT ') == -1:
         r.write(' ******* NOT AN RT KERNEL! ********\n')
     r.write(' Run Length: %d days %d hours, %d minutes, %d seconds\n' % 
             (d.days, hours, minutes, seconds))
+    r.write(' Average Load Average during run: %0.2f (%d samples)\n' % (accum / samples, samples))
     c.report(r)
     r.write('%s\n' % ('-' * 72))
 
