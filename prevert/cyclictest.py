@@ -10,8 +10,9 @@ import schedutils
 from threading import *
 
 class RunData(object):
-    def __init__(self, id):
+    def __init__(self, id, priority):
         self.id = id
+        self.priority = priority
         self.description = ''
         self.samples = []
         self.min = 100000000
@@ -68,7 +69,7 @@ class RunData(object):
         self.stddev = math.sqrt(self.variance)
 
     def report(self, f):
-        f.write("%s: %s\n" % (self.id, self.description))
+        f.write("%s: %s (priority: %d)\n" % (self.id, self.description, self.priority))
         f.write("\tsamples:  %d\n" % len(self.samples))
         f.write("\tminimum:  %dus\n" % self.min)
         f.write("\tmaximum:  %dus\n" % self.max)
@@ -108,12 +109,12 @@ class Cyclictest(Thread):
         for line in f:
             if line.startswith('processor'):
                 core = line.split()[-1]
-                self.data[core] = RunData(core)
+                self.data[core] = RunData(core, self.priority - int(core))
                 numcores += 1
             if line.startswith('model name'):
                 self.data[core].description = line.split(': ')[-1][:-1]
         f.close()
-        self.data['system'] = RunData('system')
+        self.data['system'] = RunData('system', self.priority)
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
@@ -131,15 +132,16 @@ class Cyclictest(Thread):
         else:
             (self.outhandle, self.outfile) = tempfile.mkstemp(prefix='cyclictest-', suffix='.dat')
 
-        cmd = ['cyclictest', self.interval, '-nmv', "-p%d" % self.priority]
+        self.cmd = ['cyclictest', self.interval, '-nmv', 
+                    "-p%d" % self.priority]
         if self.threads:
-            cmd.append("-t%d" % self.threads)
+            self.cmd.append("-t%d" % self.threads)
         else:
-            cmd.append("-t")
+            self.cmd.append("-t")
 
-        self.debug("starting cyclictest with cmd: %s" % " ".join(cmd))
+        self.debug("starting cyclictest with cmd: %s" % " ".join(self.cmd))
         null = os.open('/dev/null', os.O_RDWR)
-        c = subprocess.Popen(cmd, stdout=self.outhandle, 
+        c = subprocess.Popen(self.cmd, stdout=self.outhandle, 
                              stderr=null, stdin=null)
         self.debug("cyclictest running for %.2f seconds" % self.duration)
         stoptime = time.time() + self.duration
@@ -173,6 +175,7 @@ class Cyclictest(Thread):
             r = handle
         else:
             r = open(self.reportfile, "w")
+        r.write("    cyclictest: %s\n" % " ".join(self.cmd))
         r.write("\nOverall System Statistics\n")
         c.report(r)
         r.write("Individual Core Statistics\n")
