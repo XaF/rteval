@@ -192,6 +192,8 @@ def prevert():
         for l in loads:
             debug("\t%s" % l.name)
             l.stopevent.set()
+            l.join()
+
     end = datetime.now()
     d = end - start
     seconds = d.seconds
@@ -207,15 +209,21 @@ def prevert():
     r.write(' Node: %s\n' % node)
     r.write(' Kernel: %s\n' % release)
     r.write(' Arch: %s\n' % machine)
-    r.write(' Memory: %0.2fMB\n' % (get_memory_size() / 1024.0 / 1024.0))
+    r.write(' Memory: %0.2fGB\n' % (get_memory_size() / 1024.0 / 1024.0))
     if ver.find(' RT ') == -1:
         r.write(' ******* NOT AN RT KERNEL! ********\n')
     r.write(' Run Length: %d days %d hours, %d minutes, %d seconds\n' % 
             (d.days, hours, minutes, seconds))
     r.write(' Average Load Average during run: %0.2f (%d samples)\n' % (accum / samples, samples))
+    r.write('\nCommand lines:\n')
+    for l in loads:
+        l.report(r)
     c.report(r)
     r.write('%s\n' % ('-' * 72))
-
+    r.close()
+    r = open(reportfile, "r")
+    for l in r:
+        print l[:-1]
     if sysreport:
         print "generating sysreport"
         subprocess.call(['/usr/sbin/sysreport', '-dmidecode'])
