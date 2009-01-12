@@ -11,7 +11,8 @@ kernel_prefix="linux-2.6"
 
 class Kcompile(load.Load):
     def __init__(self, source=None, dir=None, debug=False, num_cpus=1):
-        load.Load.__init__(self, "kcompile", source, dir, debug, num_cpus)
+        load.Load.__init__(self, "kcompile", source, dir, 
+                           debug, num_cpus)
 
     def setup(self):
         # check for existing directory
@@ -56,16 +57,22 @@ class Kcompile(load.Load):
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
         self.debug("starting kcompile loop (jobs: %d)" % self.num_cpus)
-        args = ["make", "-C", self.mydir, 
-                "-j%d" % self.num_cpus, "clean", "bzImage", "modules"]
-        p = subprocess.Popen(args, stdin=null,stdout=null,stderr=null)
+        self.args = ["make", "-C", self.mydir, 
+                     "-j%d" % self.num_cpus, 
+                     "clean", "bzImage", "modules"]
+        p = subprocess.Popen(self.args, 
+                             stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
             time.sleep(1.0)
             if p.poll() != None:
                 p.wait()
-                p = subprocess.Popen(args,stdin=null,stdout=null,stderr=null)
+                p = subprocess.Popen(self.args,
+                                     stdin=null,stdout=null,stderr=null)
         self.debug("stopping kcompile")
         os.kill(p.pid, SIGTERM)
+
+    def report(self, f):
+        f.write("    kcompile: %s\n" % " ".join(self.args))
 
     
 def create(dir, source, debug, num_cpus):
