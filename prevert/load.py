@@ -55,4 +55,5 @@ class Load(threading.Thread):
                 break
         self.runload()
 
-
+    def report(self):
+        pass
