@@ -3,7 +3,7 @@
 
 
 Name:		prevert
-Version:	0.2
+Version:	0.3
 Release:	1%{?dist}
 Summary:	utility to measure event response time under load
 
