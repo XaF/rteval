@@ -51,16 +51,18 @@ class Hackbench(load.Load):
             return
         null = os.open("/dev/null", os.O_RDWR)
         self.debug("starting hackbench loop in %s" % os.getcwd())
-        args = [exe, "20"]
-        p = subprocess.Popen(args, stdin=null,stdout=null,stderr=null)
+        self.args = [exe, "20"]
+        p = subprocess.Popen(self.args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
             time.sleep(1.0)
             if p.poll() != None:
                 p.wait()
-                p = subprocess.Popen(args,stdin=null,stdout=null,stderr=null)
+                p = subprocess.Popen(self.args,stdin=null,stdout=null,stderr=null)
         self.debug("stopping hackbench")
         os.kill(p.pid, SIGTERM)
 
+    def report(self, f):
+        f.write("    hackbench: %s\n" % " ".join(self.args))
     
 def create(dir, source, debug, num_cpus):
     try:
