@@ -1,6 +1,7 @@
 #!/usr/bin/python -tt
 
-# PreVeRT - Pre-Verification for Real Time
+# rteval  - script for evaluating platform suitability for RT Linux
+#
 #           This program is used to determine the suitability of
 #           a system for use in a Real Time Linux environment.
 #           It starts up various system loads and measures event
@@ -28,14 +29,14 @@ load_modules = (hackbench, kcompile)
 
 defbuilddirs = ('/tmp', '/var/tmp', '/usr/tmp')
 
-loaddir = "/usr/share/prevert-%s/loadsource" % version
+loaddir = "/usr/share/rteval-%s/loadsource" % version
 builddir = None
 keepdata = False
 verbose = False
 duration = 60.0
 interrupted = False
 sysreport = False
-reportfile = 'prevert.rpt'
+reportfile = 'rteval.rpt'
 
 def get_num_cores():
     f = open('/proc/cpuinfo')
@@ -77,7 +78,7 @@ def parse_options():
                       action="store_true", default=False,
                       help='run sysreport to collect system data')
     parser.add_option("-r", "--report", dest="reportfile",
-                      type="string", default="prevert.rpt")
+                      type="string", default="rteval.rpt")
     (options, args) = parser.parse_args()
     if options.duration:
         mult = 1.0
@@ -103,14 +104,27 @@ def setup_builddir(dir):
     if dir == None:
         for d in defbuilddirs:
             if os.path.exists(d):
-                dir = os.path.join(d, 'prevert-builddir')
+                dir = os.path.join(d, 'rteval-builddir')
                 if not os.path.exists(dir): os.mkdir(dir)
                 break
     debug("build dir: %s" % dir)
     return dir
 
-def prevert():
-    global loaddir, verbose, duration, keepdata, builddir
+def do_sysreport():
+    if os.path.exists('/usr/sbin/sosreport'):
+        exe = '/usr/sbin/sosreport'
+    elif os.path.exists('/usr/sbin/sysreport'):
+        exe = '/usr/sbin/sysreport'
+    else:
+        raise RuntimeError, "Can't find sosreport/sysreport"
+
+    options =  ['-k', 'rpm.rpmvma=off']
+
+    print "Generating SOS report"
+    subprocess.call([exe] + options)
+
+def rteval():
+    global loaddir, verbose, duration, keepdata, builddir, sysreport
 
     (opts, args) = parse_options()
 
@@ -119,6 +133,19 @@ def prevert():
     duration = opts.duration
     keepdata = opts.keepdata
     reportfile = opts.reportfile
+    sysreport = opts.sysreport
+    
+    debug('''rteval options: 
+        loaddir: %s
+        verbose: %s
+        duration: %f
+        keepdata: %s
+        reportfile: %s
+        sysreport: %s''' % (loaddir, verbose, duration, 
+                            keepdata, builddir, sysreport))
+
+    if sysreport and os.getuid() != 0:
+        raise RuntimeError, "Must be root to get a sysreport"
 
     builddir = setup_builddir(opts.builddir)
 
@@ -205,7 +232,7 @@ def prevert():
     (sys, node, release, ver, machine) = os.uname()
     r = open(reportfile, "w")
     r.write('%s\n' % ('-' * 72))
-    r.write(' Prevert version %s\n' % version)
+    r.write(' rteval version %s\n' % version)
     r.write(' Node: %s\n' % node)
     r.write(' Kernel: %s\n' % release)
     r.write(' Arch: %s\n' % machine)
@@ -229,4 +256,4 @@ def prevert():
         subprocess.call(['/usr/sbin/sysreport', '-dmidecode'])
 
 if __name__ == '__main__':
-    prevert()
+    rteval()

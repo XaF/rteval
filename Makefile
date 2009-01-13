@@ -1,13 +1,16 @@
 HERE	:=	$(shell pwd)
-PACKAGE :=	prevert
+PACKAGE :=	rteval
 VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec)
 D	:=	10
 
 runit:
-	python prevert/prevert.py -v --builddir=./run --loaddir=./loadsource --duration=$(D) --keepdata
+	python rteval/rteval.py -v --builddir=./run --loaddir=./loadsource --duration=$(D) --keepdata
+
+sysreport:
+	python rteval/rteval.py -v --builddir=./run --loaddir=./loadsource --duration=$(D) --keepdata --sysreport
 
 clean:
-	rm -f prevert/*~ prevert/*.py[co] *.tar.bz2
+	rm -f rteval/*~ rteval/*.py[co] *.tar.bz2
 
 realclean: clean
 	rm -rf run tarball rpm
@@ -17,15 +20,15 @@ install:
 
 
 tarfile:
-	rm -rf tarball && mkdir -p tarball/prevert-$(VERSION)
-	cp -r prevert tarball/prevert-$(VERSION)
-	cp Makefile setup.py prevert.spec tarball/prevert-$(VERSION)
-	tar -C tarball -cjvf prevert-$(VERSION).tar.bz2 prevert-$(VERSION)
+	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)
+	cp -r rteval tarball/rteval-$(VERSION)
+	cp Makefile setup.py rteval.spec tarball/rteval-$(VERSION)
+	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
 rpm:	tarfile
 	rm -rf rpm
 	mkdir -p rpm/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
-	cp prevert-$(VERSION).tar.bz2 rpm/SOURCES
-	cp prevert.spec rpm/SPECS
+	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
+	cp rteval.spec rpm/SPECS
 	cp loadsource/* rpm/SOURCES
-	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/prevert.spec
+	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
