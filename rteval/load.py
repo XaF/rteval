@@ -46,7 +46,6 @@ class Load(threading.Thread):
         if self.stopevent.isSet():
             return
         self.build()
-        self.ready = True
         while True:
             if self.stopevent.isSet():
                 return
