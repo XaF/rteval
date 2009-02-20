@@ -43,6 +43,7 @@ class Hackbench(load.Load):
         subprocess.call(["make", "-C", self.mydir], 
                               stdin=null, stdout=null, stderr=null)
         self.debug("hackbench built")
+        self.ready = True
 
     def runload(self):
         exe = os.path.join(self.mydir, "hackbench")
