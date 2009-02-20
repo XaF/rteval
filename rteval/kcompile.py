@@ -45,14 +45,22 @@ class Kcompile(load.Load):
         if kdir == None:
             raise RuntimeError, "Can't find kernel directory!"
         self.mydir = os.path.join(self.dir, kdir)
+        self.debug("kcompile: mydir = %s\n" % self.mydir)
 
     def build(self):
         self.debug("kcompile setting up all module config file in %s" % os.getcwd())
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
-        subprocess.call(["make", "-C", self.mydir, "distclean", "allmodconfig"], 
-                        stdin=null, stdout=null, stderr=null)
+        try:
+            ret = subprocess.call(["make", "-C", self.mydir, "distclean", "allmodconfig"], 
+                                  stdin=null, stdout=null, stderr=null)
+            if ret:
+                raise RuntimeError, "kcompile setup failed: %d" % ret
+        except KeyboardInterrupt, m:
+            self.debug("keyboard interrupt, kcompile aborted")
+            return
         self.debug("kcompile ready to run")
+        self.ready = True
 
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
@@ -66,6 +74,7 @@ class Kcompile(load.Load):
             time.sleep(1.0)
             if p.poll() != None:
                 p.wait()
+                self.debug("restarting compile job")
                 p = subprocess.Popen(self.args,
                                      stdin=null,stdout=null,stderr=null)
         self.debug("stopping kcompile")
