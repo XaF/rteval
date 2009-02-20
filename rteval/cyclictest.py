@@ -82,19 +82,21 @@ class RunData(object):
         f.write("\n")
 
 class Cyclictest(Thread):
-    def __init__(self, duration=60.0, priority = 95, 
+    def __init__(self, duration=None, priority = 95, 
                  outfile = None, threads = None, debugging=False,
                  keepdata = False):
         Thread.__init__(self)
         self.duration = duration
-        # if run longer than an hour, increase sample interval
-        # to 100 microseconds
-        if duration > 3600:
-            self.interval = "-i100000"
-        # if run longer than 3 hours, increase to one millisecond
-        elif duration > 3600 * 3:
+        self.keepdata = keepdata
+        # if no duration or duration is greater than 3 hours
+        #  set sample interval to 1ms
+        if duration == None or duration > 3600 * 3:
             self.interval = "-i1000000"
-        # default to 10us interval
+        # if run between 1 and 3 hours set sample interval
+        #   to 100 microseconds
+        elif duration > 3600:
+            self.interval = "-i100000"
+        # less than 1hr run default to 10us interval
         else:
             self.interval = "-i10000"
         self.stopevent = Event()
@@ -120,7 +122,7 @@ class Cyclictest(Thread):
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
 
     def __del__(self):
-        if self.outfile:
+        if self.outfile and not self.keepdata and os.path.exists(self.outfile):
             os.remove(self.outfile)
 
     def debug(self, str):
@@ -143,12 +145,11 @@ class Cyclictest(Thread):
         null = os.open('/dev/null', os.O_RDWR)
         c = subprocess.Popen(self.cmd, stdout=self.outhandle, 
                              stderr=null, stdin=null)
-        self.debug("cyclictest running for %.2f seconds" % self.duration)
-        stoptime = time.time() + self.duration
-        while time.time() < stoptime:
+        while True:
             if self.stopevent.isSet():
                 break
             if c.poll():
+                self.debug("cyclictest process died! bailng out...")
                 break
             time.sleep(1.0)
         self.debug("stopping cyclictest")
@@ -175,14 +176,16 @@ class Cyclictest(Thread):
             r = handle
         else:
             r = open(self.reportfile, "w")
-        r.write("    cyclictest: %s\n" % " ".join(self.cmd))
-        r.write("\nOverall System Statistics\n")
+        r.write('\nCyclictest Command Line: %s\n' % " ".join(self.cmd))
+        if self.keepdata:
+            r.write('Cyclictest raw data: %s\n' % os.path.basename(self.outfile))
+        r.write('\nOverall System Statistics\n')
         c.report(r)
         r.write("Individual Core Statistics\n")
         for id in ids:
-            c = self.data[id]
-            c.reduce()
-            c.report(r)
+            d = self.data[id]
+            d.reduce()
+            d.report(r)
         if not handle:
             r.close()
 
