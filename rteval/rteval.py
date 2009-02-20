@@ -155,6 +155,7 @@ def report(duration, loads, cyclictest, accum, samples):
     r = open(reportfile, "w")
     r.write('%s\n' % ('-' * 72))
     r.write(' rteval version %s\n' % version)
+    r.write(' report: %s\n' % reportfile)
     r.write(' Node: %s\n' % node)
     r.write(' Kernel: %s\n' % release)
     r.write(' Arch: %s\n' % machine)
@@ -178,7 +179,7 @@ def report(duration, loads, cyclictest, accum, samples):
 def start_loads(loads):
     info ("starting loads:")
     for l in loads:
-	l.start()
+        l.start()
     # now wait until they're all ready
     info("waiting for ready from all loads")
     ready=False
@@ -200,9 +201,9 @@ def stop_loads(loads):
     info("stopping loads: ")
     for l in loads:
         info("\t%s" % l.name)
-	l.stopevent.set()
-	l.join(2.0)
-	
+        l.stopevent.set()
+        l.join(2.0)
+        
 def measure_latency(topdir):
     global loaddir, verbose, duration, keepdata, builddir, sysreport, reportfile
 
@@ -225,7 +226,7 @@ def measure_latency(topdir):
 
     try:
         # start the loads
-	start_loads(loads)
+        start_loads(loads)
 
         print "started %d loads on %d cores" % (len(loads), num_cpu_cores)
         print "Run duration: %d seconds" % duration
@@ -267,7 +268,7 @@ def measure_latency(topdir):
         c.stopevent.set()
 
         # stop the loads
-	stop_loads(loads)
+        stop_loads(loads)
 
     end = datetime.now()
     duration = end - start
@@ -313,7 +314,6 @@ def rteval():
         topdir = workdir
 
     measure_latency(topdir)
-
 
 
 if __name__ == '__main__':
