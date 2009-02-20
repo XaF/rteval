@@ -3,14 +3,14 @@
 
 
 Name:		rteval
-Version:	0.4
+Version:	0.5
 Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
 License:	GPL
 Source0:	rteval-%{version}.tar.bz2
-Source1:	linux-2.6.27.8-modified.tar.bz2
+Source1:	linux-2.6.26.1.tar.bz2
 Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -59,8 +59,14 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Fri Feb 20 2009 Clark Williams <williams@torg> - 0.5-1
+- fixed tab/space mix problem
+- added report path line to report
+
 * Fri Feb 20 2009 Clark Williams <williams@torg> - 0.4-1
 - reworked report output
 - handle keyboard interrupt better
 - removed duration mismatch between rteval and cyclictest
 
+* Mon Feb  2 2009 Clark Williams <williams@torg> - 0.3-1
+- initial checkin
