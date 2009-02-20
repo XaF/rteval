@@ -3,7 +3,7 @@
 
 
 Name:		rteval
-Version:	0.3
+Version:	0.4
 Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
@@ -59,3 +59,8 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Fri Feb 20 2009 Clark Williams <williams@torg> - 0.4-1
+- reworked report output
+- handle keyboard interrupt better
+- removed duration mismatch between rteval and cyclictest
+
