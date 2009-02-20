@@ -48,7 +48,7 @@ class Kcompile(load.Load):
         self.debug("kcompile: mydir = %s\n" % self.mydir)
 
     def build(self):
-        self.debug("kcompile setting up all module config file in %s" % os.getcwd())
+        self.debug("kcompile setting up all module config file in %s" % self.mydir)
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
         try:

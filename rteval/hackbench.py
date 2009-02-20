@@ -51,7 +51,7 @@ class Hackbench(load.Load):
             self.debug("Can't find hackbench exe!")
             return
         null = os.open("/dev/null", os.O_RDWR)
-        self.debug("starting hackbench loop in %s" % os.getcwd())
+        self.debug("starting hackbench loop in %s" % self.mydir)
         self.args = [exe, "20"]
         p = subprocess.Popen(self.args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
