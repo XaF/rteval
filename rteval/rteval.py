@@ -26,7 +26,7 @@ import hackbench
 import kcompile
 import cyclictest
 
-version = "0.4"
+version = "0.5"
 
 load_modules = (hackbench, kcompile)
 
