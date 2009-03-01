@@ -4,10 +4,10 @@ VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec)
 D	:=	10
 
 runit:
-	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) --keepdata
+	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D)
 
 sysreport:
-	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) --keepdata --sysreport
+	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) --sysreport
 
 clean:
 	rm -f rteval/*~ rteval/*.py[co] *.tar.bz2
