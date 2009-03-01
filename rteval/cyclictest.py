@@ -84,7 +84,7 @@ class RunData(object):
 class Cyclictest(Thread):
     def __init__(self, duration=None, priority = 95, 
                  outfile = None, threads = None, debugging=False,
-                 keepdata = False):
+                 keepdata = True):
         Thread.__init__(self)
         self.duration = duration
         self.keepdata = keepdata
