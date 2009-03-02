@@ -68,6 +68,32 @@ class RunData(object):
         # standard deviation
         self.stddev = math.sqrt(self.variance)
 
+    def xmlout(self, f, indent, tag, val):
+        f.write('%s<%s>%s</%s>\n' % ('\t'*indent, tag, val, tag))
+
+    def xmlopen(self, f, indent, tag):
+        f.write('%s<%s>\n' % ('\t'*indent, tag))
+        return indent + 1
+
+    def xmlclose(self, f, indent, tag):
+        indent -= 1
+        f.write('%s</%s>\n' % ('\t'*indent, tag))
+        return indent
+
+    def genxml(self, f, indent):
+        indent = self.xmlopen(f, indent, self.id)
+        self.xmlout(f, indent, 'description', self.description)
+        self.xmlout(f, indent, 'priority', str(self.priority))
+        self.xmlout(f, indent, 'samples', str(len(self.samples)))
+        self.xmlout(f, indent, 'minimum', str(self.min))
+        self.xmlout(f, indent, 'maximum', str(self.max))
+        self.xmlout(f, indent, 'median', str(self.median))
+        self.xmlout(f, indent, 'mode', str(self.mode))
+        self.xmlout(f, indent, 'range', str(self.range))
+        self.xmlout(f, indent, 'mean', str(self.mean))
+        self.xmlout(f, indent, 'standard_deviation', str(self.stddev))
+        indent = self.xmlclose(f, indent, self.id)
+
     def report(self, f):
         f.write("%s: %s (priority: %d)\n" % (self.id, self.description, self.priority))
         f.write("\tsamples:  %d\n" % len(self.samples))
@@ -155,6 +181,44 @@ class Cyclictest(Thread):
         self.debug("stopping cyclictest")
         os.kill(c.pid, signal.SIGINT)
         os.close(self.outhandle)
+
+    def xmlout(self, f, indent, tag, val):
+        f.write('%s<%s>%s</%s>\n' % ('\t'*indent, tag, val, tag))
+
+    def xmlopen(self, f, indent, tag):
+        f.write('%s<%s>\n' % ('\t'*indent, tag))
+        return indent + 1
+
+    def xmlclose(self, f, indent, tag):
+        indent -= 1
+        f.write('%s</%s>\n' % ('\t'*indent, tag))
+        return indent
+
+    def genxml(self, handle, indent):
+        indent = self.xmlopen(handle, indent, 'cyclictest')
+        self.xmlout(handle, indent, 'command_line', " ".join(self.cmd))
+
+        f = open(self.outfile)
+        for line in f:
+            if line.startswith("Thread"): continue
+            pieces = line.split()
+            if len(pieces) != 3:  continue
+            cpu = pieces[0][:-1]
+            latency = int(pieces[2])
+            self.data[cpu].sample(latency)
+            self.data['system'].sample(latency)
+        ids = self.data.keys()
+        ids.sort()
+        if 'system' in ids:
+            ids.remove('system')
+        c = self.data['system']
+        c.reduce()
+        c.genxml(handle, indent)
+        for id in ids:
+            d = self.data[id]
+            d.reduce()
+            d.genxml(handle, indent)
+        indent = self.xmlclose(handle, indent, 'cyclictest')
 
     def report(self, handle=None):
         f = open(self.outfile)

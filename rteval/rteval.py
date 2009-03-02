@@ -26,12 +26,10 @@ import hackbench
 import kcompile
 import cyclictest
 
-version = "0.5"
-load_modules = (hackbench, kcompile)
-deftmpdirs = ('/tmp', '/var/tmp', '/usr/tmp')
-
 class RtEval(object):
     def __init__(self):
+        self.version = "0.6"
+        self.load_modules = (hackbench, kcompile)
         self.keepdata = True
         self.verbose = False
         self.debugging = False
@@ -43,7 +41,8 @@ class RtEval(object):
         self.runlatency = True
         self.runsmi = False
         self.loads = []
-        self.loaddir = "/usr/share/rteval-%s/loadsource" % version
+        self.start = datetime.now()
+        self.loaddir = "/usr/share/rteval-%s/loadsource" % self.version
         self.tmpdir = self.find_biggest_tmp()
         self.topdir = os.getcwd()
         self.numcores = self.get_num_cores()
@@ -52,7 +51,7 @@ class RtEval(object):
     def find_biggest_tmp(self):
         dir = ''
         avail = 0;
-        for d in deftmpdirs:
+        for d in ('/tmp', '/var/tmp', '/usr/tmp'):
             a = os.statvfs(d)[statvfs.F_BAVAIL]
             if a > avail:
                 dir = d
@@ -152,6 +151,56 @@ class RtEval(object):
             shutil.move(s, self.reportdir)
     
 
+    def xmlout(self, f, indent, tag, val):
+        f.write('%s<%s>%s</%s>\n' % ('\t'*indent, tag, val, tag))
+
+    def xmlopen(self, f, indent, tag):
+        f.write('%s<%s>\n' % ('\t'*indent, tag))
+        return indent + 1
+
+    def xmlclose(self, f, indent, tag):
+        indent -= 1
+        f.write('%s</%s>\n' % ('\t'*indent, tag))
+        return indent
+
+    def genxml(self, duration, accum, samples):
+        seconds = duration.seconds
+        hours = seconds / 3600
+        if hours: seconds -= (hours * 3600)
+        minutes = seconds / 60
+        if minutes: seconds -= (minutes * 60)
+        (sys, node, release, ver, machine) = os.uname()
+
+        indent = 0
+        x = open(self.xml, "w")
+        x.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n')
+        indent = self.xmlopen(x, indent, 'rteval')
+        self.xmlout(x, indent, 'version', self.version)
+        self.xmlout(x, indent, 'run_date', self.start.strftime('%Y-%m-%d'))
+        self.xmlout(x, indent, 'run_time', self.start.strftime('%H:%M:%S'))
+        indent = self.xmlopen(x, indent, 'run_length')
+        self.xmlout(x, indent, 'days', duration.days)
+        self.xmlout(x, indent, 'hours', hours)
+        self.xmlout(x, indent, 'minutes', minutes)
+        self.xmlout(x, indent, 'seconds', seconds)
+        indent = self.xmlclose(x, indent, 'run_length')
+        indent = self.xmlopen(x, indent, 'uname')
+        self.xmlout(x, indent, 'node', node)
+        self.xmlout(x, indent, 'kernel', release)
+        self.xmlout(x, indent, 'arch', machine)
+        indent = self.xmlclose(x, indent, 'uname')
+        self.xmlout(x, indent, 'memory_size', self.memsize)
+        self.xmlout(x, indent, 'cpu_cores', self.numcores)
+        self.xmlout(x, indent, 'is_RT', ver.find(' RT ') != -1)
+        self.xmlout(x, indent, 'avg_load_avg', str(accum / samples))
+        indent = self.xmlopen(x, indent, 'load_commands')
+        for l in self.loads:
+            l.genxml(x, indent)
+        indent = self.xmlclose(x, indent, 'load_commands')
+        self.cyclictest.genxml(x, indent)
+        indent = self.xmlclose(x, indent, 'rteval')
+        x.close()
+        
     def report(self, duration, accum, samples):
         seconds = duration.seconds
         hours = seconds / 3600
@@ -162,7 +211,7 @@ class RtEval(object):
         (sys, node, release, ver, machine) = os.uname()
         r = open(self.reportfile, "w")
         r.write('%s\n' % ('-' * 72))
-        r.write(' rteval version %s\n' % version)
+        r.write(' rteval version %s\n' % self.version)
         r.write(' report: %s\n' % self.reportfile)
         r.write(' Node: %s\n' % node)
         r.write(' Kernel: %s\n' % release)
@@ -215,18 +264,31 @@ class RtEval(object):
             l.stopevent.set()
             l.join(2.0)
 
+    def make_report_dir(self):
+        t = self.start
+        i = 1
+        self.reportdir = os.path.join(self.topdir,
+                                      t.strftime("rteval-%Y%m%d-"+str(i)))
+        while os.path.exists(self.reportdir):
+            i += 1
+            self.reportdir = os.path.join(self.topdir,
+                                          t.strftime('rteval-%Y%m%d-'+str(i)))
+        if not os.path.isdir(self.reportdir): 
+            os.mkdir(self.reportdir)
+        return self.reportdir
+
     def measure_latency(self):
         builddir = os.path.join(self.tmpdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
-        self.reportdir = os.path.join(self.topdir, 'reports')
-        if not os.path.isdir(self.reportdir): os.mkdir(self.reportdir)
+        self.make_report_dir()
         self.reportfile = os.path.join(self.reportdir, "latency.rpt")
+        self.xml = os.path.join(self.reportdir, "latency.xml")
 
         nthreads = 0
 
         self.info("setting up loads")
         self.loads = []
-        for m in load_modules:
+        for m in self.load_modules:
             self.loads.append(m.create(builddir, self.loaddir, self.verbose, self.numcores))
 
         self.info("setting up cyclictest")
@@ -279,8 +341,9 @@ class RtEval(object):
 
         end = datetime.now()
         duration = end - start
-        self.report(duration, accum, samples)
-        shutil.move(self.cyclictest.outfile, self.reportdir)
+#        self.report(duration, accum, samples)
+#        shutil.move(self.cyclictest.outfile, self.reportdir)
+        self.genxml(duration, accum, samples)
 
         if self.sysreport:
             self.run_sysreport()
