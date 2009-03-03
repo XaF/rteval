@@ -193,33 +193,7 @@ class RtEval(object):
         x.closeblock()
         x.close()
         
-    def report(self, duration, accum, samples):
-        seconds = duration.seconds
-        hours = seconds / 3600
-        if hours: seconds -= (hours * 3600)
-        minutes = seconds / 60
-        if minutes: seconds -= (minutes * 60)
-        
-        (sys, node, release, ver, machine) = os.uname()
-        r = open(self.reportfile, "w")
-        r.write('%s\n' % ('-' * 72))
-        r.write(' rteval version %s\n' % self.version)
-        r.write(' report: %s\n' % self.reportfile)
-        r.write(' Node: %s\n' % node)
-        r.write(' Kernel: %s\n' % release)
-        r.write(' Arch: %s\n' % machine)
-        r.write(' Memory: %0.2fGB\n' % (self.memsize / 1024.0 / 1024.0))
-        if ver.find(' RT ') == -1:
-            r.write(' ******* NOT AN RT KERNEL! ********\n')
-        r.write(' Run Length: %d days %d hours, %d minutes, %d seconds\n' % 
-                (duration.days, hours, minutes, seconds))
-        r.write(' Average Load Average during run: %0.2f (%d samples)\n' % (accum / samples, samples))
-        r.write('\nLoad Command lines:\n')
-        for l in self.loads:
-            l.report(r)
-        self.cyclictest.report(r)
-        r.write('%s\n' % ('-' * 72))
-        r.close()
+    def report(self):
         r = open(self.reportfile, "r")
         for l in r:
             print l[:-1]

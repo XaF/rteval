@@ -70,18 +70,6 @@ class RunData(object):
         # standard deviation
         self.stddev = math.sqrt(self.variance)
 
-    def xmlout(self, f, indent, tag, val):
-        f.write('%s<%s>%s</%s>\n' % ('\t'*indent, tag, val, tag))
-
-    def xmlopen(self, f, indent, tag):
-        f.write('%s<%s>\n' % ('\t'*indent, tag))
-        return indent + 1
-
-    def xmlclose(self, f, indent, tag):
-        indent -= 1
-        f.write('%s</%s>\n' % ('\t'*indent, tag))
-        return indent
-
     def genxml(self, x):
         if self.type == 'system':
             x.openblock(self.type, {'description':self.description})
@@ -99,18 +87,6 @@ class RunData(object):
         x.closeblock()
         x.closeblock()
 
-    def report(self, f):
-        f.write("%s: %s (priority: %d)\n" % (self.id, self.description, self.priority))
-        f.write("\tsamples:  %d\n" % len(self.samples))
-        f.write("\tminimum:  %dus\n" % self.min)
-        f.write("\tmaximum:  %dus\n" % self.max)
-        f.write("\tmedian:   %dus\n" % self.median)
-        f.write("\tmode:     %dus\n" % self.mode)
-        f.write("\trange:    %dus\n" % self.range)
-        f.write("\tmean:     %0.2fus\n" % self.mean)
-        #f.write("\tvariance: %f\n" % self.variance)
-        f.write("\tstddev:   %0.2fus\n" % self.stddev)
-        f.write("\n")
 
 class Cyclictest(Thread):
     def __init__(self, duration=None, priority = 95, 
@@ -213,39 +189,6 @@ class Cyclictest(Thread):
             d.reduce()
             d.genxml(x)
         x.closeblock()
-
-    def report(self, handle=None):
-        f = open(self.outfile)
-        for line in f:
-            if line.startswith("Thread"): continue
-            pieces = line.split()
-            if len(pieces) != 3:  continue
-            cpu = pieces[0][:-1]
-            latency = int(pieces[2])
-            self.data[cpu].sample(latency)
-            self.data['system'].sample(latency)
-        ids = self.data.keys()
-        ids.sort()
-        if 'system' in ids:
-            ids.remove('system')
-        c = self.data['system']
-        c.reduce()
-        if handle:
-            r = handle
-        else:
-            r = open(self.reportfile, "w")
-        r.write('\nCyclictest Command Line: %s\n' % " ".join(self.cmd))
-        if self.keepdata:
-            r.write('Cyclictest raw data: %s\n' % os.path.basename(self.outfile))
-        r.write('\nOverall System Statistics\n')
-        c.report(r)
-        r.write("Individual Core Statistics\n")
-        for id in ids:
-            d = self.data[id]
-            d.reduce()
-            d.report(r)
-        if not handle:
-            r.close()
 
 if __name__ == '__main__':
     c = CyclicTest()

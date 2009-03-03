@@ -62,9 +62,6 @@ class Hackbench(load.Load):
         self.debug("stopping hackbench")
         os.kill(p.pid, SIGTERM)
 
-    def report(self, f):
-        f.write("    hackbench: %s\n" % " ".join(self.args))
-    
     def genxml(self, x):
         x.openblock('hackbench')
         x.taggedvalue('command_line', ' '.join(self.args))

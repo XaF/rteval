@@ -81,9 +81,6 @@ class Kcompile(load.Load):
         self.debug("stopping kcompile")
         os.kill(p.pid, SIGTERM)
 
-    def report(self, f):
-        f.write("    kcompile: %s\n" % " ".join(self.args))
-
     def genxml(self, x):
         x.openblock('kcompile')
         x.taggedvalue('command_line', ' '.join(self.args))
