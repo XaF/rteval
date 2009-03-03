@@ -8,10 +8,12 @@ import time
 import signal
 import schedutils
 from threading import *
+import xmlout
 
 class RunData(object):
-    def __init__(self, id, priority):
+    def __init__(self, id, type, priority):
         self.id = id
+        self.type = type
         self.priority = priority
         self.description = ''
         self.samples = []
@@ -80,19 +82,24 @@ class RunData(object):
         f.write('%s</%s>\n' % ('\t'*indent, tag))
         return indent
 
-    def genxml(self, f, indent):
-        indent = self.xmlopen(f, indent, self.id)
-        self.xmlout(f, indent, 'description', self.description)
-        self.xmlout(f, indent, 'priority', str(self.priority))
-        self.xmlout(f, indent, 'samples', str(len(self.samples)))
-        self.xmlout(f, indent, 'minimum', str(self.min))
-        self.xmlout(f, indent, 'maximum', str(self.max))
-        self.xmlout(f, indent, 'median', str(self.median))
-        self.xmlout(f, indent, 'mode', str(self.mode))
-        self.xmlout(f, indent, 'range', str(self.range))
-        self.xmlout(f, indent, 'mean', str(self.mean))
-        self.xmlout(f, indent, 'standard_deviation', str(self.stddev))
-        indent = self.xmlclose(f, indent, self.id)
+    def genxml(self, x):
+        if self.type == 'system':
+            x.openblock(self.type)
+            x.taggedvalue('description', self.description)
+        else:
+            x.openblock(self.type, {'id':self.id})
+            x.taggedvalue('priority', str(self.priority))
+        x.openblock('statistics')
+        x.taggedvalue('samples', str(len(self.samples)))
+        x.taggedvalue('minimum', str(self.min))
+        x.taggedvalue('maximum', str(self.max))
+        x.taggedvalue('median', str(self.median))
+        x.taggedvalue('mode', str(self.mode))
+        x.taggedvalue('range', str(self.range))
+        x.taggedvalue('mean', str(self.mean))
+        x.taggedvalue('standard_deviation', str(self.stddev))
+        x.closeblock()
+        x.closeblock()
 
     def report(self, f):
         f.write("%s: %s (priority: %d)\n" % (self.id, self.description, self.priority))
@@ -137,12 +144,12 @@ class Cyclictest(Thread):
         for line in f:
             if line.startswith('processor'):
                 core = line.split()[-1]
-                self.data[core] = RunData(core, self.priority - int(core))
+                self.data[core] = RunData(core, 'core', self.priority - int(core))
                 numcores += 1
             if line.startswith('model name'):
                 self.data[core].description = line.split(': ')[-1][:-1]
         f.close()
-        self.data['system'] = RunData('system', self.priority)
+        self.data['system'] = RunData('system', 'system', self.priority)
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
@@ -194,9 +201,9 @@ class Cyclictest(Thread):
         f.write('%s</%s>\n' % ('\t'*indent, tag))
         return indent
 
-    def genxml(self, handle, indent):
-        indent = self.xmlopen(handle, indent, 'cyclictest')
-        self.xmlout(handle, indent, 'command_line', " ".join(self.cmd))
+    def genxml(self, x):
+        x.openblock('cyclictest')
+        x.taggedvalue('command_line', " ".join(self.cmd))
 
         f = open(self.outfile)
         for line in f:
@@ -213,12 +220,12 @@ class Cyclictest(Thread):
             ids.remove('system')
         c = self.data['system']
         c.reduce()
-        c.genxml(handle, indent)
+        c.genxml(x)
         for id in ids:
             d = self.data[id]
             d.reduce()
-            d.genxml(handle, indent)
-        indent = self.xmlclose(handle, indent, 'cyclictest')
+            d.genxml(x)
+        x.closeblock()
 
     def report(self, handle=None):
         f = open(self.outfile)

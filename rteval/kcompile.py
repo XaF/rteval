@@ -6,6 +6,7 @@ import subprocess
 from signal import SIGTERM
 sys.pathconf = "."
 import load
+import xmlout
 
 kernel_prefix="linux-2.6"
 
@@ -83,8 +84,8 @@ class Kcompile(load.Load):
     def report(self, f):
         f.write("    kcompile: %s\n" % " ".join(self.args))
 
-    def genxml(self, f, indent):
-        f.write("%s<kcompile>%s</kcompile>\n" % ('\t'*indent, " ".join(self.args)))
+    def genxml(self, x):
+        x.taggedvalue('kcompile', ' '.join(self.args))
 
 def create(dir, source, debug, num_cpus):
     tarball = glob.glob("%s*" % os.path.join(source,kernel_prefix))[0]

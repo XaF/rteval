@@ -25,6 +25,7 @@ import load
 import hackbench
 import kcompile
 import cyclictest
+import xmlout
 
 class RtEval(object):
     def __init__(self):
@@ -151,18 +152,6 @@ class RtEval(object):
             shutil.move(s, self.reportdir)
     
 
-    def xmlout(self, f, indent, tag, val):
-        f.write('%s<%s>%s</%s>\n' % ('\t'*indent, tag, val, tag))
-
-    def xmlopen(self, f, indent, tag):
-        f.write('%s<%s>\n' % ('\t'*indent, tag))
-        return indent + 1
-
-    def xmlclose(self, f, indent, tag):
-        indent -= 1
-        f.write('%s</%s>\n' % ('\t'*indent, tag))
-        return indent
-
     def genxml(self, duration, accum, samples):
         seconds = duration.seconds
         hours = seconds / 3600
@@ -172,33 +161,35 @@ class RtEval(object):
         (sys, node, release, ver, machine) = os.uname()
 
         indent = 0
-        x = open(self.xml, "w")
-        x.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n')
-        indent = self.xmlopen(x, indent, 'rteval')
-        self.xmlout(x, indent, 'version', self.version)
-        self.xmlout(x, indent, 'run_date', self.start.strftime('%Y-%m-%d'))
-        self.xmlout(x, indent, 'run_time', self.start.strftime('%H:%M:%S'))
-        indent = self.xmlopen(x, indent, 'run_length')
-        self.xmlout(x, indent, 'days', duration.days)
-        self.xmlout(x, indent, 'hours', hours)
-        self.xmlout(x, indent, 'minutes', minutes)
-        self.xmlout(x, indent, 'seconds', seconds)
-        indent = self.xmlclose(x, indent, 'run_length')
-        indent = self.xmlopen(x, indent, 'uname')
-        self.xmlout(x, indent, 'node', node)
-        self.xmlout(x, indent, 'kernel', release)
-        self.xmlout(x, indent, 'arch', machine)
-        indent = self.xmlclose(x, indent, 'uname')
-        self.xmlout(x, indent, 'memory_size', self.memsize)
-        self.xmlout(x, indent, 'cpu_cores', self.numcores)
-        self.xmlout(x, indent, 'is_RT', ver.find(' RT ') != -1)
-        self.xmlout(x, indent, 'avg_load_avg', str(accum / samples))
-        indent = self.xmlopen(x, indent, 'load_commands')
-        for l in self.loads:
-            l.genxml(x, indent)
-        indent = self.xmlclose(x, indent, 'load_commands')
-        self.cyclictest.genxml(x, indent)
-        indent = self.xmlclose(x, indent, 'rteval')
+        x = xmlout.XMLOut(self.xml)
+        x.openblock('rteval', {'version':self.version})
+        x.openblock('run_info', ('days="%d"' % duration.days,
+                                 'hours="%d"' % hours,
+                                 'minutes="%d"' % minutes,
+                                 'seconds="%d"' % seconds))
+        x.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
+        x.taggedvalue('time', self.start.strftime('%H:%M:%S'))
+        x.closeblock()
+        x.openblock('uname')
+        x.taggedvalue('node', node)
+        isrt = 1
+        if ver.find(' RT ') == -1:
+            isrt = 0
+        x.taggedvalue('kernel', release, {'is_RT':isrt})
+        x.taggedvalue('arch', machine)
+        x.closeblock()
+
+        x.openblock('hardware')
+        x.taggedvalue('cpu_cores', self.numcores)
+        x.taggedvalue('memory_size', self.memsize)
+        x.closeblock()
+
+        x.taggedvalue('load_average', str(accum / samples))
+
+        for load in self.loads:
+            load.genxml(x)
+        self.cyclictest.genxml(x)
+        x.closeblock()
         x.close()
         
     def report(self, duration, accum, samples):

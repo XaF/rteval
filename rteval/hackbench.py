@@ -65,8 +65,8 @@ class Hackbench(load.Load):
     def report(self, f):
         f.write("    hackbench: %s\n" % " ".join(self.args))
     
-    def genxml(self, f, indent):
-        f.write("%s<hackbench>%s</hackbench>\n" % ('\t'*indent, " ".join(self.args)))
+    def genxml(self, x):
+        x.taggedvalue('hackbench', ' '.join(self.args))
 
 def create(dir, source, debug, num_cpus):
     try:

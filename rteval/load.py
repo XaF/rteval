@@ -56,3 +56,6 @@ class Load(threading.Thread):
 
     def report(self):
         pass
+
+    def genxml(self, x):
+        pass
