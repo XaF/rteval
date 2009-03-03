@@ -184,10 +184,11 @@ class RtEval(object):
         x.taggedvalue('memory_size', self.memsize)
         x.closeblock()
 
-        x.taggedvalue('load_average', str(accum / samples))
 
+        x.openblock('loads', {'load_average':str(accum / samples)})
         for load in self.loads:
             load.genxml(x)
+        x.closeblock()
         self.cyclictest.genxml(x)
         x.closeblock()
         x.close()

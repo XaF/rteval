@@ -85,7 +85,9 @@ class Kcompile(load.Load):
         f.write("    kcompile: %s\n" % " ".join(self.args))
 
     def genxml(self, x):
-        x.taggedvalue('kcompile', ' '.join(self.args))
+        x.openblock('kcompile')
+        x.taggedvalue('command_line', ' '.join(self.args))
+        x.closeblock()
 
 def create(dir, source, debug, num_cpus):
     tarball = glob.glob("%s*" % os.path.join(source,kernel_prefix))[0]

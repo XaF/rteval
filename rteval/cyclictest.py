@@ -84,11 +84,9 @@ class RunData(object):
 
     def genxml(self, x):
         if self.type == 'system':
-            x.openblock(self.type)
-            x.taggedvalue('description', self.description)
+            x.openblock(self.type, {'description':self.description})
         else:
-            x.openblock(self.type, {'id':self.id})
-            x.taggedvalue('priority', str(self.priority))
+            x.openblock(self.type, ('id="%s"' % self.id, 'priority="%d"' % self.priority))
         x.openblock('statistics')
         x.taggedvalue('samples', str(len(self.samples)))
         x.taggedvalue('minimum', str(self.min))
@@ -147,7 +145,8 @@ class Cyclictest(Thread):
                 self.data[core] = RunData(core, 'core', self.priority - int(core))
                 numcores += 1
             if line.startswith('model name'):
-                self.data[core].description = line.split(': ')[-1][:-1]
+                desc = line.split(': ')[-1][:-1]
+                self.data[core].description = ' '.join(desc.split())
         f.close()
         self.data['system'] = RunData('system', 'system', self.priority)
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
@@ -188,18 +187,6 @@ class Cyclictest(Thread):
         self.debug("stopping cyclictest")
         os.kill(c.pid, signal.SIGINT)
         os.close(self.outhandle)
-
-    def xmlout(self, f, indent, tag, val):
-        f.write('%s<%s>%s</%s>\n' % ('\t'*indent, tag, val, tag))
-
-    def xmlopen(self, f, indent, tag):
-        f.write('%s<%s>\n' % ('\t'*indent, tag))
-        return indent + 1
-
-    def xmlclose(self, f, indent, tag):
-        indent -= 1
-        f.write('%s</%s>\n' % ('\t'*indent, tag))
-        return indent
 
     def genxml(self, x):
         x.openblock('cyclictest')
