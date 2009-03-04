@@ -63,9 +63,7 @@ class Hackbench(load.Load):
         os.kill(p.pid, SIGTERM)
 
     def genxml(self, x):
-        x.openblock('hackbench')
-        x.taggedvalue('command_line', ' '.join(self.args))
-        x.closeblock()
+        x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
 
 def create(dir, source, debug, num_cpus):
     try:
