@@ -25,6 +25,8 @@ class XMLOut(object):
 
 
     def close(self):
+        if self.closed:
+            raise RuntimeError, "XMLOut: XML document already closed"
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at close"
         self.xmldoc.appendChild(self.currtag)
@@ -33,7 +35,7 @@ class XMLOut(object):
 
     def Write(self, file, xslt = None):
         if not self.closed:
-            raise RuntimeError, "XMLOut: XML file is not closed"
+            raise RuntimeError, "XMLOut: XML document is not closed"
 
         if xslt == None:
             # If no XSLT template is give, write raw XML
