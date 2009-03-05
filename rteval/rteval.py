@@ -18,6 +18,7 @@ import optparse
 import tempfile
 import statvfs
 import shutil
+import codecs
 from datetime import datetime
 
 sys.pathconf = "."
@@ -152,7 +153,7 @@ class RtEval(object):
             shutil.move(s, self.reportdir)
     
 
-    def genxml(self, duration, accum, samples):
+    def genxml(self, duration, accum, samples, xslt = None):
         seconds = duration.seconds
         hours = seconds / 3600
         if hours: seconds -= (hours * 3600)
@@ -161,12 +162,11 @@ class RtEval(object):
         (sys, node, release, ver, machine) = os.uname()
 
         indent = 0
-        x = xmlout.XMLOut(self.xml)
-        x.openblock('rteval', {'version':self.version})
-        x.openblock('run_info', ('days="%d"' % duration.days,
-                                 'hours="%d"' % hours,
-                                 'minutes="%d"' % minutes,
-                                 'seconds="%d"' % seconds))
+        x = xmlout.XMLOut('rteval', {'version':self.version})
+        x.openblock('run_info', {'days': duration.days,
+                                 'hours': hours,
+                                 'minutes': minutes,
+                                 'seconds': seconds})
         x.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
         x.taggedvalue('time', self.start.strftime('%H:%M:%S'))
         x.closeblock()
@@ -192,6 +192,15 @@ class RtEval(object):
         self.cyclictest.genxml(x)
         x.closeblock()
         x.close()
+
+        # Write XML (or write XSLT parsed XML if xslt != None)
+        if self.xml != None:
+            dstfile = codecs.open(self.xml, 'w', 'utf-8')
+            x.Write(dstfile, xslt)
+            dstfile.close()
+        else:
+            # If no file is set, use stdout
+            x.Write(sys.stdout, xslt)
         
     def report(self):
         r = open(self.reportfile, "r")
