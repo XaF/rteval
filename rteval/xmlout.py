@@ -37,7 +37,7 @@ class XMLOut(object):
 
         if xslt == None:
             # If no XSLT template is give, write raw XML
-            file.write(self.xmldoc.toxml(encoding=self.encoding))
+            file.write(self.xmldoc.toprettyxml(indent="  ", encoding=self.encoding))
             return
 
 
@@ -70,15 +70,16 @@ class XMLOut(object):
 
 
 if __name__ == '__main__':
-    x = XMLOut('rteval', {'version':"1.0"})
+    x = XMLOut('test_xml', {'version':"1.0"})
     x.openblock('test', {'testattr': "yes", 'works': "hopefully"})
     x.taggedvalue('foo', 'bar')
-    x.taggedvalue('baz', 'frooble', {'version':'1.0'})
-    x.openblock('subtag', {'level': "1"})
-    x.openblock('subtag', {'level': "2"})
+    x.taggedvalue('baz', 'frooble', {'attrvalue':"1.0"})
+    x.openblock('subtag', {'level': 1})
+    x.openblock('subtag', {'level': 2})
     x.taggedvalue('value','another value')
     x.closeblock()
     x.closeblock()
     x.closeblock()
+    x.taggedvalue('node2','yet another value', {'shortvalue': "yav"})
     x.close()
     x.Write(sys.stdout)
