@@ -1,16 +1,15 @@
 #!/usr/bin/python -tt
 import os
 import sys
-import xml.dom.ext
-import xml.dom.minidom
+import libxml2
 
 
 class XMLOut(object):
     '''Class to create XML output'''
     def __init__(self, roottag, attr, encoding='UTF-8'):
-        self.xmldoc = xml.dom.minidom.Document()
+        self.xmldoc = libxml2.newDoc("1.0")
 
-        self.xmlroot = self.xmldoc.createElement(roottag)
+        self.xmlroot = libxml2.newNode(roottag)
         self.__add_attributes(self.xmlroot, attr)
         self.currtag = self.xmlroot
         self.level = 0
@@ -21,7 +20,7 @@ class XMLOut(object):
     def __add_attributes(self, node, attr):
         if attr is not None:
             for k, v in attr.iteritems():
-                node.setAttribute(k, str(v))
+                node.newProp(k, str(v))
 
 
     def close(self):
@@ -29,7 +28,7 @@ class XMLOut(object):
             raise RuntimeError, "XMLOut: XML document already closed"
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at close"
-        self.xmldoc.appendChild(self.currtag)
+        self.xmldoc.setRootElement(self.xmlroot)
         self.closed = True
 
 
@@ -39,7 +38,7 @@ class XMLOut(object):
 
         if xslt == None:
             # If no XSLT template is give, write raw XML
-            file.write(self.xmldoc.toprettyxml(indent="  ", encoding=self.encoding))
+            self.xmldoc.formatDump(file, 1)
             return
 
 
@@ -49,9 +48,9 @@ class XMLOut(object):
 
 
     def openblock(self, tagname, attributes=None):
-        ntag = self.xmldoc.createElement(tagname);
+        ntag = libxml2.newNode(tagname);
         self.__add_attributes(ntag, attributes)
-        self.currtag.appendChild(ntag)
+        self.currtag.addChild(ntag)
         self.currtag = ntag
         self.level += 1
 
@@ -59,15 +58,13 @@ class XMLOut(object):
     def closeblock(self):
         if self.level == 0:
             raise RuntimeError, "XMLOut: no open tags to close"
-        self.currtag = self.currtag.parentNode
+        self.currtag = self.currtag.get_parent()
         self.level -= 1
 
 
     def taggedvalue(self, tag, value, attributes=None):
-        ntag = self.xmldoc.createElement(tag)
+        ntag = self.currtag.newTextChild(None, tag, value)
         self.__add_attributes(ntag, attributes)
-        ntag.appendChild(self.xmldoc.createTextNode(str(value)))
-        self.currtag.appendChild(ntag)
 
 
 
