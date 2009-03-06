@@ -74,7 +74,7 @@ class RunData(object):
         if self.type == 'system':
             x.openblock(self.type, {'description':self.description})
         else:
-            x.openblock(self.type, ('id="%s"' % self.id, 'priority="%d"' % self.priority))
+            x.openblock(self.type, {'id': self.id, 'priority': self.priority})
         x.openblock('statistics')
         x.taggedvalue('samples', str(len(self.samples)))
         x.taggedvalue('minimum', str(self.min))
