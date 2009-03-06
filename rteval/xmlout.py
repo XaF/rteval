@@ -18,6 +18,12 @@ class XMLOut(object):
         self.closed = False
 
 
+    def __del__(self):
+        if self.level > 0:
+            raise RuntimeError, "XMLOut: open blocks at close"
+        self.xmldoc.freeDoc()
+
+
     def __encode(self, value):
         if type(value) is unicode:
             val = value
@@ -79,10 +85,6 @@ class XMLOut(object):
             # Clean up
             resdoc.freeDoc()
             xsltdoc.freeDoc()
-
-    def __del__(self):
-        if self.level > 0:
-            raise RuntimeError, "XMLOut: open blocks at close"
 
 
     def openblock(self, tagname, attributes=None):
