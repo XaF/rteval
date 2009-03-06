@@ -3,24 +3,21 @@ import os
 import sys
 import libxml2
 
-
 class XMLOut(object):
     '''Class to create XML output'''
     def __init__(self, roottag, attr, encoding='UTF-8'):
+        self.encoding = encoding
         self.xmldoc = libxml2.newDoc("1.0")
-
         self.xmlroot = libxml2.newNode(roottag)
         self.__add_attributes(self.xmlroot, attr)
         self.currtag = self.xmlroot
         self.level = 0
         self.closed = False
-        self.encoding = encoding
-
 
     def __add_attributes(self, node, attr):
         if attr is not None:
             for k, v in attr.iteritems():
-                node.newProp(k, str(v))
+                node.newProp(k, unicode(str(v), self.encoding))
 
 
     def close(self):
@@ -32,13 +29,13 @@ class XMLOut(object):
         self.closed = True
 
 
-    def Write(self, file, xslt = None):
+    def Write(self, filename, xslt = None):
         if not self.closed:
             raise RuntimeError, "XMLOut: XML document is not closed"
 
         if xslt == None:
             # If no XSLT template is give, write raw XML
-            self.xmldoc.formatDump(file, 1)
+            self.xmldoc.saveFormatFileEnc(filename, self.encoding, 1)
             return
 
 
@@ -63,7 +60,7 @@ class XMLOut(object):
 
 
     def taggedvalue(self, tag, value, attributes=None):
-        ntag = self.currtag.newTextChild(None, tag, value)
+        ntag = self.currtag.newTextChild(None, tag, value.encode(self.encoding))
         self.__add_attributes(ntag, attributes)
 
 
@@ -79,6 +76,6 @@ if __name__ == '__main__':
     x.closeblock()
     x.closeblock()
     x.closeblock()
-    x.taggedvalue('node2','yet another value', {'shortvalue': "yav"})
+    x.taggedvalue('node2',u'yet another value \xe6\xf8', {'shortvalue': "yav"})
     x.close()
-    x.Write(sys.stdout)
+    x.Write("-")
