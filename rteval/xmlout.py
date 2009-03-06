@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/python -tt
 import os
 import sys
@@ -14,10 +15,24 @@ class XMLOut(object):
         self.level = 0
         self.closed = False
 
+
+    def __encode(self, value):
+        if type(value) is unicode:
+            val = value
+        elif type(value) is str:
+            val = unicode(value)
+        else:
+            val = unicode(str(value))
+
+        # libxml2 uses UTF-8 internally and must have
+        # all input as UTF-8.
+        return val.encode('utf-8')
+
+
     def __add_attributes(self, node, attr):
         if attr is not None:
             for k, v in attr.iteritems():
-                node.newProp(k, unicode(str(v), self.encoding))
+                node.newProp(k, self.__encode(v))
 
 
     def close(self):
@@ -37,7 +52,6 @@ class XMLOut(object):
             # If no XSLT template is give, write raw XML
             self.xmldoc.saveFormatFileEnc(filename, self.encoding, 1)
             return
-
 
     def __del__(self):
         if self.level > 0:
@@ -60,9 +74,8 @@ class XMLOut(object):
 
 
     def taggedvalue(self, tag, value, attributes=None):
-        ntag = self.currtag.newTextChild(None, tag, value.encode(self.encoding))
+        ntag = self.currtag.newTextChild(None, tag, self.__encode(value))
         self.__add_attributes(ntag, attributes)
-
 
 
 if __name__ == '__main__':
