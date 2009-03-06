@@ -45,7 +45,7 @@
 
   <!-- Format the cyclic test section of the report -->
   <xsl:template match="/rteval/cyclictest">
-   ** Cyclic test
+   Latency test
       Command: <xsl:value-of select="command_line"/>
 
       System:  <xsl:value-of select="system/@description"/>
@@ -67,11 +67,15 @@
 
   <!-- Generic formatting of statistics information -->
   <xsl:template match="statistics">
-          Min: <xsl:value-of select="minimum"/>   Max: <xsl:value-of select="maximum"/>   Mean: <xsl:value-of select="mean"/>
-          Std.dev: <xsl:value-of select="standard_deviation"/>       Median: <xsl:value-of select="median"/>
           Samples: <xsl:value-of select="samples"/>  
+          Mean: <xsl:value-of select="mean"/> 
+	  Median: <xsl:value-of select="median"/> 
+	  Mode: <xsl:value-of select="mode"/>
           Range: <xsl:value-of select="range"/>   
-          Mode: <xsl:value-of select="mode"/>
+	  Min: <xsl:value-of select="minimum"/>
+          Max: <xsl:value-of select="maximum"/> 
+          Std.dev: <xsl:value-of select="standard_deviation"/>       
+          
   </xsl:template>
 
 </xsl:stylesheet>
