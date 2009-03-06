@@ -42,12 +42,18 @@ class RtEval(object):
         self.runlatency = True
         self.runsmi = False
         self.loads = []
-        self.start = datetime.now()
-        self.loaddir = "/usr/share/rteval-%s/loadsource" % self.version
-        self.tmpdir = self.find_biggest_tmp()
         self.topdir = os.getcwd()
+        self.start = datetime.now()
+        self.mydir = '/usr/share/retval-%s' % self.version
+        if not os.path.exists(self.mydir):
+            self.mydir = os.path.join(self.topdir, "rteval")
+        if not os.path.exists(self.mydir):
+            raise RuntimeError, "Can't find rteval directory!"
+        self.loaddir = os.path.join(self.mydir, 'loadsource')
+        self.tmpdir = self.find_biggest_tmp()
         self.numcores = self.get_num_cores()
         self.memsize = self.get_memory_size()
+        self.xml = ''
 
     def find_biggest_tmp(self):
         dir = ''
@@ -190,20 +196,21 @@ class RtEval(object):
             load.genxml(x)
         x.closeblock()
         self.cyclictest.genxml(x)
-        x.closeblock()
         x.close()
 
         # Write XML (or write XSLT parsed XML if xslt != None)
         if self.xml != None:
-            x.Write(dstfile, xslt)
+            x.Write(self.xml, xslt)
         else:
             # If no file is set, use stdout
             x.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
-        
+
     def report(self):
-        r = open(self.reportfile, "r")
-        for l in r:
-            print l[:-1]
+        xslt = os.path.join(self.mydir, 'rteval_text.xsl')
+        if not os.path.exists(xslt):
+            raise RuntimeError, "can't find rteval_text.xsl"
+        subprocess.call(['xsltproc', xslt, self.xml])
+        
 
     def start_loads(self):
         if len(self.loads) == 0:
@@ -314,10 +321,9 @@ class RtEval(object):
 
         end = datetime.now()
         duration = end - start
-#        self.report(duration, accum, samples)
-#        shutil.move(self.cyclictest.outfile, self.reportdir)
         self.genxml(duration, accum, samples)
-
+        shutil.move(self.cyclictest.outfile, self.reportdir)
+        self.report()
         if self.sysreport:
             self.run_sysreport()
 
