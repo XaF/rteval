@@ -6,16 +6,21 @@ import libxml2
 import libxslt
 import codecs
 
+
 class XMLOut(object):
     '''Class to create XML output'''
-    def __init__(self, roottag, attr, encoding='UTF-8'):
+    def __init__(self, roottag, version, attr = None, encoding='UTF-8'):
         self.encoding = encoding
-        self.xmldoc = libxml2.newDoc("1.0")
-        self.xmlroot = libxml2.newNode(roottag)
-        self.__add_attributes(self.xmlroot, attr)
-        self.currtag = self.xmlroot
-        self.level = 0
-        self.closed = False
+        self.roottag = roottag
+        self.rootattr = attr
+        self.version = version
+        self.status = 0    # 0 - no report created/loaded, 1 - new report, 2 - loaded report, 3 - XML closed
+
+
+    def __del__(self):
+        if self.level > 0:
+            raise RuntimeError, "XMLOut: open blocks at close"
+        self.xmldoc.freeDoc()
 
 
     def __encode(self, value):
@@ -38,16 +43,63 @@ class XMLOut(object):
 
 
     def close(self):
-        if self.closed:
+        if self.status == 0:
+            raise RuntimeError, "XMLOut: No XML document is created nor loaded"
+        if self.status == 3:
             raise RuntimeError, "XMLOut: XML document already closed"
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at close"
-        self.xmldoc.setRootElement(self.xmlroot)
-        self.closed = True
 
+        if self.status == 1: # Only set the root node in the doc on created reports (NewReport called)
+            self.xmldoc.setRootElement(self.xmlroot)
+        self.status = 3
+
+
+    def NewReport(self):
+        if self.status != 0 and self.status != 3:
+            raise RuntimeError, "XMLOut: Cannot start a new report without closing the currently opened one"
+
+        if self.status == 3:
+            self.xmldoc.freeDoc() # Free the report from memory if we have one already
+
+        self.xmldoc = libxml2.newDoc("1.0")
+        self.xmlroot = libxml2.newNode(self.roottag)
+        self.__add_attributes(self.xmlroot, {'version': self.version})
+        self.__add_attributes(self.xmlroot, self.rootattr)
+        self.currtag = self.xmlroot
+        self.level = 0
+        self.status = 1
+
+
+    def LoadReport(self, filename, validate_version = False):
+        if self.status == 3:
+            self.xmldoc.freeDoc() # Free the report from memory if we have one already
+
+        self.xmldoc = libxml2.parseFile(filename)
+        if self.xmldoc.name != filename:
+            self.status = 3
+            raise RuntimeError, "XMLOut: Loading report failed"
+
+        root = self.xmldoc.children
+        if root.name != self.roottag:
+            self.status = 3
+            raise RuntimeError, "XMLOut: Loaded report is not a valid %s XML file" % self.roottag
+
+        if validate_version is True:
+            ver = root.hasProp('version')
+
+            if ver is None:
+                self.status = 3
+                raise RuntimeError, "XMLOut: Loaded report is missing version attribute in root node"
+
+            if ver.getContent() != self.version:
+                self.status = 3
+                raise RuntimeError, "XMLOut: Loaded report is not of version %s" % self.version
+
+        self.status = 2 # Confirm that we have loaded a report from file
 
     def Write(self, filename, xslt = None):
-        if not self.closed:
+        if self.status != 2 and self.status != 3:
             raise RuntimeError, "XMLOut: XML document is not closed"
 
         if xslt == None:
@@ -80,12 +132,10 @@ class XMLOut(object):
             resdoc.freeDoc()
             xsltdoc.freeDoc()
 
-    def __del__(self):
-        if self.level > 0:
-            raise RuntimeError, "XMLOut: open blocks at close"
-
 
     def openblock(self, tagname, attributes=None):
+        if self.status != 1:
+            raise RuntimeError, "XMLOut: openblock() cannot be called before NewReport() is called"
         ntag = libxml2.newNode(tagname);
         self.__add_attributes(ntag, attributes)
         self.currtag.addChild(ntag)
@@ -94,6 +144,8 @@ class XMLOut(object):
 
 
     def closeblock(self):
+        if self.status != 1:
+            raise RuntimeError, "XMLOut: closeblock() cannot be called before NewReport() is called"
         if self.level == 0:
             raise RuntimeError, "XMLOut: no open tags to close"
         self.currtag = self.currtag.get_parent()
@@ -101,12 +153,15 @@ class XMLOut(object):
 
 
     def taggedvalue(self, tag, value, attributes=None):
+        if self.status != 1:
+            raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
         ntag = self.currtag.newTextChild(None, tag, self.__encode(value))
         self.__add_attributes(ntag, attributes)
 
 
 if __name__ == '__main__':
-    x = XMLOut('rteval', {'version':"1.0"}, 'UTF-8')
+    x = XMLOut('rteval', '0.6', None, 'UTF-8')
+    x.NewReport()
     x.openblock('run_info', {'days': 0, 'hours': 0, 'minutes': 32, 'seconds': 18})
     x.taggedvalue('time', '11:22:33')
     x.taggedvalue('date', '2000-11-22')
@@ -128,4 +183,8 @@ if __name__ == '__main__':
     print "------------- XML OUTPUT ----------------------------"
     x.Write("-")
     print "------------- XSLT PARSED OUTPUT --------------------"
+    x.Write("-", "rteval_text.xsl")
+    print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    x.LoadReport("latency.xml", True)
+    x.Write("-")
     x.Write("-", "rteval_text.xsl")

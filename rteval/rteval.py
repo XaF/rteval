@@ -161,7 +161,8 @@ class RtEval(object):
         (sys, node, release, ver, machine) = os.uname()
 
         indent = 0
-        x = xmlout.XMLOut('rteval', {'version':self.version})
+        x = xmlout.XMLOut('rteval', self.version)
+        x.NewReport()
         x.openblock('run_info', {'days': duration.days,
                                  'hours': hours,
                                  'minutes': minutes,
