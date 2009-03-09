@@ -11,6 +11,9 @@ class Hackbench(load.Load):
     def __init__(self, source=None, dir=None, debug=False, num_cpus=1):
         load.Load.__init__(self, "hackbench", source, dir, debug, num_cpus)
 
+    def __del__(self):
+        subprocess.call(['killall', '-9', 'hackbench'])
+
     def setup(self):
         # check for existing directory
         self.mydir = os.path.join(self.dir, "hackbench")
