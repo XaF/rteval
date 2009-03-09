@@ -54,6 +54,7 @@ class RtEval(object):
         self.numcores = self.get_num_cores()
         self.memsize = self.get_memory_size()
         self.xml = ''
+        self.xmlreport = xmlout.XMLOut('rteval', self.version)
 
     def find_biggest_tmp(self):
         dir = ''
@@ -166,50 +167,52 @@ class RtEval(object):
         if minutes: seconds -= (minutes * 60)
         (sys, node, release, ver, machine) = os.uname()
 
-        indent = 0
-        x = xmlout.XMLOut('rteval', self.version)
-        x.NewReport()
-        x.openblock('run_info', {'days': duration.days,
+        # Start new XML report
+        self.xmlreport.NewReport()
+
+        self.xmlreport.openblock('run_info', {'days': duration.days,
                                  'hours': hours,
                                  'minutes': minutes,
                                  'seconds': seconds})
-        x.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
-        x.taggedvalue('time', self.start.strftime('%H:%M:%S'))
-        x.closeblock()
-        x.openblock('uname')
-        x.taggedvalue('node', node)
+        self.xmlreport.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
+        self.xmlreport.taggedvalue('time', self.start.strftime('%H:%M:%S'))
+        self.xmlreport.closeblock()
+        self.xmlreport.openblock('uname')
+        self.xmlreport.taggedvalue('node', node)
         isrt = 1
         if ver.find(' RT ') == -1:
             isrt = 0
-        x.taggedvalue('kernel', release, {'is_RT':isrt})
-        x.taggedvalue('arch', machine)
-        x.closeblock()
+        self.xmlreport.taggedvalue('kernel', release, {'is_RT':isrt})
+        self.xmlreport.taggedvalue('arch', machine)
+        self.xmlreport.closeblock()
 
-        x.openblock('hardware')
-        x.taggedvalue('cpu_cores', self.numcores)
-        x.taggedvalue('memory_size', self.memsize)
-        x.closeblock()
+        self.xmlreport.openblock('hardware')
+        self.xmlreport.taggedvalue('cpu_cores', self.numcores)
+        self.xmlreport.taggedvalue('memory_size', self.memsize)
+        self.xmlreport.closeblock()
 
 
-        x.openblock('loads', {'load_average':str(accum / samples)})
+        self.xmlreport.openblock('loads', {'load_average':str(accum / samples)})
         for load in self.loads:
-            load.genxml(x)
-        x.closeblock()
-        self.cyclictest.genxml(x)
-        x.close()
+            load.genxml(self.xmlreport)
+        self.xmlreport.closeblock()
+        self.cyclictest.genxml(self.xmlreport)
+
+        # Close the report - prepare for return the result
+        self.xmlreport.close()
 
         # Write XML (or write XSLT parsed XML if xslt != None)
         if self.xml != None:
-            x.Write(self.xml, xslt)
+            self.xmlreport.Write(self.xml, xslt)
         else:
             # If no file is set, use stdout
-            x.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
+            self.xmlreport.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
 
     def report(self):
         xslt = os.path.join(self.mydir, 'rteval_text.xsl')
         if not os.path.exists(xslt):
             raise RuntimeError, "can't find rteval_text.xsl"
-        subprocess.call(['xsltproc', xslt, self.xml])
+        self.xmlreport.Write("-", xslt)
         
 
     def start_loads(self):
