@@ -65,7 +65,7 @@ class XMLOut(object):
                     if type(v) is dict:
                         self.__parseToXML(node, v)
                     else:
-                        n = libxml2.newNode("tuples")
+                        n = libxml2.newNode(self.tuple_tagname)
                         self.__parseToXML(n, v)
                         node.addChild(n)
             else:
@@ -189,9 +189,11 @@ class XMLOut(object):
         self.__add_attributes(ntag, attributes)
 
 
-    def ParseData(self, tagname, data, attributes=None):
+    def ParseData(self, tagname, data, attributes=None, tuple_tagname="tuples"):
         if self.status != 1:
             raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
+
+        self.tuple_tagname = tuple_tagname
 
         ntag = libxml2.newNode(tagname)
         self.__add_attributes(ntag, attributes)
@@ -236,6 +238,8 @@ if __name__ == '__main__':
     x.ParseData("ParseTest", 1234, {"type": "integer"})
     x.ParseData("ParseTest", 39.3904, {"type": "float"})
     x.ParseData("ParseTest", (11,22,33,44,55), {"type": "tuples"})
+    x.ParseData("ParseTest", (99,88,77), {"type": "tuples", "comment": "Changed default tuple tag name"},
+                "int_values")
     test = {"var1": "value 1",
             "var2": { "varA1": 1,
                       "pi": 3.1415926,
