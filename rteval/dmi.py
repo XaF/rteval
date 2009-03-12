@@ -48,7 +48,7 @@ class DMIinfo(object):
         if name:
             if name.find('0x') != -1:
                 x.openblock('Section', 
-                            {'handle':name, 'type':d['dmi_type'], 'size':d['dmi_size']})
+                            {'handle':d['dmi_handle'], 'type':d['dmi_type'], 'size':d['dmi_size']})
                 del d['dmi_type']
                 del d['dmi_handle']
                 del d['dmi_size']

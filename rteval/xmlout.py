@@ -11,7 +11,7 @@ class XMLOut(object):
     '''Class to create XML output'''
     def __init__(self, roottag, version, attr = None, encoding='UTF-8'):
         self.encoding = encoding
-        self.roottag = roottag
+        self.roottag = self.__fixtag(roottag)
         self.rootattr = attr
         self.version = version
         self.status = 0    # 0 - no report created/loaded, 1 - new report, 2 - loaded report, 3 - XML closed
@@ -41,6 +41,10 @@ class XMLOut(object):
             for k, v in attr.iteritems():
                 node.newProp(k, self.__encode(v))
 
+
+    def __fixtag(self, tagname):
+        tmp = tagname.replace(' ', '_')
+        return tmp.replace('\t', '_')
 
     def close(self):
         if self.status == 0:
@@ -136,7 +140,7 @@ class XMLOut(object):
     def openblock(self, tagname, attributes=None):
         if self.status != 1:
             raise RuntimeError, "XMLOut: openblock() cannot be called before NewReport() is called"
-        ntag = libxml2.newNode(tagname);
+        ntag = libxml2.newNode(self.__fixtag(tagname));
         self.__add_attributes(ntag, attributes)
         self.currtag.addChild(ntag)
         self.currtag = ntag
@@ -155,7 +159,7 @@ class XMLOut(object):
     def taggedvalue(self, tag, value, attributes=None):
         if self.status != 1:
             raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
-        ntag = self.currtag.newTextChild(None, tag, self.__encode(value))
+        ntag = self.currtag.newTextChild(None, self.__fixtag(tag), self.__encode(value))
         self.__add_attributes(ntag, attributes)
 
 
