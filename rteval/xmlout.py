@@ -5,7 +5,7 @@ import sys
 import libxml2
 import libxslt
 import codecs
-
+import re
 
 class XMLOut(object):
     '''Class to create XML output'''
@@ -23,13 +23,17 @@ class XMLOut(object):
         self.xmldoc.freeDoc()
 
 
-    def __encode(self, value):
+    def __encode(self, value, tagmode = False):
         if type(value) is unicode:
             val = value
         elif type(value) is str:
             val = unicode(value)
         else:
             val = unicode(str(value))
+
+        if tagmode is True:
+            rx = re.compile(" ")
+            val = rx.sub("_", val)
 
         # libxml2 uses UTF-8 internally and must have
         # all input as UTF-8.
@@ -57,7 +61,7 @@ class XMLOut(object):
                 node.addChild(n)
             elif t is dict:
                 for (key, val) in data.iteritems():
-                    node2 = libxml2.newNode(self.__encode(key))
+                    node2 = libxml2.newNode(self.__encode(self.parsedata_prefix + key, True))
                     self.__parseToXML(node2, val)
                     node.addChild(node2)
             elif t is tuple:
@@ -189,11 +193,12 @@ class XMLOut(object):
         self.__add_attributes(ntag, attributes)
 
 
-    def ParseData(self, tagname, data, attributes=None, tuple_tagname="tuples"):
+    def ParseData(self, tagname, data, attributes=None, tuple_tagname="tuples", prefix = ""):
         if self.status != 1:
             raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
 
         self.tuple_tagname = tuple_tagname
+        self.parsedata_prefix = prefix
 
         ntag = libxml2.newNode(tagname)
         self.__add_attributes(ntag, attributes)
@@ -251,8 +256,8 @@ if __name__ == '__main__':
                       "varA4": {'another_level': True,
                                 'another_value': "blabla"}
                       },
-            "utf8_data": u'æøå',
+            "utf8 data": u'æøå',
             u"løpe": True}
-    x.ParseData("ParseTest", test, {"type": "dict"})
+    x.ParseData("ParseTest", test, {"type": "dict"}, prefix="test ")
     x.close()
     x.Write("-")
