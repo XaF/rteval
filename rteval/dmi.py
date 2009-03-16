@@ -57,19 +57,16 @@ class DMIinfo(object):
     '''class used to obtain DMI info via the 'dmidecode' utility'''
 
     def __init__(self):
-        self.dmi = None
+        self.version = '0.1'
+        self.smbios = None
         self.sections = ('bios', 'system', 'processor', 'baseboard',
                          'memory', 'cache', 'chassis', 'connector',
                          'slot')
-        try:
-            import dmidecode
-            self.dmi = dmidecode.dmi
-            self.section = {}
-            for s in self.sections:
-                self.section[s] = dmidecode.__dict__[s]()
-        except:
-            self.dmi = "no information available"
-
+        import dmidecode
+        self.smbios = dmidecode.dmi.replace('SMBIOS ', '').replace(' present', '')
+        self.section = {}
+        for s in self.sections:
+            self.section[s] = dmidecode.__dict__[s]()
 
     def xmlformat(self, x, d, name=None):
         if not d: return
@@ -117,15 +114,17 @@ class DMIinfo(object):
             x.closeblock()
 
     def genxml(self, xml):
+        xml.openblock('dmi', {'version':self.version, 'smbios_version':self.smbios})
         for s in self.sections:
             self.xmlformat(xml, self.section[s], s)
-        xml.close()
-        xml.Write('-')
+        xml.closeblock()
 
 if __name__ == '__main__':
     from pprint import pprint
     
     d = DMIinfo()
-    x = xmlout.XMLOut('dmi', d.dmi)
+    x = xmlout.XMLOut('dmi_test', "0.0")
     x.NewReport()
     d.genxml(x)
+    x.close()
+    x.Write('-')
