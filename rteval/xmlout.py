@@ -5,7 +5,7 @@ import sys
 import libxml2
 import libxslt
 import codecs
-
+import re
 
 class XMLOut(object):
     '''Class to create XML output'''
@@ -23,13 +23,17 @@ class XMLOut(object):
         self.xmldoc.freeDoc()
 
 
-    def __encode(self, value):
+    def __encode(self, value, tagmode = False):
         if type(value) is unicode:
             val = value
         elif type(value) is str:
             val = unicode(value)
         else:
             val = unicode(str(value))
+
+        if tagmode is True:
+            rx = re.compile(" ")
+            val = rx.sub("_", val)
 
         # libxml2 uses UTF-8 internally and must have
         # all input as UTF-8.
@@ -45,6 +49,36 @@ class XMLOut(object):
     def __fixtag(self, tagname):
         tmp = tagname.replace(' ', '_')
         return tmp.replace('\t', '_')
+
+
+    def __parseToXML(self, node, data):
+            # All supported variable types needs to be set up
+            # here.  TypeError exception will be raised on
+            # unknown types.
+
+            t = type(data)
+            if t is unicode or t is str or t is int or t is float:
+                n = libxml2.newText(self.__encode(data))
+                node.addChild(n)
+            elif t is bool:
+                v = data and "1" or "0"
+                n = libxml2.newText(self.__encode(v))
+                node.addChild(n)
+            elif t is dict:
+                for (key, val) in data.iteritems():
+                    node2 = libxml2.newNode(self.__encode(self.parsedata_prefix + key, True))
+                    self.__parseToXML(node2, val)
+                    node.addChild(node2)
+            elif t is tuple:
+                for v in data:
+                    if type(v) is dict:
+                        self.__parseToXML(node, v)
+                    else:
+                        n = libxml2.newNode(self.tuple_tagname)
+                        self.__parseToXML(n, v)
+                        node.addChild(n)
+            else:
+                raise TypeError, "unhandled type (%s) for value '%s'" % (type(data), unicode(data))
 
     def close(self):
         if self.status == 0:
@@ -163,6 +197,19 @@ class XMLOut(object):
         self.__add_attributes(ntag, attributes)
 
 
+    def ParseData(self, tagname, data, attributes=None, tuple_tagname="tuples", prefix = ""):
+        if self.status != 1:
+            raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
+
+        self.tuple_tagname = self.__fixtag(tuple_tagname)
+        self.parsedata_prefix = prefix
+
+        ntag = libxml2.newNode(self.__fixtag(tagname))
+        self.__add_attributes(ntag, attributes)
+        self.__parseToXML(ntag, data)
+        self.currtag.addChild(ntag)
+
+
 if __name__ == '__main__':
     x = XMLOut('rteval', '0.6', None, 'UTF-8')
     x.NewReport()
@@ -192,3 +239,29 @@ if __name__ == '__main__':
     x.LoadReport("latency.xml", True)
     x.Write("-")
     x.Write("-", "rteval_text.xsl")
+    x.close()
+
+    ##  Test new data parser ... it eats most data types
+    x.NewReport()
+    x.ParseData("ParseTest", "test string", {"type": "simple_string"})
+    x.ParseData("ParseTest", 1234, {"type": "integer"})
+    x.ParseData("ParseTest", 39.3904, {"type": "float"})
+    x.ParseData("ParseTest", (11,22,33,44,55), {"type": "tuples"})
+    x.ParseData("ParseTest", (99,88,77), {"type": "tuples", "comment": "Changed default tuple tag name"},
+                "int_values")
+    test = {"var1": "value 1",
+            "var2": { "varA1": 1,
+                      "pi": 3.1415926,
+                      "varA3": (1,
+                                2,
+                                {"test1": "val1"},
+                                (4.1,4.2,4.3),
+                                5),
+                      "varA4": {'another_level': True,
+                                'another_value': "blabla"}
+                      },
+            "utf8 data": u'æøå',
+            u"løpe": True}
+    x.ParseData("ParseTest", test, {"type": "dict"}, prefix="test ")
+    x.close()
+    x.Write("-")
