@@ -6,22 +6,34 @@ import libxml2
 import libxslt
 import codecs
 import re
+from string import maketrans
 
 class XMLOut(object):
     '''Class to create XML output'''
     def __init__(self, roottag, version, attr = None, encoding='UTF-8'):
         self.encoding = encoding
-        self.roottag = self.__fixtag(roottag)
         self.rootattr = attr
         self.version = version
         self.status = 0    # 0 - no report created/loaded, 1 - new report, 2 - loaded report, 3 - XML closed
-
+        self.tag_trans = self.__setup_tag_trans()
+        self.roottag = self.__fixtag(roottag)
 
     def __del__(self):
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at close"
         self.xmldoc.freeDoc()
 
+    def __setup_tag_trans(self):
+        t = maketrans('', '')
+        t = t.replace(' ', '_')
+        t = t.replace('\t', '_')
+        t = t.replace('(', '_')
+        t = t.replace(')', '_')
+        t = t.replace(':', '-')
+        return t
+
+    def __fixtag(self, tagname):
+        return tagname.translate(self.tag_trans)
 
     def __encode(self, value, tagmode = False):
         if type(value) is unicode:
@@ -44,11 +56,6 @@ class XMLOut(object):
         if attr is not None:
             for k, v in attr.iteritems():
                 node.newProp(k, self.__encode(v))
-
-
-    def __fixtag(self, tagname):
-        tmp = tagname.replace(' ', '_')
-        return tmp.replace('\t', '_')
 
 
     def __parseToXML(self, node, data):
