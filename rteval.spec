@@ -61,6 +61,7 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %changelog
 * Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-3
 - added Requires for libxslt-python (williams)
+- fixed race condition in xmlout constructor/destructor (williams)
 
 * Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-2
 - added Requires for libxslt (williams)
