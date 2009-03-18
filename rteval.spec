@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	0.6
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -61,6 +61,9 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-6
+- added code to handle binary data coming from DMI tables
+
 * Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-5
 - fixed logic for locating XSL template (williams)
 - fixed another stupid typo in specfile (williams)
