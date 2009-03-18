@@ -26,6 +26,7 @@ import hackbench
 import kcompile
 import cyclictest
 import xmlout
+import dmi
 
 class RtEval(object):
     def __init__(self):
@@ -198,6 +199,9 @@ class RtEval(object):
         self.xmlreport.closeblock()
         self.cyclictest.genxml(self.xmlreport)
 
+        d = dmi.DMIinfo()
+        d.genxml(self.xmlreport)
+        
         # Close the report - prepare for return the result
         self.xmlreport.close()
 
@@ -363,12 +367,8 @@ class RtEval(object):
 if __name__ == '__main__':
     import pwd, grp
     if os.getuid():
-        login = pwd.getpwuid(os.getuid())[0]
-        try:
-           if not login in grp.getgrnam('realtime')[3]:
-               raise RuntimeError, "must be root or a member of the 'realtime' group"
-        except:
-            raise RuntimeError, "realtime group does not exist! (please install rt-setup package)"
+        raise RuntimeError, "must be root to run rteval"
+
     try:
         RtEval().rteval()
     except KeyboardInterrupt:
