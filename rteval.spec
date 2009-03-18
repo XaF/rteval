@@ -15,6 +15,7 @@ Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	python gcc binutils make libxslt libxslt-python
+Requires:	python-dmidecode
 Requires: 	rt-tests >= 0.29
 BuildArch: 	noarch
 
