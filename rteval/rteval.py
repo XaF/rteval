@@ -45,11 +45,11 @@ class RtEval(object):
         self.loads = []
         self.topdir = os.getcwd()
         self.start = datetime.now()
-        self.mydir = '/usr/share/retval-%s' % self.version
+        self.mydir = '/usr/share/rteval-%s' % self.version
         if not os.path.exists(self.mydir):
             self.mydir = os.path.join(self.topdir, "rteval")
         if not os.path.exists(self.mydir):
-            raise RuntimeError, "Can't find rteval directory!"
+            raise RuntimeError, "Can't find rteval directory (%s)!" % sel.mydir
         self.loaddir = os.path.join(self.mydir, 'loadsource')
         self.tmpdir = self.find_biggest_tmp()
         self.numcores = self.get_num_cores()
