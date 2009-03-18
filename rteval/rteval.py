@@ -49,7 +49,10 @@ class RtEval(object):
         if not os.path.exists(self.mydir):
             self.mydir = os.path.join(self.topdir, "rteval")
         if not os.path.exists(self.mydir):
-            raise RuntimeError, "Can't find rteval directory (%s)!" % sel.mydir
+            raise RuntimeError, "Can't find rteval directory (%s)!" % self.mydir
+        self.xslt = os.path.join(self.mydir, "rteval_text.xsl")
+        if not os.path.exists(self.xslt):
+            raise RuntimeError, "can't find XSL template (%s)!" % self.xslt
         self.loaddir = os.path.join(self.mydir, 'loadsource')
         self.tmpdir = self.find_biggest_tmp()
         self.numcores = self.get_num_cores()
@@ -213,11 +216,7 @@ class RtEval(object):
             self.xmlreport.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
 
     def report(self):
-        xslt = os.path.join(self.mydir, 'rteval_text.xsl')
-        if not os.path.exists(xslt):
-            raise RuntimeError, "can't find rteval_text.xsl"
-        self.xmlreport.Write("-", xslt)
-        
+        self.xmlreport.Write("-", self.xslt)
 
     def start_loads(self):
         if len(self.loads) == 0:
@@ -273,7 +272,7 @@ class RtEval(object):
 
         nthreads = 0
 
-        self.info("setting up loads")
+        print "setting up loads"
         self.loads = []
         for m in self.load_modules:
             self.loads.append(m.create(builddir, self.loaddir, self.verbose, self.numcores))
