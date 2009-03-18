@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	0.6
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -43,6 +43,7 @@ mkdir -p $RPM_BUILD_ROOT/%{python_sitelib}
 python setup.py install --root $RPM_BUILD_ROOT
 install %{SOURCE1} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
+install rteval/rteval_text.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_text.xls
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -60,6 +61,9 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-4
+- fixed specfile to install rteval_text.xsl in /usr/share directory
+
 * Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-3
 - added Requires for libxslt-python (williams)
 - fixed race condition in xmlout constructor/destructor (williams)
