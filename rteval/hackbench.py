@@ -12,7 +12,9 @@ class Hackbench(load.Load):
         load.Load.__init__(self, "hackbench", source, dir, debug, num_cpus)
 
     def __del__(self):
-        subprocess.call(['killall', '-9', 'hackbench'])
+        null = open("/dev/null", "w")
+        subprocess.call(['killall', '-9', 'hackbench'], 
+                        stdout=null, stderr=null)
 
     def setup(self):
         # check for existing directory
