@@ -11,13 +11,14 @@ from string import maketrans
 class XMLOut(object):
     '''Class to create XML output'''
     def __init__(self, roottag, version, attr = None, encoding='UTF-8'):
+        self.level = 0
         self.encoding = encoding
         self.rootattr = attr
         self.version = version
         self.status = 0    # 0 - no report created/loaded, 1 - new report, 2 - loaded report, 3 - XML closed
         self.tag_trans = self.__setup_tag_trans()
         self.roottag = self.__fixtag(roottag)
-
+        
     def __del__(self):
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at close"
