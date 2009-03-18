@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	0.6
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -14,7 +14,7 @@ Source1:	linux-2.6.26.1.tar.bz2
 Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires:	python gcc binutils make libxslt
+Requires:	python gcc binutils make libxslt libxslt-python
 Requires: 	rt-tests >= 0.29
 BuildArch: 	noarch
 
@@ -59,6 +59,9 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-3
+- added Requires for libxslt-python (williams)
+
 * Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-2
 - added Requires for libxslt (williams)
 - fixed stupid typo in rteval/rteval.py (williams)
