@@ -34,6 +34,8 @@ class XMLOut(object):
         return t
 
     def __fixtag(self, tagname):
+        if not isinstance(tagname, str):
+            return str(tagname)
         return tagname.translate(self.tag_trans)
 
     def __encode(self, value, tagmode = False):
