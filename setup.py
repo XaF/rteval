@@ -9,8 +9,8 @@ import os
 PYTHONLIB = join(get_python_lib(standard_lib=1, prefix=''), 'site-packages')
 
 setup(name="rteval",
-      version = "0.1",
-      description = "PRE VErification for Real Time",
+      version = "0.6",
+      description = "evaluate system performance for Realtime",
       author = "Clark Williams",
       author_email = "williams@redhat.com",
       license = "GPLv2",

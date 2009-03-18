@@ -3,7 +3,7 @@
 
 
 Name:		rteval
-Version:	0.5
+Version:	0.6
 Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
@@ -59,6 +59,13 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-1
+- added xml output logic (williams, dsommers)
+- added xlst template for report generator (dsommers)
+- added dmi/smbios output to report (williams)
+- added __del__ method to hackbench to cleanup after run (williams)
+- modified to always keep run data (williams)
+
 * Fri Feb 20 2009 Clark Williams <williams@torg> - 0.5-1
 - fixed tab/space mix problem
 - added report path line to report
