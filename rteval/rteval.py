@@ -202,9 +202,6 @@ class RtEval(object):
         self.xmlreport.closeblock()
         self.cyclictest.genxml(self.xmlreport)
 
-        d = dmi.DMIinfo()
-        d.genxml(self.xmlreport)
-        
         # Close the report - prepare for return the result
         self.xmlreport.close()
 
@@ -214,6 +211,15 @@ class RtEval(object):
         else:
             # If no file is set, use stdout
             self.xmlreport.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
+
+        # now generate the dmidecode data for this host
+        dx = xmlout.XMLOut('sysdata', "0.1")
+        dx.NewReport()
+        d = dmi.DMIinfo()
+        d.genxml(dx)
+        dx.close()
+        dx.Write(os.path.join(self.reportdir, "dmidecode.xml"))
+        
 
     def report(self):
         self.xmlreport.Write("-", self.xslt)
