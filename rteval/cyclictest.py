@@ -109,7 +109,10 @@ class Cyclictest(Thread):
         self.stopevent = Event()
         self.threads = threads
         self.priority = priority
-        self.outfile = outfile
+        if outfile:
+            self.outfile = outfile
+        else:
+            self.outfile = "cyclictest.dat"
         self.debugging = debugging
         self.reportfile = 'cyclictest.rpt'
         f = open('/proc/cpuinfo')
@@ -138,7 +141,7 @@ class Cyclictest(Thread):
 
     def run(self):
         if self.outfile:
-            self.outhandle = os.open(self.outfile, os.O_RDWR)
+            self.outhandle = os.open(self.outfile, os.O_RDWR|os.O_CREAT)
         else:
             (self.outhandle, self.outfile) = tempfile.mkstemp(prefix='cyclictest-', suffix='.dat')
 
