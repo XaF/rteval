@@ -6,22 +6,34 @@ import libxml2
 import libxslt
 import codecs
 import re
+from string import maketrans
 
 class XMLOut(object):
     '''Class to create XML output'''
     def __init__(self, roottag, version, attr = None, encoding='UTF-8'):
         self.encoding = encoding
-        self.roottag = roottag
         self.rootattr = attr
         self.version = version
         self.status = 0    # 0 - no report created/loaded, 1 - new report, 2 - loaded report, 3 - XML closed
-
+        self.tag_trans = self.__setup_tag_trans()
+        self.roottag = self.__fixtag(roottag)
 
     def __del__(self):
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at close"
         self.xmldoc.freeDoc()
 
+    def __setup_tag_trans(self):
+        t = maketrans('', '')
+        t = t.replace(' ', '_')
+        t = t.replace('\t', '_')
+        t = t.replace('(', '_')
+        t = t.replace(')', '_')
+        t = t.replace(':', '-')
+        return t
+
+    def __fixtag(self, tagname):
+        return tagname.translate(self.tag_trans)
 
     def __encode(self, value, tagmode = False):
         if type(value) is unicode:
@@ -74,7 +86,6 @@ class XMLOut(object):
                         node.addChild(n)
             else:
                 raise TypeError, "unhandled type (%s) for value '%s'" % (type(data), unicode(data))
-
 
     def close(self):
         if self.status == 0:
@@ -170,7 +181,7 @@ class XMLOut(object):
     def openblock(self, tagname, attributes=None):
         if self.status != 1:
             raise RuntimeError, "XMLOut: openblock() cannot be called before NewReport() is called"
-        ntag = libxml2.newNode(tagname);
+        ntag = libxml2.newNode(self.__fixtag(tagname));
         self.__add_attributes(ntag, attributes)
         self.currtag.addChild(ntag)
         self.currtag = ntag
@@ -189,7 +200,7 @@ class XMLOut(object):
     def taggedvalue(self, tag, value, attributes=None):
         if self.status != 1:
             raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
-        ntag = self.currtag.newTextChild(None, tag, self.__encode(value))
+        ntag = self.currtag.newTextChild(None, self.__fixtag(tag), self.__encode(value))
         self.__add_attributes(ntag, attributes)
 
 
@@ -197,10 +208,10 @@ class XMLOut(object):
         if self.status != 1:
             raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
 
-        self.tuple_tagname = tuple_tagname
+        self.tuple_tagname = self.__fixtag(tuple_tagname)
         self.parsedata_prefix = prefix
 
-        ntag = libxml2.newNode(tagname)
+        ntag = libxml2.newNode(self.__fixtag(tagname))
         self.__add_attributes(ntag, attributes)
         self.__parseToXML(ntag, data)
         self.currtag.addChild(ntag)
