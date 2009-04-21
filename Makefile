@@ -4,6 +4,7 @@ VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec)
 D	:=	10
 
 runit:
+	[ -d ./run ] || mkdir run
 	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D)
 
 sysreport:
