@@ -339,6 +339,20 @@ class RtEval(object):
         if self.sysreport:
             self.run_sysreport()
 
+    def tar_results(self):
+        if not os.path.isdir(self.reportdir):
+            raise RuntimeError, "no such directory: %s" % self.reportdir
+        import tarfile
+        dirname = os.path.dirname(self.reportdir)
+        rptdir = os.path.basename(self.reportdir)
+        cwd = os.getcwd()
+        os.chdir(dirname)
+        try:
+            t = tarfile.open(rptdir + ".tar.bz2", "w:bz2")
+            t.add(rptdir)
+            t.close()
+        except:
+            os.chdir(cwd)
 
     def rteval(self):
         (opts, args) = self.parse_options()
@@ -358,16 +372,19 @@ class RtEval(object):
         verbose: %s
         debugging: %s
         duration: %f
-        sysreport: %s''' % (workdir, self.loaddir, self.verbose, self.debugging, self.duration, self.sysreport))
+        sysreport: %s''' % (workdir, self.loaddir, self.verbose, 
+                            self.debugging, self.duration, self.sysreport))
 
         if not os.path.isdir(workdir):
             raise RuntimeError, "work directory %d does not exist" % workdir
 
-        if (workdir != self.topdir):
+        if workdir != self.topdir:
             self.topdir = workdir
 
-        if self.runlatency: self.measure_latency()
-
+        if self.runlatency: 
+            self.measure_latency()
+            self.tar_results()
+        
 
 if __name__ == '__main__':
     import pwd, grp
