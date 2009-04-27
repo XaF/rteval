@@ -3,8 +3,8 @@
 
 
 Name:		rteval
-Version:	0.6
-Release:	6%{?dist}
+Version:	0.7
+Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -15,7 +15,7 @@ Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	python gcc binutils make libxslt libxslt-python
-Requires:	python-dmidecode
+Requires:	python-dmidecode python-schedutils
 Requires: 	rt-tests >= 0.29
 BuildArch: 	noarch
 
