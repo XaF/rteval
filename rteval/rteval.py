@@ -30,7 +30,7 @@ import dmi
 
 class RtEval(object):
     def __init__(self):
-        self.version = "0.6"
+        self.version = "0.7"
         self.load_modules = (hackbench, kcompile)
         self.keepdata = True
         self.verbose = False
@@ -202,6 +202,10 @@ class RtEval(object):
         self.xmlreport.closeblock()
         self.cyclictest.genxml(self.xmlreport)
 
+        # now generate the dmidecode data for this host
+        d = dmi.DMIinfo()
+        d.genxml(self.xmlreport)
+        
         # Close the report - prepare for return the result
         self.xmlreport.close()
 
@@ -212,14 +216,6 @@ class RtEval(object):
             # If no file is set, use stdout
             self.xmlreport.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
 
-        # now generate the dmidecode data for this host
-        dx = xmlout.XMLOut('sysdata', "0.1")
-        dx.NewReport()
-        d = dmi.DMIinfo()
-        d.genxml(dx)
-        dx.close()
-        dx.Write(os.path.join(self.reportdir, "dmidecode.xml"))
-        
 
     def report(self):
         self.xmlreport.Write("-", self.xslt)
@@ -273,8 +269,8 @@ class RtEval(object):
         builddir = os.path.join(self.tmpdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
         self.make_report_dir()
-        self.reportfile = os.path.join(self.reportdir, "latency.rpt")
-        self.xml = os.path.join(self.reportdir, "latency.xml")
+        self.reportfile = os.path.join(self.reportdir, "summary.rpt")
+        self.xml = os.path.join(self.reportdir, "summary.xml")
 
         nthreads = 0
 
