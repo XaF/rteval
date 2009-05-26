@@ -42,6 +42,7 @@ class RtEval(object):
         self.reportfile = None
         self.runlatency = True
         self.runsmi = False
+        self.runoprofile = False
         self.loads = []
         self.topdir = os.getcwd()
         self.start = datetime.now()
@@ -110,11 +111,17 @@ class RtEval(object):
                           action="store_true", default=False,
                           help='run sysreport to collect system data')
         parser.add_option("-L", '--latency', dest='latency',
-                          action="store_true", default=False)
+                          action="store_true", default=False,
+                          help='run latency detector (default)')
         parser.add_option("-S", '--smi', dest='smi',
-                          action="store_true", default=False)
+                          action="store_true", default=False,
+                          help='run smi detector (not implemented)')
         parser.add_option("-D", '--debug', dest='debugging',
-                          action='store_true', default=False)
+                          action='store_true', default=False,
+                          help='turn on debug prints')
+        parser.add_option("-O", '--oprofile', dest='oprofile',
+                          action='store_true', default=False,
+                          help='run oprofile while running evaluation (not implemented)')
 
         (options, args) = parser.parse_args()
         if options.duration:
@@ -349,6 +356,23 @@ class RtEval(object):
             t.close()
         except:
             os.chdir(cwd)
+
+    def oprofile_setup(self):
+        if self.runoprofile == False:
+            return
+        rel = os.uname()[2]
+        vmlinux = os.path.join('/usr/lib/debug/lib/modules', rel)
+        if not os.path.exists(vmlinux):
+            print "Can't run oprofile. Load kernel-rt-debuginfo packages."
+            return
+        ret = subprocess.call(['opcontrol', '--init'])
+        if ret:
+            print "failed to run opcontrol --init! is oprofile installed?"
+            return
+        ret = subprocess.call(['opcontrol', '--vmlinux=%s' % vmlinux])
+        if ret:
+            print "opcontrol failed to set vmlinux image: %s" % vmlinux
+            return
 
     def rteval(self):
         (opts, args) = self.parse_options()
