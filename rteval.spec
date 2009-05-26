@@ -61,6 +61,13 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %{python_sitelib}/*.egg-info
 %endif
 %changelog
+* Tue Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
+- added require for python-schedutils to specfile
+- added default for cyclictest output file
+- added help parameter to option parser data
+- renamed xml output file to summary.xml
+- added routine to create tarfile of result files
+
 * Wed Mar 18 2009 Clark Williams <williams@torg> - 0.6-6
 - added code to handle binary data coming from DMI tables
 
