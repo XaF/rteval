@@ -219,6 +219,12 @@ class XMLOut(object):
         self.__parseToXML(ntag, data)
         self.currtag.addChild(ntag)
 
+    def AppendXMLnodes(self, nodes):
+        if not isinstance(nodes, libxml2.xmlNode):
+            raise ValueError, "Input value is not a libxml2.xmlNode"
+
+        return self.currtag.addChild(nodes)
+
 
 if __name__ == '__main__':
     x = XMLOut('rteval', '0.6', None, 'UTF-8')
