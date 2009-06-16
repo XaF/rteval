@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	0.7
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -44,6 +44,7 @@ python setup.py install --root $RPM_BUILD_ROOT
 install %{SOURCE1} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 install rteval/rteval_text.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_text.xsl
+install rteval/rteval_dmi.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_dmi.xsl
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -56,11 +57,19 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %defattr(-,root,root,-)
 %attr(0755, root, root) %{python_sitelib}/rteval
 %doc
-/usr/share/%{name}-%{version}/*
+%attr(0644, root, root) /usr/share/%{name}-%{version}/loadsource/*
+%attr(0644, root, root) /usr/share/%{name}-%{version}/rteval_text.xsl
+%attr(0644, root, root) /usr/share/%{name}-%{version}/rteval_dmi.xsl
+
 %if "%{python_ver}" >= "2.5"
 %{python_sitelib}/*.egg-info
 %endif
+
 %changelog
+* Tue Jun 16 2009 David Sommerseth <dsommers@wsdsommers.usersys.redhat.com> - 0.7-2
+- Added rteval_dmi.xsl
+- Fixed permission issues in /usr/share/rteval-x.xx
+
 * Tue Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
 - added require for python-schedutils to specfile
 - added default for cyclictest output file

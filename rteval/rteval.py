@@ -210,7 +210,7 @@ class RtEval(object):
         self.cyclictest.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
-        d = dmi.DMIinfo()
+        d = dmi.DMIinfo(self.mydir)
         d.genxml(self.xmlreport)
         
         # Close the report - prepare for return the result
