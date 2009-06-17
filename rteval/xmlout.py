@@ -21,7 +21,7 @@ class XMLOut(object):
         
     def __del__(self):
         if self.level > 0:
-            raise RuntimeError, "XMLOut: open blocks at close"
+            raise RuntimeError, "XMLOut: open blocks at __del__ (last opened '%s')" % self.currtag.name
         self.xmldoc.freeDoc()
 
     def __setup_tag_trans(self):
@@ -96,7 +96,7 @@ class XMLOut(object):
         if self.status == 3:
             raise RuntimeError, "XMLOut: XML document already closed"
         if self.level > 0:
-            raise RuntimeError, "XMLOut: open blocks at close"
+            raise RuntimeError, "XMLOut: open blocks at close() (last opened '%s')" % self.currtag.name
 
         if self.status == 1: # Only set the root node in the doc on created reports (NewReport called)
             self.xmldoc.setRootElement(self.xmlroot)
