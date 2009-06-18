@@ -6,6 +6,7 @@
     <HardwareInfo>
       <xsl:attribute name="SerialNo"><xsl:value-of select="SystemInfo/SerialNumber"/></xsl:attribute>
       <xsl:attribute name="SystemUUID"><xsl:value-of select="SystemInfo/SystemUUID"/></xsl:attribute>
+      <xsl:copy-of select="/dmidecode/DMIversion"/>
       <xsl:apply-templates select="SystemInfo|BIOSinfo"/>
 
       <SystemProcessors>
