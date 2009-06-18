@@ -189,7 +189,7 @@ class XMLOut(object):
         self.currtag.addChild(ntag)
         self.currtag = ntag
         self.level += 1
-
+        return ntag
 
     def closeblock(self):
         if self.status != 1:
@@ -198,13 +198,14 @@ class XMLOut(object):
             raise RuntimeError, "XMLOut: no open tags to close"
         self.currtag = self.currtag.get_parent()
         self.level -= 1
-
+        return self.currtag
 
     def taggedvalue(self, tag, value, attributes=None):
         if self.status != 1:
             raise RuntimeError, "XMLOut: taggedvalue() cannot be called before NewReport() is called"
         ntag = self.currtag.newTextChild(None, self.__fixtag(tag), self.__encode(value))
         self.__add_attributes(ntag, attributes)
+        return ntag
 
 
     def ParseData(self, tagname, data, attributes=None, tuple_tagname="tuples", prefix = ""):
@@ -218,6 +219,7 @@ class XMLOut(object):
         self.__add_attributes(ntag, attributes)
         self.__parseToXML(ntag, data)
         self.currtag.addChild(ntag)
+        return ntag
 
     def AppendXMLnodes(self, nodes):
         if not isinstance(nodes, libxml2.xmlNode):
