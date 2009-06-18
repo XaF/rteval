@@ -331,13 +331,12 @@ class RtEval(object):
             # stop cyclictest
             self.cyclictest.stopevent.set()
             
-        # stop the loads
+            # stop the loads
             self.stop_loads()
 
         end = datetime.now()
         duration = end - start
         self.genxml(duration, accum, samples)
-        shutil.move(self.cyclictest.outfile, self.reportdir)
         self.report()
         if self.sysreport:
             self.run_sysreport()

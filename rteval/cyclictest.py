@@ -8,6 +8,7 @@ import time
 import signal
 import schedutils
 from threading import *
+import libxml2
 import xmlout
 
 class RunData(object):
@@ -91,7 +92,7 @@ class RunData(object):
 class Cyclictest(Thread):
     def __init__(self, duration=None, priority = 95, 
                  outfile = None, threads = None, debugging=False,
-                 keepdata = True):
+                 keepdata = False):
         Thread.__init__(self)
         self.duration = duration
         self.keepdata = keepdata
@@ -132,9 +133,9 @@ class Cyclictest(Thread):
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
 
+
     def __del__(self):
-        if self.outfile and not self.keepdata and os.path.exists(self.outfile):
-            os.remove(self.outfile)
+        pass
 
     def debug(self, str):
         if self.debugging: print str
@@ -171,27 +172,58 @@ class Cyclictest(Thread):
         x.openblock('cyclictest')
         x.taggedvalue('command_line', " ".join(self.cmd))
 
+        samplenodes = libxml2.newNode('RawSampleData')
+        grouptags = {}
+
+        # Parse the cyclictest results
         f = open(self.outfile)
         for line in f:
-            if line.startswith("Thread"): continue
-            pieces = line.split()
-            if len(pieces) != 3:  continue
-            cpu = pieces[0][:-1]
-            latency = int(pieces[2])
-            self.data[cpu].sample(latency)
-            self.data['system'].sample(latency)
-        ids = self.data.keys()
-        ids.sort()
-        if 'system' in ids:
-            ids.remove('system')
-        c = self.data['system']
-        c.reduce()
-        c.genxml(x)
-        for id in ids:
+            pieces = line.split(':')
+
+            if line.startswith("Thread"):
+                # Parse "header" info
+                thread = int(pieces[0].split()[1])
+
+                # Create a thread node for each separate thread which we find
+                node = libxml2.newNode('Thread')
+                node.newProp('id', str(thread))
+                node.newProp('interval', str(int(pieces[1])))
+
+                # Add a direct pointer to each thread
+                grouptags[thread] = node
+
+                # Add this thread node to the complete sample set
+                samplenodes.addChild(node)
+            else:
+                # Parse sample data - must have 3 parts
+                if len(pieces) == 3:
+                    # Split up the data - convert to integers, to be sure
+                    # we process them as integers later on (spaces, invalid data, etc)
+                    cpu = int(pieces[0])
+                    seq = int(pieces[1])
+                    latency = int(pieces[2])
+
+                    # Create a sample node
+                    sample_n = libxml2.newNode('Sample')
+                    sample_n.newProp('seq', str(seq))
+                    sample_n.newProp('latency', str(latency))
+
+                    # Append this sample node to the corresponding thread node
+                    grouptags[cpu].addChild(sample_n)
+
+                    # Record the latency for calculations later on
+                    self.data[str(cpu)].sample(latency)
+                    self.data['system'].sample(latency)
+
+        for id in self.data.keys():
             d = self.data[id]
             d.reduce()
             d.genxml(x)
+        x.AppendXMLnodes(samplenodes)
         x.closeblock()
+
+        if self.outfile and not self.keepdata and os.path.exists(self.outfile):
+            os.remove(self.outfile)
 
 if __name__ == '__main__':
     c = CyclicTest()
