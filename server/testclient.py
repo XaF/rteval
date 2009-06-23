@@ -1,5 +1,6 @@
 import rtevalclient
 import libxml2
+import StringIO
 
 print "** Creating doc"
 d = libxml2.newDoc("1.0")
@@ -15,6 +16,14 @@ print "** Doc to be sent"
 d.saveFormatFileEnc('-','UTF-8', 1)
 
 client = rtevalclient.rtevalclient()
-client.SendReport(d)
+
+# print client.SendReport(d)
+
+server_fname = client.SendDataAsFile('test.data', "this is just a simple test file")
+print "1:  File name on server: %s" % server_fname
+
+server_fname = client.SendFile('test.log')
+print "2:  File name on server: %s" % server_fname
+
 
 
