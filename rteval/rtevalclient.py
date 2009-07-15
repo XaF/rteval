@@ -28,9 +28,9 @@ class rtevalclient:
         compr = bz2.BZ2Compressor(9)
         compr.compress(fbuf.getvalue())
         data = base64.b64encode(compr.flush())
-        print "rtevalclient::SendReport() - Sending %i bytes (XML document length: %i bytes, compression ratio: %.02f%%)" % (len(data), doclen, (1-(float(len(data)) / float(doclen)))*100 )
-        return self.srv.SendReport(self.hostname, data)
-
+        ret = self.srv.SendReport(self.hostname, data)
+        print "rtevalclient::SendReport() - Sent %i bytes (XML document length: %i bytes, compression ratio: %.02f%%)" % (len(data), doclen, (1-(float(len(data)) / float(doclen)))*100 )
+        return ret
 
     def SendDataAsFile(self, fname, data, decompr = False):
         compr = bz2.BZ2Compressor(9)

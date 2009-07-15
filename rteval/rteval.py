@@ -18,6 +18,7 @@ import optparse
 import tempfile
 import statvfs
 import shutil
+import rtevalclient
 from datetime import datetime
 
 sys.pathconf = "."
@@ -122,6 +123,9 @@ class RtEval(object):
         parser.add_option("-O", '--oprofile', dest='oprofile',
                           action='store_true', default=False,
                           help='run oprofile while running evaluation (not implemented)')
+        parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpchost',
+                          action='store', default=None,
+                          help='Hostname to XML-RPC server to submit reports', metavar='HOST')
 
         (options, args) = parser.parse_args()
         if options.duration:
@@ -225,6 +229,7 @@ class RtEval(object):
 
 
     def report(self):
+        "Create a screen report, based on a predefined XSLT template"
         self.xmlreport.Write("-", self.xslt)
 
     def start_loads(self):
@@ -308,7 +313,6 @@ class RtEval(object):
                 l.startevent.set()
                 nthreads += 1
                 
-
             # open the loadavg /proc entry
             p = open("/proc/loadavg")
             accum = 0.0
@@ -340,6 +344,18 @@ class RtEval(object):
         self.report()
         if self.sysreport:
             self.run_sysreport()
+
+        # if --xmlrpc-submit | -X was given, send our report to this host
+        if self.xmlrpchost:
+            if self.xmlrpchost.find(":") < 1:
+                url = "http://%s:65432/rteval/API1" % self.xmlrpchost
+            else:
+                url = "http://%s/rteval/API1" % self.xmlrpchost
+
+            client = rtevalclient.rtevalclient(url)
+            print "Submitting report to %s" % url
+            client.SendReport(self.xmlreport.GetXMLdocument())
+
 
     def tar_results(self):
         if not os.path.isdir(self.reportdir):
@@ -381,6 +397,7 @@ class RtEval(object):
         self.debugging = opts.debugging
         self.duration = opts.duration
         self.sysreport = opts.sysreport
+        self.xmlrpchost = opts.xmlrpchost
 
         if self.sysreport and os.getuid() != 0:
             raise RuntimeError, "Must be root to get a sysreport"
