@@ -18,11 +18,13 @@ class XMLOut(object):
         self.status = 0    # 0 - no report created/loaded, 1 - new report, 2 - loaded report, 3 - XML closed
         self.tag_trans = self.__setup_tag_trans()
         self.roottag = self.__fixtag(roottag)
-        
+        self.xmldoc = None
+
     def __del__(self):
         if self.level > 0:
             raise RuntimeError, "XMLOut: open blocks at __del__ (last opened '%s')" % self.currtag.name
-        self.xmldoc.freeDoc()
+        if self.xmldoc is not None:
+            self.xmldoc.freeDoc()
 
     def __setup_tag_trans(self):
         t = maketrans('', '')
@@ -180,6 +182,10 @@ class XMLOut(object):
             resdoc.freeDoc()
             xsltdoc.freeDoc()
 
+    def GetXMLdocument(self):
+        if self.status != 2 and self.status != 3:
+            raise RuntimeError, "XMLOut: XML document is not closed"
+        return self.xmldoc
 
     def openblock(self, tagname, attributes=None):
         if self.status != 1:
