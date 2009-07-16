@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	0.7
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -15,7 +15,8 @@ Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	python gcc binutils make libxslt libxslt-python
-Requires:	python-dmidecode python-schedutils
+Requires:	python-schedutils
+Requires:	python-dmidecode >= 3.10
 Requires: 	rt-tests >= 0.29
 BuildArch: 	noarch
 
@@ -66,7 +67,10 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
-* Tue Jun 16 2009 David Sommerseth <dsommers@wsdsommers.usersys.redhat.com> - 0.7-2
+* Thu Jul 16 2009 David Sommerseth <davids@redhat.com> - 0.7-3
+- Specify minimum python-dmidecode version, which got native XML support
+
+* Tue Jun 16 2009 David Sommerseth <davids@redhat.com> - 0.7-2
 - Added rteval_dmi.xsl
 - Fixed permission issues in /usr/share/rteval-x.xx
 
