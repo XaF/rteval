@@ -16,6 +16,8 @@
    Memory:       <xsl:value-of select="hardware/memory_size"/> KB
    Kernel:       <xsl:value-of select="uname/kernel"/> <xsl:if test="uname/kernel/@is_RT = '1'"> (RT enabled)</xsl:if>
    Architecture: <xsl:value-of select="uname/arch"/>
+   Clocksource:  <xsl:value-of select="clocksource/current"/>
+   Available:    <xsl:value-of select="clocksource/available"/>
    
    Load commands:
        Load average: <xsl:value-of select="loads/@load_average"/>

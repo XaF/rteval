@@ -19,7 +19,6 @@ realclean: clean
 install:
 	python setup.py --dry-run install
 
-
 tarfile:
 	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)
 	cp -r rteval tarball/rteval-$(VERSION)
@@ -33,3 +32,15 @@ rpm:	tarfile
 	cp rteval.spec rpm/SPECS
 	cp loadsource/* rpm/SOURCES
 	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
+
+help:
+	@echo ""
+	@echo "rteval Makefile targets:"
+	@echo ""
+	@echo "        rpm:       run rpmbuild"
+	@echo "        tarfile:   create the source tarball"
+	@echo "        install:   install rteval locally"
+	@echo "        clean:     cleanup generated files"
+	@echo "        runit:     do a short testrun locally (default)"
+	@echo "        sysreport: do a short testrun and generate sysreport data"
+	@echo ""

@@ -31,7 +31,7 @@ import dmi
 
 class RtEval(object):
     def __init__(self):
-        self.version = "0.7"
+        self.version = "0.8"
         self.load_modules = (hackbench, kcompile)
         self.keepdata = True
         self.verbose = False
@@ -59,8 +59,10 @@ class RtEval(object):
         self.tmpdir = self.find_biggest_tmp()
         self.numcores = self.get_num_cores()
         self.memsize = self.get_memory_size()
+        self.get_clocksources()
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
+        self.make_report_dir()
 
     def find_biggest_tmp(self):
         dir = ''
@@ -94,6 +96,16 @@ class RtEval(object):
                 return size
         raise RuntimeError, "can't find memtotal in /proc/meminfo!"
 
+    def get_clocksources(self):
+        path = '/sys/devices/system/clocksource/clocksource0'
+        if not os.path.exists(path):
+            raise RuntimeError, "Can't find clocksource path in /sys"
+        f = open (os.path.join (path, "current_clocksource"))
+        self.current_clocksource = f.readline().strip()
+        f = open (os.path.join (path, "available_clocksource"))
+        self.available_clocksource = f.readline().strip()
+        f.close()
+
     def parse_options(self):
         parser = optparse.OptionParser()
         parser.add_option("-d", "--duration", dest="duration",
@@ -126,6 +138,9 @@ class RtEval(object):
         parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpchost',
                           action='store', default=None,
                           help='Hostname to XML-RPC server to submit reports', metavar='HOST')
+        parser.add_option("-Z", '--summarize', dest='summarize',
+                          action='store_true', default=False,
+                          help='summarize an already existing XML report')
 
         (options, args) = parser.parse_args()
         if options.duration:
@@ -201,6 +216,11 @@ class RtEval(object):
         self.xmlreport.taggedvalue('arch', machine)
         self.xmlreport.closeblock()
 
+        self.xmlreport.openblock("clocksource")
+        self.xmlreport.taggedvalue('current', self.current_clocksource)
+        self.xmlreport.taggedvalue('available', self.available_clocksource)
+        self.xmlreport.closeblock()
+
         self.xmlreport.openblock('hardware')
         self.xmlreport.taggedvalue('cpu_cores', self.numcores)
         self.xmlreport.taggedvalue('memory_size', self.memsize)
@@ -231,6 +251,11 @@ class RtEval(object):
     def report(self):
         "Create a screen report, based on a predefined XSLT template"
         self.xmlreport.Write("-", self.xslt)
+
+    def summarize(self, xmlfile):
+        print "loading %s for summarizing" % xmlfile
+        self.xmlreport.LoadReport(xmlfile)
+        self.xmlreport.Write('-', self.xslt)
 
     def start_loads(self):
         if len(self.loads) == 0:
@@ -277,10 +302,16 @@ class RtEval(object):
             os.mkdir(self.reportdir)
         return self.reportdir
 
+    def get_dmesg(self):
+        dpath = "/var/log/dmesg"
+        if not os.path.exists(dpath):
+            print "dmesg file not found at %s" % dpath
+            return
+        shutil.copyfile(dpath, os.path.join(self.reportdir, "dmesg"))
+
     def measure_latency(self):
         builddir = os.path.join(self.tmpdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
-        self.make_report_dir()
         self.reportfile = os.path.join(self.reportdir, "summary.rpt")
         self.xml = os.path.join(self.reportdir, "summary.xml")
 
@@ -399,8 +430,16 @@ class RtEval(object):
         self.sysreport = opts.sysreport
         self.xmlrpchost = opts.xmlrpchost
 
-        if self.sysreport and os.getuid() != 0:
-            raise RuntimeError, "Must be root to get a sysreport"
+        # if --summarize was specified then just parse the XML, print it and exit
+        if opts.summarize:
+            if len(args) < 1:
+                raise RuntimeError, "Must specify at least one XML file with --summarize!"
+            for x in args:
+                self.summarize(x)
+            sys.exit(0)
+
+        if os.getuid() != 0:
+            raise RuntimeError, "Must be root to run evaluator!"
 
         self.debug('''rteval options: 
         workdir: %s
@@ -419,13 +458,12 @@ class RtEval(object):
 
         if self.runlatency: 
             self.measure_latency()
+            self.get_dmesg()
             self.tar_results()
         
 
 if __name__ == '__main__':
     import pwd, grp
-    if os.getuid():
-        raise RuntimeError, "must be root to run rteval"
 
     try:
         RtEval().rteval()
