@@ -1,3 +1,29 @@
+#
+#   xmlrpc_API1.py
+#   XML-RPC functions supported by the API1 version for the rteval server
+#
+#   Copyright 2009      David Sommerseth <davids@redhat.com>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#
+#   For the avoidance of doubt the "preferred form" of this code is one which
+#   is in an open unpatent encumbered format. Where cryptographic key signing
+#   forms part of the process of creating an executable the information
+#   including keys needed to generate an equivalently functional executable
+#   are deemed to be part of the source code.
+#
 import os
 import bz2
 import base64
@@ -5,19 +31,18 @@ import libxml2
 import string
 import inspect
 
-from pprint import pprint
-class rteval_service():
-    def __init__(self, logger=None):
-        self.log = logger
-
+class XMLRPC_API1():
+    def __init__(self, dataroot="/tmp/rteval"):
         # Some defaults
-        self.dataroot = "rtevald"
+        self.dataroot = dataroot
         self.fnametrans = string.maketrans("/\\", "::") # replace path delimiters in filenames
 
 
     def __mkdatadir(self, dirpath):
         startdir = os.getcwd()
         for dir in dirpath.split("/"):
+            if dir is '':
+                continue
             if not os.path.exists(dir):
                 os.mkdir(dir, 0700)
             os.chdir(dir)
@@ -41,11 +66,16 @@ class rteval_service():
                 filename = "%s/%s/%s-{%i}" % (self.dataroot, dir, fname.translate(self.fnametrans), idx)
 
 
-    def _dispatch(self, method, params):
+    def Dispatch(self, method, params):
         # Call the method requested
         # FIXME: Improve checking for valid methods
         func = getattr(self, method)
         return func(*params)
+
+
+    def _dispatch(self, method, params):
+        "Wrapper method for Dispatch(), used by xmlrpclib in a local test server. Only used for testing."
+        return self.Dispatch(method, params)
 
 
     def SendReport(self, clientid, xmlbzb64):

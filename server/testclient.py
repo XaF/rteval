@@ -1,6 +1,37 @@
-import rtevalclient
+#
+#   testclient.py
+#   XML-RPC test client for testing the supported XML-RPC API 
+#   in the rteval server.
+#
+#   Copyright 2009      David Sommerseth <davids@redhat.com>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#
+#   For the avoidance of doubt the "preferred form" of this code is one which
+#   is in an open unpatent encumbered format. Where cryptographic key signing
+#   forms part of the process of creating an executable the information
+#   including keys needed to generate an equivalently functional executable
+#   are deemed to be part of the source code.
+#
+
+import sys
 import libxml2
 import StringIO
+
+sys.path.append('../rteval')
+import rtevalclient
 
 print "** Creating doc"
 d = libxml2.newDoc("1.0")
@@ -17,7 +48,7 @@ d.saveFormatFileEnc('-','UTF-8', 1)
 
 
 print "** Testing API"
-client = rtevalclient.rtevalclient()
+client = rtevalclient.rtevalclient("http://localhost:65432/rteval/API1")
 
 server_fname = client.SendDataAsFile('test.data', "this is just a simple test file, compressed\n")
 print "1:  File name on server: %s" % server_fname

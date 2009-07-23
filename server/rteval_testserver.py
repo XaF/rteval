@@ -1,3 +1,30 @@
+#
+#   rteval_testserver.py
+#   Local XML-RPC test server.  Can be used to verify XML-RPC behavoiur
+#
+#   Copyright 2009      David Sommerseth <davids@redhat.com>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#
+#   For the avoidance of doubt the "preferred form" of this code is one which
+#   is in an open unpatent encumbered format. Where cryptographic key signing
+#   forms part of the process of creating an executable the information
+#   including keys needed to generate an equivalently functional executable
+#   are deemed to be part of the source code.
+#
+
 import os
 import sys
 import signal
@@ -31,7 +58,7 @@ class RTevald():
         self.server.register_introspection_functions()
 
         # setup a class to handle requests
-        self.server.register_instance(xmlrpc_API1.rteval_service(self.log))
+        self.server.register_instance(xmlrpc_API1.XMLRPC_API1("./testsrv/"))
 
         # Run the server's main loop
         self.log.Log("StartServer", "Listening on %s:%i" % (self.options.listen, self.options.port))
