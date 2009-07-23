@@ -378,10 +378,7 @@ class RtEval(object):
 
         # if --xmlrpc-submit | -X was given, send our report to this host
         if self.xmlrpchost:
-            if self.xmlrpchost.find(":") < 1:
-                url = "http://%s:65432/rteval/API1" % self.xmlrpchost
-            else:
-                url = "http://%s/rteval/API1" % self.xmlrpchost
+            url = "http://%s/rteval/API1/" % self.xmlrpchost
 
             client = rtevalclient.rtevalclient(url)
             print "Submitting report to %s" % url
