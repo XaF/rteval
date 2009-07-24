@@ -2,6 +2,7 @@
 -- Overview table over all systems which have sent reports
 -- The dmidata column will keep the complete DMIdata available
 -- for further information about the system.
+--
     CREATE TABLE systems (
         syskey        SERIAL NOT NULL,
         sysid         VARCHAR(64) NOT NULL,
@@ -17,7 +18,7 @@
 -- a registered system have used over time
 --
    CREATE TABLE systems_hostname (
-        syskey        INTEGER REFERENCES systems(syskey),
+        syskey        INTEGER REFERENCES systems(syskey) NOT NULL,
         hostname      VARCHAR(256) NOT NULL,
         ipaddr        cidr      
     ) WITH OIDS;
@@ -33,9 +34,13 @@
 --
     CREATE TABLE rtevalruns (
         rterid        SERIAL NOT NULL, -- RTEval Run Id
-        syskey        INTEGER REFERENCES systems(syskey),
+        syskey        INTEGER REFERENCES systems(syskey) NOT NULL,
+        kernel_ver    VARCHAR(32) NOT NULL,
+        kernel_rt     BOOLEAN NOT NULL,
+        arch          VARCHAR(12) NOT NULL,
         run_start     TIMESTAMP WITH TIME ZONE NOT NULL,
         run_duration  INTEGER NOT NULL,
+        load_avg      REAL NOT NULL,
         version       VARCHAR(4), -- Version of rteval
         PRIMARY KEY(rterid)
     ) WITH OIDS;
@@ -43,13 +48,27 @@
     GRANT SELECT,INSERT ON rtevalruns TO xmlrpc;
     GRANT USAGE ON rtevalruns_rterid_seq TO xmlrpc;
 
+-- TABLE rtevalruns_details
+-- More specific information on the rteval run.  The data is stored
+-- in XML for flexibility
+--
+-- Tags being saved here includes: /rteval/clocksource, /rteval/hardware,
+-- /rteval/loads and /rteval/cyclictest/command_line
+--
+    CREATE TABLE rtevalruns_details (
+        rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
+        xmldata       xml NOT NULL,
+        PRIMARY KEY(rterid)
+    );
+    GRANT INSERT ON rtevalruns_details TO xmlrpc;
 
 -- TABLE: cyclic_statistics
 -- This table keeps statistics overview over a particular rteval run
 --
     CREATE TABLE cyclic_statistics (
-        rterid        INTEGER REFERENCES rtevalruns(rterid),
-        num_cores     INTEGER NOT NULL,
+        rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
+        coreid        INTEGER, -- NULL=system
+        priority      INTEGER NOT NULL,
         num_samples   INTEGER NOT NULL,
         lat_min       REAL NOT NULL,
         lat_max       REAL NOT NULL,
@@ -66,14 +85,13 @@
     GRANT INSERT ON cyclic_statistics TO xmlrpc;
     GRANT USAGE ON cyclic_statistics_cstid_seq TO xmlrpc;
 
-
 -- TABLE: cyclic_rawdata
 -- This table keeps the raw data for each rteval run being reported.
 -- Due to that it will be an enormous amount of data, we avoid using
 -- OID on this table.
 --
     CREATE TABLE cyclic_rawdata (
-        rterid        INTEGER REFERENCES rtevalruns(rterid),
+        rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
         cpu_num       INTEGER NOT NULL,
         sampleseq     INTEGER NOT NULL,
         latency       REAL NOT NULL
