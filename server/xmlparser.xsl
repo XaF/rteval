@@ -160,15 +160,17 @@
   <xsl:template match="/rteval" mode="rtevalruns_details_sql">
     <sqldata table="rtevalruns_details">
       <fields>
-        <field fid="0">xmldata</field>
+        <field fid="0">rterid</field>
+        <field fid="1">xmldata</field>
       </fields>
       <records>
-        <record type="xmlblob">
-          <details>
-          <xsl:for-each select="clocksource|loads|cyclictest/command_line">
-            <xsl:copy-of select="."/>
-          </xsl:for-each>
-          </details>
+        <record>
+          <value fid="0"><xsl:value-of select="$rterid"/></value>
+          <value fid="1" type="xmlblob">
+            <rteval_details>
+              <xsl:copy-of select="clocksource|loads|cyclictest/command_line"/>
+            </rteval_details>
+          </value>
         </record>
       </records>
     </sqldata>
