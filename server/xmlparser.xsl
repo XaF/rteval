@@ -25,18 +25,28 @@
 
   <xsl:template match="/">
     <xsl:choose>
-      <xsl:when test="$table = 'rtevalruns_sql'">
-        <xsl:if test="$syskey = ''">
+      <!-- TABLE: rtevalruns -->
+      <xsl:when test="$table = 'rtevalruns'">
+        <xsl:if test="string(number($syskey)) = 'NaN'">
           <xsl:message terminate="yes">
-            <xsl:text>Invalid 'table' parameter: </xsl:text><xsl:value-of select="$table"/>
+            <xsl:text>Invalid 'syskey' parameter: </xsl:text><xsl:value-of select="syskey"/>
           </xsl:message>
         </xsl:if>
         <xsl:apply-templates select="/rteval" mode="rtevalruns_sql"/>
       </xsl:when>
+
+      <!-- TABLE: rtevalruns_details -->
       <xsl:when test="$table = 'rtevalruns_details'">
-        <xsl:apply-templates select="/rteval" mode="rtevalruns_details"/>
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+       <xsl:apply-templates select="/rteval" mode="rtevalruns_details_sql"/>
       </xsl:when>
-      <xsl:when test="$table = 'cyclicstats_sql'">
+
+      <!-- TABLE: cyclic_statistics -->
+      <xsl:when test="$table = 'cyclic_statistics'">
         <xsl:if test="string(number($rterid)) = 'NaN'">
           <xsl:message terminate="yes">
             <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
@@ -44,7 +54,9 @@
         </xsl:if>
         <xsl:apply-templates select="/rteval/cyclictest" mode="cyclic_stats_sql"/>
       </xsl:when>
-      <xsl:when test="$table = 'cyclicraw_sql'">
+
+      <!-- TABLE: cyclic_rawdata -->
+      <xsl:when test="$table = 'cyclic_rawdata'">
         <xsl:if test="string(number($rterid)) = 'NaN'">
           <xsl:message terminate="yes">
             <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
@@ -52,6 +64,7 @@
         </xsl:if>
         <xsl:apply-templates select="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql"/>
       </xsl:when>
+
       <xsl:otherwise>
         <xsl:message terminate="yes">
           <xsl:text>Invalid 'table' parameter: </xsl:text><xsl:value-of select="$table"/>
@@ -93,7 +106,7 @@
     </sqldata>
   </xsl:template>
 
-  <xsl:template match="/rteval" mode="rtevalruns_details">
+  <xsl:template match="/rteval" mode="rtevalruns_details_sql">
     <sqldata table="rtevalruns_details">
       <fields>
         <field fid="0">xmldata</field>
