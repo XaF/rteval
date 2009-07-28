@@ -25,6 +25,21 @@
 
   <xsl:template match="/">
     <xsl:choose>
+      <!-- TABLE: systems -->
+      <xsl:when test="$table = 'systems'">
+        <xsl:apply-templates select="/rteval" mode="systems_sql"/>
+      </xsl:when>
+
+      <!-- TABLE: systems_hostname -->
+      <xsl:when test="$table = 'systems_hostname'">
+        <xsl:if test="string(number($syskey)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'syskey' parameter: </xsl:text><xsl:value-of select="syskey"/>
+          </xsl:message>
+        </xsl:if>
+        <xsl:apply-templates select="/rteval" mode="sys_hostname_sql"/>
+      </xsl:when>
+
       <!-- TABLE: rtevalruns -->
       <xsl:when test="$table = 'rtevalruns'">
         <xsl:if test="string(number($syskey)) = 'NaN'">
@@ -71,6 +86,42 @@
         </xsl:message>
       </xsl:otherwise>
     </xsl:choose>
+  </xsl:template>
+
+  <xsl:template match="/rteval" mode="systems_sql">
+    <sqldata table="systems">
+      <fields>
+        <field fid="0">sysid</field>
+        <field fid="1">dmidata</field>
+      </fields>
+      <records>
+        <record>
+          <value fid="0" hash="sha1">
+            <xsl:value-of select="concat(HardwareInfo/@SystemUUID,':',HardwareInfo/@SerialNo)"/>
+          </value>
+          <value fid="1" type="xmlblob">
+            <xsl:copy-of select="HardwareInfo"/>
+          </value>
+        </record>
+      </records>
+    </sqldata>
+  </xsl:template>
+
+  <xsl:template match="/rteval" mode="sys_hostname_sql">
+    <sqldata table="systems_hostname">
+      <fields>
+        <field fid="0">syskey</field>
+        <field fid="1">hostname</field>
+        <field fid="2">ipaddr</field>
+      </fields>
+      <records>
+        <record>
+          <value fid="0"><xsl:value-of select="$syskey"/></value>
+          <value fid="1"><xsl:value-of select="uname/node"/></value>
+          <value fid="2" isnull="1"/> <!-- FIXME: Not implemented yet -->
+        </record>
+      </records>
+    </sqldata>
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_sql">
