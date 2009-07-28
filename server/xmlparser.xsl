@@ -21,7 +21,7 @@
 -->
 
 <xsl:stylesheet  version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-  <xsl:output method="xml"  omit-xml-declaration="yes" version="1.0" encoding="UTF-8" indent="no"/>
+  <xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes"/>
 
   <xsl:template match="/">
     <xsl:choose>
@@ -31,10 +31,26 @@
             <xsl:text>Invalid 'table' parameter: </xsl:text><xsl:value-of select="$table"/>
           </xsl:message>
         </xsl:if>
-        <xsl:apply-templates select="/rteval" mode="rtevalruns"/>
+        <xsl:apply-templates select="/rteval" mode="rtevalruns_sql"/>
       </xsl:when>
       <xsl:when test="$table = 'rtevalruns_details'">
         <xsl:apply-templates select="/rteval" mode="rtevalruns_details"/>
+      </xsl:when>
+      <xsl:when test="$table = 'cyclicstats_sql'">
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+        <xsl:apply-templates select="/rteval/cyclictest" mode="cyclic_stats_sql"/>
+      </xsl:when>
+      <xsl:when test="$table = 'cyclicraw_sql'">
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+        <xsl:apply-templates select="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql"/>
       </xsl:when>
       <xsl:otherwise>
         <xsl:message terminate="yes">
@@ -44,46 +60,115 @@
     </xsl:choose>
   </xsl:template>
 
-  <xsl:template match="/rteval" mode="rtevalruns">
-    <xsl:variable name="insert">
-      <xsl:text>INSERT INTO rtevalruns (syskey, kernel_ver, kernel_rt, arch,</xsl:text>
-      <xsl:text> run_start, run_duration, load_avg, version)</xsl:text>
-    </xsl:variable>
-    <xsl:variable name="values">
-      <xsl:value-of select="$syskey"/>
-      <xsl:text>,'</xsl:text>
-      <xsl:value-of select="uname/kernel"/>
-      <xsl:text>',</xsl:text>
-      <xsl:choose>
-        <xsl:when test="uname/kernel/@is_RT = '1'">true</xsl:when>
-        <xsl:otherwise>False</xsl:otherwise>
-      </xsl:choose>
-      <xsl:text>,'</xsl:text>
-      <xsl:value-of select="uname/arch"/>
-      <xsl:text>','</xsl:text>
-      <xsl:value-of select="concat(run_info/date,' ',run_info/time)"/>
-      <xsl:text>',</xsl:text>
-      <xsl:value-of select="(run_info/@days*86400)+(run_info/@hours*3600)
-                            +(run_info/@minutes*60)+(run_info/@seconds)"/>
-      <xsl:text>,</xsl:text>
-      <xsl:value-of select="loads/@load_average"/>
-      <xsl:text>,'</xsl:text>
-      <xsl:value-of select="@version"/>
-      <xsl:text>'</xsl:text>
-    </xsl:variable>
-
-    <xsl:value-of select="concat($insert,' VALUES (', $values,')&#10;')"/>
+  <xsl:template match="/rteval" mode="rtevalruns_sql">
+    <sqldata table="rtevalruns">
+      <fields>
+        <field fid="0">syskey</field>
+        <field fid="1">kernel_ver</field>
+        <field fid="2">kernel_rt</field>
+        <field fid="3">arch</field>
+        <field fid="4">run_start</field>
+        <field fid="5">run_duration</field>
+        <field fid="6">load_avg</field>
+        <field fid="7">version</field>
+      </fields>
+      <records>
+        <record>
+          <value fid="0"><xsl:value-of select="$syskey"/></value>
+          <value fid="1"><xsl:value-of select="uname/kernel"/></value>
+          <value fid="2"><xsl:choose>
+            <xsl:when test="uname/kernel/@is_RT = '1'">true</xsl:when>
+            <xsl:otherwise>false</xsl:otherwise></xsl:choose>
+          </value>
+          <value fid="3"><xsl:value-of select="uname/arch"/></value>
+          <value fid="4"><xsl:value-of select="concat(run_info/date, ' ', run_info/time)"/></value>
+          <value fid="5">
+            <xsl:value-of select="(run_info/@days*86400)+(run_info/@hours*3600)
+                                  +(run_info/@minutes*60)+(run_info/@seconds)"/>
+          </value>
+          <value fid="6"><xsl:value-of select="loads/@load_average"/></value>
+          <value fid="7"><xsl:value-of select="@version"/></value>
+        </record>
+      </records>
+    </sqldata>
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_details">
-    <xsl:text disable-output-escaping="yes">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</xsl:text>
-    <rtevalruns_details>
-      <xsl:copy-of select="clocksource|loads|cyclictest/command_line"/>
-    </rtevalruns_details>
+    <sqldata table="rtevalruns_details">
+      <fields>
+        <field fid="0">xmldata</field>
+      </fields>
+      <records>
+        <record type="xmlblob">
+          <details>
+          <xsl:for-each select="clocksource|loads|cyclictest/command_line">
+            <xsl:copy-of select="."/>
+          </xsl:for-each>
+          </details>
+        </record>
+      </records>
+    </sqldata>
   </xsl:template>
 
-  <xsl:template match="/rteval" mode="cyclic_stats_sql">
-    
+  <xsl:template match="/rteval/cyclictest" mode="cyclic_stats_sql">
+    <sqldata table="cyclic_statistics">
+      <fields>
+        <field fid="0">rterid</field>
+        <field fid="1">coreid</field>
+        <field fid="2">priority</field>
+        <field fid="3">num_samples</field>
+        <field fid="4">lat_min</field>
+        <field fid="5">lat_max</field>
+        <field fid="6">lat_mean</field>
+        <field fid="7">mode</field>
+        <field fid="8">range</field>
+        <field fid="9">median</field>
+        <field fid="10">stddev</field>
+      </fields>
+      <records>
+        <xsl:for-each select="core/statistics|system/statistics">
+          <record>
+            <value fid="0"><xsl:value-of select="$rterid"/></value>
+            <value fid="1"><xsl:choose>
+              <xsl:when test="../@id"><xsl:value-of select="../@id"/></xsl:when>
+              <xsl:otherwise><xsl:attribute name="isnull">1</xsl:attribute></xsl:otherwise></xsl:choose>
+            </value>
+            <value fid="2"><xsl:choose>
+              <xsl:when test="../@priority"><xsl:value-of select="../@priority"/></xsl:when>
+              <xsl:otherwise><xsl:attribute name="isnull">1</xsl:attribute></xsl:otherwise></xsl:choose>
+            </value>
+            <value fid="3"><xsl:value-of select="samples"/></value>
+            <value fid="4"><xsl:value-of select="minimum"/></value>
+            <value fid="5"><xsl:value-of select="maximum"/></value>
+            <value fid="6"><xsl:value-of select="median"/></value>
+            <value fid="7"><xsl:value-of select="mode"/></value>
+            <value fid="8"><xsl:value-of select="range"/></value>
+            <value fid="9"><xsl:value-of select="mean"/></value>
+            <value fid="10"><xsl:value-of select="standard_deviation"/></value>
+          </record>
+        </xsl:for-each>
+      </records>
+    </sqldata>
   </xsl:template>
 
+  <xsl:template match="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql">
+    <sqldata table="cyclic_rawdata">
+      <fields>
+        <field fid="0">rterid</field>
+        <field fid="1">cpu_num</field>
+        <field fid="2">sampleseq</field>
+        <field fid="3">latency</field>
+      </fields>
+      <records>
+        <xsl:for-each select="Thread/Sample">
+          <record>
+            <value fid="0"><xsl:value-of select="$rterid"/></value>
+            <value fid="1"><xsl:value-of select="../@id"/></value>
+            <value fid="2"><xsl:value-of select="@seq"/></value>
+            <value fid="3"><xsl:value-of select="@latency"/></value>
+          </record>
+        </xsl:for-each>
+      </records>
+    </sqldata>
+  </xsl:template>
 </xsl:stylesheet>
