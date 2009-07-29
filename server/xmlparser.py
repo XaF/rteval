@@ -27,78 +27,87 @@
 
 import libxml2
 import libxslt
-import psycopg2
 import hashlib
 import StringIO
 
-class rtevalXMLparser(object):
-    "Class for parsing XML data from rteval runs"
+class XMLSQLparser(object):
+    "Class for parsing XML into SQL using an XSLT template for mapping data fields"
 
-    def __init__(self, fname):
+    def __init__(self, xslt, fname):
         self.xml = libxml2.parseFile(fname)
 
         # Verify that this is a valid rteval XML file
         try:
             ver = float(self.xml.xpathEval('/rteval/@version')[0].content)
             if ver < 0.8:
-                raise Exception, "Unsupported rteval XML version"
+                raise Exception, 'Unsupported rteval XML version'
         except Exception, err:
-            raise Exception, "Input file was unparsable or not a valid rteval XML file (%s)" % str(err)
+            raise Exception, 'Input file was unparsable or not a valid rteval XML file (%s)' % str(err)
 
+        xsltdoc = libxml2.parseFile(xslt)
+        self.parser = libxslt.parseStylesheetDoc(xsltdoc)
 
-    def GetSysID(self):
-        try:
-            uuid  = self.xml.xpathEval('/rteval/HardwareInfo/@SystemUUID')[0].content
-            serno = self.xml.xpathEval('/rteval/HardwareInfo/@SerialNo')[0].content
-        except:
-            raise Exception, "Could not retrieve SystemUUID or SerialNo from XML data"
+    def __xmlNode2string(self, node):
+        doc = libxml2.newDoc('1.0')
+        doc.setRootElement(node)
 
-        return hashlib.sha1("%s:%s" % (uuid,serno)).hexdigest()
-
-
-    def GetDMIdata(self):
-        try:
-            dmi = self.xml.xpathEval('/rteval/HardwareInfo')[0]
-            if dmi == None:
-                raise Exception, "Could not locate HardwareInfo in XML data"
-        except:
-            raise Exception, "Could not locate HardwareInfo in XML data"
-
-        # Create a new XML document and put the /rteval/HardwareInfo as doc root
-        doc = libxml2.newDoc("1.0")
-        doc.setRootElement(dmi)
-        
-        # Dump this XMLdoc as a string
-        fbuf = StringIO.StringIO()
-        xmlbuf = libxml2.createOutputBuffer(fbuf, 'UTF-8')
-        doc.saveFormatFileTo(xmlbuf, 'UTF-8', 0)
-        retstr = fbuf.getvalue()
-        doc.free()
-        del xmlbuf
-        del fbuf
+        iobuf = StringIO.StringIO()
+        xmlbuf = libxml2.createOutputBuffer(iobuf, 'UTF-8')
+        doc.saveFileTo(xmlbuf, 'UTF-8')
+        retstr = iobuf.getvalue()
         del doc
-
-        # Return the information as a string
+        del xmlbuf
+        del iobuf
         return retstr
 
-    def GetNodeName(self):
-        try:
-            nodename = self.xml.xpathEval('/rteval/uname/node')[0].content
-        except Exception, err:
-            raise Exception, "Could not retrieve node name (%s)" % str(err)
 
-        return nodename
+    def GetSQLdata(self, tbl, rterid=None, syskey=None):
+        params = { 'table': '"%s"' % tbl,
+                   'rterid': rterid,
+                   'syskey': syskey }
+        resdoc = self.parser.applyStylesheet(self.xml, params)
 
-    def GetSQLdata_systems(self):
-        return {"table": "systems",
-                "columns": ["sysid","dmidata"],
-                "values: ", [self.GetSysID(), self.GetDMIdata()]}
+        # Extract fields, and make sure they are ordered/sorted by the fid attribute
+        fields = []
+        tmp_fields = {}
+        for f in resdoc.xpathEval('/sqldata/fields/field'):
+            tmp_fields[int(f.prop('fid'))] = f.content
 
-    def GetSQLdata_syshostname(self, syskey, ipaddr):
-        return {"table": "systems",
-                "columns": ["syskey", "hostname", "ipaddr"],
-                "values: ", [syskey, self.GetNodeName, ipaddr]}
+        for f in range(0, len(tmp_fields)):
+            fields.append(tmp_fields[f])
 
-    
+        # Extract values, make sure they are in the same order as the field values
+        records = []
+        for r in resdoc.xpathEval('/sqldata/records/record'):
+            rvs = {}
+            for v in r.xpathEval('value'):
+                if v.prop('type') == 'xmlblob':
+                    fieldval = self.__xmlNode2string(v)
+                elif v.prop('isnull') == '1':
+                    fieldval = None
+                else:
+                    fieldval = v.content
 
-    
+                if v.hasProp('hash') and fieldval is not None:
+                    try:
+                        hash = getattr(hashlib, v.prop('hash'))
+                    except AttributeError:
+                        raise Exception, 'Unsuported hash algoritm: %s' % v.prop('hash')
+
+                    rvs[int(v.prop('fid'))] = hash(fieldval).hexdigest()
+                else:
+                    rvs[int(v.prop('fid'))] = fieldval
+
+            # Make sure the field values are in the correct order
+            vls = []
+            for v in range(0, len(rvs)):
+                vls.append(rvs[v])
+
+            # Append all these field values as a record
+            records.append(vls)
+
+        result = { 'table': resdoc.xpathEval('/sqldata/@table')[0].content,
+                   'fields': fields, 'records': records}
+        resdoc.freeDoc()
+        return result
+
