@@ -29,12 +29,13 @@ import libxml2
 import libxslt
 import hashlib
 import StringIO
+import types
 
 class XMLSQLparser(object):
     "Class for parsing XML into SQL using an XSLT template for mapping data fields"
 
-    def __init__(self, xslt, fname):
-        self.xml = libxml2.parseFile(fname)
+    def __init__(self, xslt, xml):
+        self.xml = self.__get_xml_data(xml)
 
         # Verify that this is a valid rteval XML file
         try:
@@ -44,8 +45,26 @@ class XMLSQLparser(object):
         except Exception, err:
             raise Exception, 'Input file was unparsable or not a valid rteval XML file (%s)' % str(err)
 
-        xsltdoc = libxml2.parseFile(xslt)
+        xsltdoc = self.__get_xml_data(xslt)
         self.parser = libxslt.parseStylesheetDoc(xsltdoc)
+
+    def __get_xml_data(self, input):
+        if hasattr(input, '__module__') and (input.__module__ == 'libxml2') and hasattr(input, 'get_type'):
+            if input.get_type() == 'document_xml':
+                # It's an XML document, use it directly
+                return input
+            elif input.get_type() == 'element':
+                # It's an XML node, create a document and set node as root
+                xmldoc = libxml2.newDoc("1.0")
+                xmldoc.setRootElement(input)
+                return xmldoc
+        elif type(input) == types.StringType:
+            # It's a string, assume a file name
+            return libxml2.parseFile(input)
+
+        # If invalid input ...
+        raise AttributeError, "Unknown input type for XML/XSLT data (not a filename, xmlDoc or xmlNode)"
+
 
     def __xmlNode2string(self, node):
         doc = libxml2.newDoc('1.0')
