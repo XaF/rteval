@@ -382,7 +382,8 @@ class RtEval(object):
 
             client = rtevalclient.rtevalclient(url)
             print "Submitting report to %s" % url
-            client.SendReport(self.xmlreport.GetXMLdocument())
+            rterid = client.SendReport(self.xmlreport.GetXMLdocument())
+            print "Report registered with rterid %i" % rterid
 
 
     def tar_results(self):
