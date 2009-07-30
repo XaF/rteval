@@ -30,6 +30,8 @@ import base64
 import libxml2
 import string
 import inspect
+import rtevaldb
+
 
 class XMLRPC_API1():
     def __init__(self, dataroot="/tmp/rteval"):
@@ -82,13 +84,15 @@ class XMLRPC_API1():
         decompr = bz2.BZ2Decompressor()
         xmldoc = libxml2.parseDoc(decompr.decompress(base64.b64decode(xmlbzb64)))
 
+        # Save a copy of the report on the file system
         # Make sure we have a directory to write files into
         self.__mkdatadir(self.dataroot + '/reports/' + clientid)
         fname = self.__getfilename('reports/' + clientid,'report.xml', False)
-
-        # FIXME:  Do something more clever with received XMLdoc, than to just dump the contents
         xmldoc.saveFormatFileEnc(fname,'UTF-8',1)
-        return True
+
+        # Register the report into a database and return the rteval run id
+        (syskey, rterid) = register_report('xmlparser.xsl', xmldoc, fname)
+        return rterid
 
 
     def StoreRawFile(self, clientid, filename, bzb64data, decompdata):
