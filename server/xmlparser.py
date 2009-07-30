@@ -134,7 +134,7 @@ class XMLSQLparser(object):
         try:
             retkey = resdoc.xpathEval('/sqldata/@key')
             if retkey and retkey[0] and retkey[0].content:
-                result['returning'] = retkey.content
+                result['returning'] = retkey[0].content
         except:
             pass
 
