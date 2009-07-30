@@ -89,7 +89,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="systems_sql">
-    <sqldata table="systems">
+    <sqldata table="systems" key="syskey">
       <fields>
         <field fid="0">sysid</field>
         <field fid="1">dmidata</field>
@@ -125,7 +125,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_sql">
-    <sqldata table="rtevalruns">
+    <sqldata table="rtevalruns" key="rterid">
       <fields>
         <field fid="0">syskey</field>
         <field fid="1">kernel_ver</field>

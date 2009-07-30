@@ -48,6 +48,7 @@ class XMLSQLparser(object):
         xsltdoc = self.__get_xml_data(xslt)
         self.parser = libxslt.parseStylesheetDoc(xsltdoc)
 
+
     def __get_xml_data(self, input):
         if hasattr(input, '__module__') and (input.__module__ == 'libxml2') and hasattr(input, 'get_type'):
             if input.get_type() == 'document_xml':
@@ -82,8 +83,8 @@ class XMLSQLparser(object):
 
     def GetSQLdata(self, tbl, rterid=None, syskey=None):
         params = { 'table': '"%s"' % tbl,
-                   'rterid': rterid,
-                   'syskey': syskey }
+                   'rterid': rterid and '"%i"' % rterid,
+                   'syskey': syskey and '"%i"' % syskey }
         resdoc = self.parser.applyStylesheet(self.xml, params)
 
         # Extract fields, and make sure they are ordered/sorted by the fid attribute
@@ -127,6 +128,15 @@ class XMLSQLparser(object):
 
         result = { 'table': resdoc.xpathEval('/sqldata/@table')[0].content,
                    'fields': fields, 'records': records}
+
+        # Extract the key field being returned from INSERT statements, if set
+        try:
+            retkey = resdoc.xpathEval('/sqldata/@key')
+            if retkey and retkey[0] and retkey[0].content:
+                result['returning'] = retkey.content
+        except:
+            pass
+
         resdoc.freeDoc()
         return result
 
