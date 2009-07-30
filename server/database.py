@@ -194,3 +194,20 @@ class Database(object):
         # Return the value
         return dbres['records'][recidx][fidx]
 
+
+    def NumTuples(self, dbres):
+        # Check that input data good
+        if type(dbres) is not types.DictType:
+            raise AttributeError,'Database result parameter is not a Python dict'
+
+        try:
+            dbres['table']
+            dbres['fields']
+            dbres['records']
+        except KeyError, err:
+            raise KeyError, "Database result parameter do not contain a required element: %s", str(err)
+
+        if type(dbres['records']) is not types.ListType:
+            raise AttributeError,"The 'records' element is not a list of fields"
+
+        return len(dbres['records'])
