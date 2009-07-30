@@ -115,7 +115,36 @@ class Database(object):
             else:
                 results.append(True)
 
+        curs.close()
         return results
+
+    def SELECT(self, table, fields, joins=None, where=None):
+        curs = self.conn.cursor()
+
+        # Query
+        sql = "SELECT %s FROM %s %s %s" % (
+            ",".join(fields),
+            table,
+            joins and "%s" % joins or "",
+            where and "WHERE %s" % " AND ".join(["%s = %%(%s)s" % (k,k) for (k,v) in where.items()] or "")
+            )
+        curs.execute(sql, where)
+
+        # Extract field names
+        fields = []
+        for fn in curs.description:
+            fields.append(fn[0])
+
+        # Extract records
+        records = []
+        for dbrec in curs.fetchall():
+            values = []
+            for val in dbrec:
+                values.append(val)
+            records.append(values)
+
+        curs.close()
+        return {"table": table, "fields": fields, "records": records}
 
     def COMMIT(self):
         # Commit the work
@@ -124,3 +153,44 @@ class Database(object):
     def ROLLBACK(self):
         # Abort / rollback the current work
         self.conn.rollback()
+
+
+    def GetValue(self, dbres, recidx, field):
+        "Helper function to easy extract a field from a record set"
+
+        # Check that input data good
+        if type(dbres) is not types.DictType:
+            raise AttributeError,'Database result parameter is not a Python dict'
+
+        try:
+            dbres['table']
+            dbres['fields']
+            dbres['records']
+        except KeyError, err:
+            raise KeyError, "Database result parameter do not contain a required element: %s", str(err)
+
+        if type(dbres['fields']) is not types.ListType:
+            raise AttributeError,"The 'fields' element is not a list of fields"
+
+        if type(dbres['records']) is not types.ListType:
+            raise AttributeError,"The 'records' element is not a list of fields"
+
+        # Return None when we're going out of boundaries
+        if recidx >= len(dbres['records']):
+            return None
+
+        if type(field) == types.StringType:
+            # Find the field index of the field name in the records set
+            try:
+                fidx = dbres['fields'].index(field)
+            except ValueError:
+                raise Exception, "Field '%s' is not found in the database result" % field
+        elif type(field) == types.IntType:
+            # If the field value is integer, assume it is the numeric field id
+            if field >= len(dbres['fields']):
+                raise Exception, "Field id '%i' is too high.  No field available" % field
+            fidx = field
+
+        # Return the value
+        return dbres['records'][recidx][fidx]
+
