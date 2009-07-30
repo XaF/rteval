@@ -68,7 +68,7 @@
     CREATE TABLE cyclic_statistics (
         rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
         coreid        INTEGER, -- NULL=system
-        priority      INTEGER NOT NULL,
+        priority      INTEGER, -- NULL=system
         num_samples   INTEGER NOT NULL,
         lat_min       REAL NOT NULL,
         lat_max       REAL NOT NULL,
