@@ -103,7 +103,7 @@ class XMLSQLparser(object):
             rvs = {}
             for v in r.xpathEval('value'):
                 if v.prop('type') == 'xmlblob':
-                    fieldval = self.__xmlNode2string(v)
+                    fieldval = self.__xmlNode2string(v.children)
                 elif v.prop('isnull') == '1':
                     fieldval = None
                 else:
