@@ -28,7 +28,7 @@
 
 import psycopg2
 import types
-from pprint import pprint
+
 class Database(object):
     def __init__(self, host=None, port=None, user=None, password=None, database=None):
         dsnd = {}
@@ -72,13 +72,19 @@ class Database(object):
         if len(sqlvars['records']) == 0:
             return True
 
+        try:
+            sqlvars['returning']
+        except:
+            sqlvars['returning'] = None
+
         #
         # Build SQL template
         #
-        sqlstub = "INSERT INTO %s (%s) VALUES (%s)" % (sqlvars['table'],
-                                                       ",".join(sqlvars['fields']),
-                                                       ",".join(["%%(%s)s" % f for f in sqlvars['fields']])
-                                                       )
+        sqlstub = "INSERT INTO %s (%s) VALUES (%s)" % (
+            sqlvars['table'],
+            ",".join(sqlvars['fields']),
+            ",".join(["%%(%s)s" % f for f in sqlvars['fields']])
+            )
 
         # Get a database cursor
         curs = self.conn.cursor()
@@ -96,9 +102,25 @@ class Database(object):
             for i in range(0, len(sqlvars['fields'])):
                 values[sqlvars['fields'][i]] = rec[i]
 
+            # Do the INSERT query
             curs.execute(sqlstub, values)
-            # FIXME: catch the result of all INSERTs, appending them to the results list
 
+            # If a return value for the INSERT is defined, catch that one
+            if sqlvars['returning']:
+                # The psycopg2 do not handle INSERT INTO ... RETURNING column queries, so we can only use
+                # this on tables with oid and do the look up that way
+                vls = {"table": sqlvars['table'], 'colname': sqlvars['returning'], 'oid': str(curs.lastrowid)}
+                curs.execute("SELECT %(colname)s FROM %(table)s WHERE oid='%(oid)s'" % vls)
+                results.append(curs.fetchone()[0])
+            else:
+                results.append(True)
+
+        return results
+
+    def COMMIT(self):
         # Commit the work
         self.conn.commit()
-        return results
+
+    def ROLLBACK(self):
+        # Abort / rollback the current work
+        self.conn.rollback()
