@@ -91,7 +91,7 @@ class XMLRPC_API1():
         xmldoc.saveFormatFileEnc(fname,'UTF-8',1)
 
         # Register the report into a database and return the rteval run id
-        (syskey, rterid) = register_report('xmlparser.xsl', xmldoc, fname)
+        (syskey, rterid) = rtevaldb.register_report('xmlparser.xsl', xmldoc, fname)
         return rterid
 
 
