@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PYTHON_FILES="rteval_xmlrpc.py xmlrpc_API1.py"
+PYTHON_FILES="rteval_xmlrpc.py xmlrpc_API1.py xmlparser.py xmlparser.xsl rtevaldb.py"
 HTACCESS="apache-htaccess"
 
 if [ $# != 1 ]; then
