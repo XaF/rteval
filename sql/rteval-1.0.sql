@@ -33,15 +33,16 @@
 -- Overview over all rteval runs, when they were run and how long they ran.
 --
     CREATE TABLE rtevalruns (
-        rterid        SERIAL NOT NULL, -- RTEval Run Id
-        syskey        INTEGER REFERENCES systems(syskey) NOT NULL,
-        kernel_ver    VARCHAR(32) NOT NULL,
-        kernel_rt     BOOLEAN NOT NULL,
-        arch          VARCHAR(12) NOT NULL,
-        run_start     TIMESTAMP WITH TIME ZONE NOT NULL,
-        run_duration  INTEGER NOT NULL,
-        load_avg      REAL NOT NULL,
-        version       VARCHAR(4), -- Version of rteval
+        rterid          SERIAL NOT NULL, -- RTEval Run Id
+        syskey          INTEGER REFERENCES systems(syskey) NOT NULL,
+        kernel_ver      VARCHAR(32) NOT NULL,
+        kernel_rt       BOOLEAN NOT NULL,
+        arch            VARCHAR(12) NOT NULL,
+        run_start       TIMESTAMP WITH TIME ZONE NOT NULL,
+        run_duration    INTEGER NOT NULL,
+        load_avg        REAL NOT NULL,
+        version         VARCHAR(4), -- Version of rteval
+        report_filename TEXT,
         PRIMARY KEY(rterid)
     ) WITH OIDS;
 

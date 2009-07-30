@@ -81,10 +81,11 @@ class XMLSQLparser(object):
         return retstr
 
 
-    def GetSQLdata(self, tbl, rterid=None, syskey=None):
+    def GetSQLdata(self, tbl, rterid=None, syskey=None, report_filename=None):
         params = { 'table': '"%s"' % tbl,
                    'rterid': rterid and '"%i"' % rterid,
-                   'syskey': syskey and '"%i"' % syskey }
+                   'syskey': syskey and '"%i"' % syskey,
+                   'report_filename': report_filename and '"%s"' % report_filename }
         resdoc = self.parser.applyStylesheet(self.xml, params)
 
         # Extract fields, and make sure they are ordered/sorted by the fid attribute

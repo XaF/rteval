@@ -34,7 +34,7 @@
       <xsl:when test="$table = 'systems_hostname'">
         <xsl:if test="string(number($syskey)) = 'NaN'">
           <xsl:message terminate="yes">
-            <xsl:text>Invalid 'syskey' parameter: </xsl:text><xsl:value-of select="syskey"/>
+            <xsl:text>Invalid 'syskey' parameter value: </xsl:text><xsl:value-of select="syskey"/>
           </xsl:message>
         </xsl:if>
         <xsl:apply-templates select="/rteval" mode="sys_hostname_sql"/>
@@ -44,7 +44,12 @@
       <xsl:when test="$table = 'rtevalruns'">
         <xsl:if test="string(number($syskey)) = 'NaN'">
           <xsl:message terminate="yes">
-            <xsl:text>Invalid 'syskey' parameter: </xsl:text><xsl:value-of select="syskey"/>
+            <xsl:text>Invalid 'syskey' parameter value: </xsl:text><xsl:value-of select="syskey"/>
+          </xsl:message>
+        </xsl:if>
+        <xsl:if test="$report_filename = ''">
+          <xsl:message terminate="yes">
+            <xsl:text>The parameter 'report_filename' parameter cannot be empty</xsl:text>
           </xsl:message>
         </xsl:if>
         <xsl:apply-templates select="/rteval" mode="rtevalruns_sql"/>
@@ -54,7 +59,7 @@
       <xsl:when test="$table = 'rtevalruns_details'">
         <xsl:if test="string(number($rterid)) = 'NaN'">
           <xsl:message terminate="yes">
-            <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
        <xsl:apply-templates select="/rteval" mode="rtevalruns_details_sql"/>
@@ -64,7 +69,7 @@
       <xsl:when test="$table = 'cyclic_statistics'">
         <xsl:if test="string(number($rterid)) = 'NaN'">
           <xsl:message terminate="yes">
-            <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
         <xsl:apply-templates select="/rteval/cyclictest" mode="cyclic_stats_sql"/>
@@ -74,7 +79,7 @@
       <xsl:when test="$table = 'cyclic_rawdata'">
         <xsl:if test="string(number($rterid)) = 'NaN'">
           <xsl:message terminate="yes">
-            <xsl:text>Invalid 'rterid' parameter: </xsl:text><xsl:value-of select="$rterid"/>
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
         <xsl:apply-templates select="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql"/>
@@ -82,7 +87,7 @@
 
       <xsl:otherwise>
         <xsl:message terminate="yes">
-          <xsl:text>Invalid 'table' parameter: </xsl:text><xsl:value-of select="$table"/>
+          <xsl:text>Invalid 'table' parameter value: </xsl:text><xsl:value-of select="$table"/>
         </xsl:message>
       </xsl:otherwise>
     </xsl:choose>
@@ -135,6 +140,7 @@
         <field fid="5">run_duration</field>
         <field fid="6">load_avg</field>
         <field fid="7">version</field>
+        <field fid="8">report_filename</field>
       </fields>
       <records>
         <record>
@@ -152,6 +158,7 @@
           </value>
           <value fid="6"><xsl:value-of select="loads/@load_average"/></value>
           <value fid="7"><xsl:value-of select="@version"/></value>
+          <value fid="8"><xsl:value-of select="$report_filename"/></value>
         </record>
       </records>
     </sqldata>
