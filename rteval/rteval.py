@@ -42,6 +42,7 @@ import tempfile
 import statvfs
 import shutil
 import rtevalclient
+import ethtool
 from datetime import datetime
 
 sys.pathconf = "."
@@ -249,6 +250,42 @@ class RtEval(object):
         self.xmlreport.taggedvalue('memory_size', self.memsize)
         self.xmlreport.closeblock()
 
+        # Retrieve configured IP addresses
+        self.xmlreport.openblock('network_config')
+
+        # Get the interface name for the IPv4 default gw
+        route = open('/proc/net/route')
+        defgw4 = None
+        if route:
+            rl = route.readline()
+            while rl != '' :
+                rl = route.readline()
+                splt = rl.split("\t")
+                if len(splt) > 2 and splt[2] != '00000000': # Only catch default route
+                    defgw4 = splt[0]
+                    break
+            route.close()
+
+        # Get lists over all devices, remove loopback device
+        ifdevs = ethtool.get_active_devices()
+        ifdevs.remove('lo')
+        ifdevs.sort()
+
+        # Make an interface tag for each device found
+        for dev in ifdevs:
+            self.xmlreport.openblock('interface',
+                                     {'device': dev,
+                                      'hwaddr': ethtool.get_hwaddr(dev)}
+                                     )
+            # Protcol configurations
+            self.xmlreport.openblock('IPv4',
+                                     {'ipaddr': ethtool.get_ipaddr(dev),
+                                      'netmask': ethtool.get_netmask(dev),
+                                      'defaultgw': (defgw4 == dev) and '1' or '0'}
+                                     )
+            self.xmlreport.closeblock()
+            self.xmlreport.closeblock()
+        self.xmlreport.closeblock()
 
         self.xmlreport.openblock('loads', {'load_average':str(accum / samples)})
         for load in self.loads:
