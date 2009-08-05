@@ -61,7 +61,10 @@ class XMLSQLparser(object):
                 return xmldoc
         elif type(input) == types.StringType:
             # It's a string, assume a file name
-            return libxml2.parseFile(input)
+            try:
+                return libxml2.parseFile(input)
+            except Exception, err:
+                raise Exception, "** ERROR ** XMLSQLparser::__get_xml_data('%s') failed to load file" % str(input)
 
         # If invalid input ...
         raise AttributeError, "Unknown input type for XML/XSLT data (not a filename, xmlDoc or xmlNode)"
@@ -107,7 +110,7 @@ class XMLSQLparser(object):
                 elif v.prop('isnull') == '1':
                     fieldval = None
                 else:
-                    fieldval = v.content
+                    fieldval = v.content and v.content or None
 
                 if v.hasProp('hash') and fieldval is not None:
                     try:
