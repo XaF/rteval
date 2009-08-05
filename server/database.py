@@ -30,7 +30,11 @@ import psycopg2
 import types
 
 class Database(object):
-    def __init__(self, host=None, port=None, user=None, password=None, database=None):
+    def __init__(self, host=None, port=None, user=None, password=None, database=None,
+                 noaction=False, debug=False):
+        self.noaction = noaction
+        self.debug = debug
+
         dsnd = {}
         if host is not None:
             dsnd['host'] = host
@@ -46,7 +50,7 @@ class Database(object):
             dsnd['dbname'] = database
 
         dsn = " ".join(["%s='%s'" %(k,v) for (k,v) in dsnd.items()])
-        self.conn = psycopg2.connect(dsn)
+        self.conn = not self.noaction and psycopg2.connect(dsn) or None
 
 
     def INSERT(self, sqlvars):
@@ -87,7 +91,7 @@ class Database(object):
             )
 
         # Get a database cursor
-        curs = self.conn.cursor()
+        curs = not self.noaction and self.conn.cursor() or None
 
         #
         # Loop through all records and insert them into the database
@@ -102,11 +106,15 @@ class Database(object):
             for i in range(0, len(sqlvars['fields'])):
                 values[sqlvars['fields'][i]] = rec[i]
 
+            if self.debug:
+                print "SQL QUERY: ==> %s" % (sqlstub % values)
+
             # Do the INSERT query
-            curs.execute(sqlstub, values)
+            if not self.noaction:
+                curs.execute(sqlstub, values)
 
             # If a return value for the INSERT is defined, catch that one
-            if sqlvars['returning']:
+            if not self.noaction and sqlvars['returning']:
                 # The psycopg2 do not handle INSERT INTO ... RETURNING column queries, so we can only use
                 # this on tables with oid and do the look up that way
                 vls = {"table": sqlvars['table'], 'colname': sqlvars['returning'], 'oid': str(curs.lastrowid)}
@@ -115,11 +123,12 @@ class Database(object):
             else:
                 results.append(True)
 
-        curs.close()
+        if not self.noaction:
+            curs.close()
         return results
 
     def SELECT(self, table, fields, joins=None, where=None):
-        curs = self.conn.cursor()
+        curs = not self.noaction and self.conn.cursor() or None
 
         # Query
         try:
@@ -129,7 +138,13 @@ class Database(object):
                 joins and "%s" % joins or "",
                 where and "WHERE %s" % " AND ".join(["%s = %%(%s)s" % (k,k) for (k,v) in where.items()] or "")
                 )
-            curs.execute(sql, where)
+            if self.debug:
+                print "SQL QUERY: ==> %s" % (sql % where)
+            if not self.noaction:
+                curs.execute(sql, where)
+            else:
+                # If no action is setup (mainly for debugging), return empty result set
+                return {"table": table, "fields": [], "records": []}
         except Exception, err:
             raise Exception, "** SQL ERROR *** %s\n** SQL ERROR ** Message: %s" % ((sql % where), str(err))
 
@@ -147,15 +162,19 @@ class Database(object):
             records.append(values)
 
         curs.close()
+        if debug:
+            print "database::SELECT() result ** Fields: %s\nRecords: %s" % (fields, records)
         return {"table": table, "fields": fields, "records": records}
 
     def COMMIT(self):
         # Commit the work
-        self.conn.commit()
+        if not self.noaction:
+            self.conn.commit()
 
     def ROLLBACK(self):
         # Abort / rollback the current work
-        self.conn.rollback()
+        if not self.noaction:
+            self.conn.rollback()
 
 
     def GetValue(self, dbres, recidx, field):

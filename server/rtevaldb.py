@@ -28,9 +28,10 @@
 from database import Database
 from xmlparser import XMLSQLparser
 
-def register_report(xslt, xmldata, filename):
+def register_report(xslt, xmldata, filename, debug=False, noaction=False):
     dbc = Database(host="rtserver.farm.hsv.redhat.com", database="rteval",
                    user="xmlrpc", password="RTeval")
+    dbc = Database(database="rteval", debug=debug, noaction=noaction)
     parser = XMLSQLparser(xslt, xmldata)
 
     systems = parser.GetSQLdata('systems')
