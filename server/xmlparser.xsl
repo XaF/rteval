@@ -123,7 +123,7 @@
         <record>
           <value fid="0"><xsl:value-of select="$syskey"/></value>
           <value fid="1"><xsl:value-of select="uname/node"/></value>
-          <value fid="2" isnull="1"/> <!-- FIXME: Not implemented yet -->
+          <value fid="2"><xsl:value-of select="network_config/interface/IPv4[@defaultgw=1]/@ipaddr"/></value>
         </record>
       </records>
     </sqldata>
@@ -175,7 +175,7 @@
           <value fid="0"><xsl:value-of select="$rterid"/></value>
           <value fid="1" type="xmlblob">
             <rteval_details>
-              <xsl:copy-of select="clocksource|loads|cyclictest/command_line"/>
+              <xsl:copy-of select="clocksource|network_config|loads|cyclictest/command_line"/>
             </rteval_details>
           </value>
         </record>
