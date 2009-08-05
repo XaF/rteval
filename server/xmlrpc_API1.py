@@ -96,7 +96,7 @@ class XMLRPC_API1():
         # Register the report into a database and return the rteval run id
         (syskey, rterid) = rtevaldb.register_report('xmlparser.xsl', xmldoc, fname,
                                                         debug=self.debug, noaction=self.nodbaction)
-        if not self.nodbaction:
+        if self.nodbaction:
             rterid = 999999999 # Fake ID when no database registration is done
 
         return rterid
