@@ -127,6 +127,28 @@ class Database(object):
             curs.close()
         return results
 
+
+    def DELETE(self, table, where):
+        try:
+            sql = "DELETE FROM %s WHERE %s" % (
+                table,
+                " AND ".join(["%s = %%(%s)s" % (k,k) for (k,v) in where.items()])
+                )
+
+            if self.debug:
+                print "SQL QUERY ==> %s" % (sql % where)
+
+            if not self.noaction:
+                curs = self.conn.cursor()
+                curs.execute(sql, where)
+                delrows = curs.rowcount
+                curs.close()
+                return delrows
+            else:
+                return 0
+        except Exception, err:
+            raise Exception, "** SQL ERROR ** %s\n** SQL ERROR ** Message: %s" % ((sql % where), str(err))
+
     def SELECT(self, table, fields, joins=None, where=None):
         curs = not self.noaction and self.conn.cursor() or None
 
