@@ -42,7 +42,7 @@ PORT=65432
 
 # Restrict to a particular path.
 class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths = ('/rteval/API1',)
+    rpc_paths = ('/rteval/API1/',)
 
 
 class RTevald():
@@ -58,7 +58,7 @@ class RTevald():
         self.server.register_introspection_functions()
 
         # setup a class to handle requests
-        self.server.register_instance(xmlrpc_API1.XMLRPC_API1("./testsrv/"))
+        self.server.register_instance(xmlrpc_API1.XMLRPC_API1("./testsrv/", nodbaction=True))
 
         # Run the server's main loop
         self.log.Log("StartServer", "Listening on %s:%i" % (self.options.listen, self.options.port))
