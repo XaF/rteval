@@ -3,7 +3,7 @@
 
 
 Name:		rteval
-Version:	0.8
+Version:	0.9
 Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
@@ -67,12 +67,18 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
-* Thu Jul 16 2009 David Sommerseth <davids@redhat.com> - 0.7-3
+* Tue Aug  4 2009 Clark Williams <williams@redhat.com> - 0.9-1
+- merged dsommers XMLRPC and database changes
 - Specify minimum python-dmidecode version, which got native XML support
-
-* Tue Jun 16 2009 David Sommerseth <davids@redhat.com> - 0.7-2
 - Added rteval_dmi.xsl
 - Fixed permission issues in /usr/share/rteval-x.xx
+
+* Wed Jul 22 2009 Clark Williams <williams@redhat.com> - 0.8-1
+- added code to capture clocksource info
+- added code to copy dmesg info to report directory
+- added code to display clocksource info in report
+- added --summarize option to display summary of existing report
+- added helpfile target to Makefile
 
 * Tue Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
 - added require for python-schedutils to specfile
