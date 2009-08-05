@@ -56,7 +56,8 @@ def register_report(xslt, xmldata, filename):
         # If this is a known system, check that hostname / IP address is the same
         syskey = dbc.GetValue(chk, 0, 0)
         systemhost = parser.GetSQLdata('systems_hostname', syskey=syskey)
-        srch = {'hostname': dbc.GetValue(systemhost, 0, 'hostname')}
+        srch = {'hostname': dbc.GetValue(systemhost, 0, 'hostname'),
+                'ipaddr': dbc.GetValue(systemhost, 0, 'ipaddr')}
         chk = dbc.SELECT('systems_hostname',['hostname','ipaddr'], where=srch)
         if dbc.NumTuples(chk) == 0:
             # This is an unknown hostname, register it
