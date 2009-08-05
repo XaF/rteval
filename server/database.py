@@ -184,7 +184,7 @@ class Database(object):
             records.append(values)
 
         curs.close()
-        if debug:
+        if self.debug:
             print "database::SELECT() result ** Fields: %s\nRecords: %s" % (fields, records)
         return {"table": table, "fields": fields, "records": records}
 
