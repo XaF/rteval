@@ -122,13 +122,16 @@ class Database(object):
         curs = self.conn.cursor()
 
         # Query
-        sql = "SELECT %s FROM %s %s %s" % (
-            ",".join(fields),
-            table,
-            joins and "%s" % joins or "",
-            where and "WHERE %s" % " AND ".join(["%s = %%(%s)s" % (k,k) for (k,v) in where.items()] or "")
-            )
-        curs.execute(sql, where)
+        try:
+            sql = "SELECT %s FROM %s %s %s" % (
+                ",".join(fields),
+                table,
+                joins and "%s" % joins or "",
+                where and "WHERE %s" % " AND ".join(["%s = %%(%s)s" % (k,k) for (k,v) in where.items()] or "")
+                )
+            curs.execute(sql, where)
+        except Exception, err:
+            raise Exception, "** SQL ERROR *** %s\n** SQL ERROR ** Message: %s" % ((sql % where), str(err))
 
         # Extract field names
         fields = []
