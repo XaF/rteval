@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	0.9
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -67,6 +67,9 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
+* Thu Aug 13 2009 Clark Williams <williams@redhat.com> - 0.9-2
+- fixed problem with incorrect version in rteval.py
+
 * Tue Aug  4 2009 Clark Williams <williams@redhat.com> - 0.9-1
 - merged dsommers XMLRPC and database changes
 - Specify minimum python-dmidecode version, which got native XML support
