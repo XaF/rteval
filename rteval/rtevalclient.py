@@ -53,17 +53,17 @@ class rtevalclient:
         doclen = xmldoc.saveFileTo(xmlbuf, 'UTF-8')
 
         compr = bz2.BZ2Compressor(9)
-        compr.compress(fbuf.getvalue())
-        data = base64.b64encode(compr.flush())
+        cmpr = compr.compress(fbuf.getvalue())
+        data = base64.b64encode(cmpr + compr.flush())
         ret = self.srv.SendReport(self.hostname, data)
         print "rtevalclient::SendReport() - Sent %i bytes (XML document length: %i bytes, compression ratio: %.02f%%)" % (len(data), doclen, (1-(float(len(data)) / float(doclen)))*100 )
         return ret
 
     def SendDataAsFile(self, fname, data, decompr = False):
         compr = bz2.BZ2Compressor(9)
-        compr.compress(data)
-        comprdata = base64.b64encode(compr.flush())
-        return self.srv.StoreRawFile(self.hostname, fname, comprdata, decompr)
+        cmprdata = compr.compress(data)
+        b64data = base64.b64encode(cmprdata + compr.flush())
+        return self.srv.StoreRawFile(self.hostname, fname, b64data, decompr)
 
 
     def SendFile(self, fname, decompr = False):
