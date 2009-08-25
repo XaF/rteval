@@ -34,7 +34,7 @@ import rtevaldb
 
 
 class XMLRPC_API1():
-    def __init__(self, dataroot="/tmp/rteval", debug=False, nodbaction=False):
+    def __init__(self, dataroot="/var/lib/rteval", debug=False, nodbaction=False):
         # Some defaults
         self.dataroot = dataroot
         self.fnametrans = string.maketrans("/\\", "::") # replace path delimiters in filenames
