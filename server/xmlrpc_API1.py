@@ -34,11 +34,12 @@ import rtevaldb
 
 
 class XMLRPC_API1():
-    def __init__(self, dataroot="/tmp/rteval"):
+    def __init__(self, dataroot="/var/lib/rteval", debug=False, nodbaction=False):
         # Some defaults
         self.dataroot = dataroot
         self.fnametrans = string.maketrans("/\\", "::") # replace path delimiters in filenames
-
+        self.debug = debug
+        self.nodbaction = nodbaction
 
     def __mkdatadir(self, dirpath):
         startdir = os.getcwd()
@@ -89,9 +90,15 @@ class XMLRPC_API1():
         self.__mkdatadir(self.dataroot + '/reports/' + clientid)
         fname = self.__getfilename('reports/' + clientid,'report.xml', False)
         xmldoc.saveFormatFileEnc(fname,'UTF-8',1)
+        if self.debug:
+            print "Copy of report: %s" % fname
 
         # Register the report into a database and return the rteval run id
-        (syskey, rterid) = rtevaldb.register_report('xmlparser.xsl', xmldoc, fname)
+        (syskey, rterid) = rtevaldb.register_report('xmlparser.xsl', xmldoc, fname,
+                                                        debug=self.debug, noaction=self.nodbaction)
+        if self.nodbaction:
+            rterid = 999999999 # Fake ID when no database registration is done
+
         return rterid
 
 
