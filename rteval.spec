@@ -3,8 +3,8 @@
 
 
 Name:		rteval
-Version:	0.9
-Release:	2%{?dist}
+Version:	1.0
+Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
