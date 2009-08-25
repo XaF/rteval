@@ -86,7 +86,6 @@ class RtEval(object):
         self.get_clocksources()
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
-        self.make_report_dir()
 
     def find_biggest_tmp(self):
         dir = ''
@@ -482,6 +481,8 @@ class RtEval(object):
         (opts, args) = self.parse_options()
         workdir  = opts.workdir
         self.loaddir  = opts.loaddir
+        if not self.loaddir.startswith('/'):
+            self.loaddir = os.path.join(self.topdir, self.loaddir)
         self.verbose  = opts.verbose
         self.debugging = opts.debugging
         self.duration = opts.duration
@@ -512,7 +513,13 @@ class RtEval(object):
             raise RuntimeError, "work directory %d does not exist" % workdir
 
         if workdir != self.topdir:
-            self.topdir = workdir
+            if not workdir.startswith('/'):
+                self.topdir = os.path.join(os.getcwd(), workdir)
+            else:
+                self.topdir = workdir
+            os.chdir(workdir)
+
+        self.make_report_dir()
 
         if self.runlatency: 
             self.measure_latency()
