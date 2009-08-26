@@ -55,7 +55,7 @@ import dmi
 
 class RtEval(object):
     def __init__(self):
-        self.version = "1.0"
+        self.version = "1.1"
         self.load_modules = (hackbench, kcompile)
         self.keepdata = True
         self.verbose = False
