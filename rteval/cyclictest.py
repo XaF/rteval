@@ -171,7 +171,7 @@ class Cyclictest(Thread):
         else:
             (self.outhandle, self.outfile) = tempfile.mkstemp(prefix='cyclictest-', suffix='.dat')
 
-        self.cmd = ['cyclictest', self.interval, '-nmv', 
+        self.cmd = ['cyclictest', self.interval, '-nmv', '-d0',
                     "-p%d" % self.priority]
         if self.threads:
             self.cmd.append("-t%d" % self.threads)
