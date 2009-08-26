@@ -3,7 +3,7 @@
 
 
 Name:		rteval
-Version:	1.0
+Version:	1.1
 Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
@@ -67,6 +67,11 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
+* Wed Aug 26 2009 Clark Williams <williams@redhat.com> - 1.1-1
+- modified cyclictest.py to start cyclictest threads with a
+  'distance' of zero, meaning they all have the same measurement
+  interval
+
 * Tue Aug 25 2009 Clark Williams <williams@redhat.com> - 1.0-1
 - merged davids XMLRPC fixes
 - fixed --workdir option
