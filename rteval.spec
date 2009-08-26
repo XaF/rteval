@@ -67,6 +67,11 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
+* Tue Aug 25 2009 Clark Williams <williams@redhat.com> - 1.0-1
+- merged davids XMLRPC fixes
+- fixed --workdir option
+- verion bump to 1.0
+
 * Thu Aug 13 2009 Clark Williams <williams@redhat.com> - 0.9-2
 - fixed problem with incorrect version in rteval.py
 
