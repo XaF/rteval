@@ -32,8 +32,13 @@ times is done and printed to the screen.
 %prep
 %setup -q
 
-%build
+# version sanity check (make sure specfile and rteval.py match)
+srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
+if [ $srcver != %{version} ]; then
+   exit -1
+fi
 
+%build
 
 %install
 rm -rf $RPM_BUILD_ROOT
