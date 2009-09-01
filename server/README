@@ -1,0 +1,92 @@
+**
+** Setting up a rteval XML-RPC server
+**
+
+The XML-RPC server has the purpose of collecting information from several
+rteval clients.  Each client will get a unique system ID which then can
+be used to track how each system changes behavior on different kernels.
+All of the data in the summary.xml produced by the rteval script is sent
+over to the XML-RPC server and a copy is saved, default location is
+/var/lib/rteval.  This XML file is then parsed and the data is stored in
+a database for further analysis.
+
+
+*
+* Apache preparations
+*
+First you will need an Apache server with mod_python available.  The directory
+where the XML-RPC files will be available from needs to have support for 
+.htaccess files as well.  If not, the contents of the .htaccess file needs to
+be implemented into a <Location> or <Directory> directive in your Apache
+server config.
+
+The default path used for the rteval client is
+
+    http://{server hostname}/rteval/API1/
+
+If you have a HTTP setup which will follow this scheme, you do not need to
+change any URLs at all.
+
+
+*
+* Database preparations
+*
+This XML-RPC server makes use of a PostgreSQL database for saving the reports.
+It's presumed here that you know how to setup and create a database which the
+rteval XML-RPC interface can make use of.  Further, it is expected that such
+a database is created and that a user called 'xmlrpc' can access it.  Remember
+to also update the pg_hba.conf file in the PostgreSQL data directory, to allow
+the xmlrpc user access from the web server.
+
+To populate the database with the needed table, run the SQL script:
+
+   psql < ../sql/rteval-1.0.sql
+
+This script will create all needed tables and grant the needed access to the
+xmlrpc database user.
+
+
+*
+* Installing the needed files
+*
+A quick little shell script will copy the needed files for you.
+
+    ./install.sh {server-side file path}
+
+The path given is the directory which you have configured the web server to
+make use of.  The needed .htaccess file will be copied into this directory as
+well.  Restart the web server and watch the log files for errors.
+
+*
+*  Configuration
+*
+
+- database host, port, user name and password
+  change values in rtevaldb.py, line 32 and 33
+
+- directory for the copy of summary.xml files
+  change the rootdir variable in xmlrpc_API1.py:37
+
+
+*
+* Testing the setup
+*
+For a quick test, dig up a summary.xml file from an earlier rteval run and
+try sending it to the XML-RPC server by using the testclient_sendreportfile
+script:
+
+     ./testclient_sendreportfile --report=summary.xml \
+                                 --xmlrpc-submit=localhost
+
+See --help for more info on this utility.  Usually the log files of Apache and
+PostgreSQL provides pretty good information on what's going wrong.
+
+*
+* Known issues
+*
+One known issue is that some setups requires a full path to xmlparser.xsl in
+xmlparser.py:97.  This xmlparser.xsl is needed to help parsing the summary.xml
+into data structures which is used by database.py to do the SQL operations.
+This will be solved when a configuration file is implemented into the XML-RPC
+service.
+
