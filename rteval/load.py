@@ -32,7 +32,7 @@ import threading
 
 class Load(threading.Thread):
     def __init__(self, name="<unnamed>", source=None, dir=None, 
-                 debug=False, num_cpus=1):
+                 debug=False, num_cpus=1, params={}):
         threading.Thread.__init__(self)
         self.name = name
         self.source = source	# abs path to source archive
@@ -43,6 +43,7 @@ class Load(threading.Thread):
         self.ready = False
         self.debugging = debug
         self.num_cpus = num_cpus
+        self.params = params
 
         if not os.path.exists(self.dir):
             os.makedirs(self.dir)
@@ -52,6 +53,12 @@ class Load(threading.Thread):
 
     def isReady(self):
         return self.ready
+
+    def shouldStop(self):
+        return self.stopevent.isSet()
+
+    def shouldStart(self):
+        return self.startevent.isSet()
 
     def setup(self, topdir, tarball):
         pass
@@ -63,17 +70,17 @@ class Load(threading.Thread):
         pass
 
     def run(self):
-        if self.stopevent.isSet():
+        if self.shouldStop():
             return
         self.setup()
-        if self.stopevent.isSet():
+        if self.shouldStop():
             return
         self.build()
         while True:
-            if self.stopevent.isSet():
+            if self.shouldStop():
                 return
             self.startevent.wait(1.0)
-            if self.startevent.isSet():
+            if self.shouldStart():
                 break
         self.runload()
 

@@ -5,13 +5,13 @@ D	:=	10
 
 runit:
 	[ -d ./run ] || mkdir run
-	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D)
+	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f rteval/default.ini
 
 sysreport:
 	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) --sysreport
 
 clean:
-	rm -f rteval/*~ rteval/*.py[co] *.tar.bz2
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2
 
 realclean: clean
 	rm -rf run tarball rpm
