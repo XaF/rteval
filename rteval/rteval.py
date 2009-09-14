@@ -56,7 +56,7 @@ import dmi
 class RtEval(object):
     def __init__(self):
         self.version = "1.1"
-        self.load_modules = (hackbench, kcompile)
+        self.load_modules = []
         self.keepdata = True
         self.verbose = False
         self.debugging = False
@@ -65,7 +65,6 @@ class RtEval(object):
         self.sysreport = False
         self.reportdir = None
         self.reportfile = None
-        self.runlatency = True
         self.runsmi = False
         self.runoprofile = False
         self.loads = []
@@ -146,24 +145,18 @@ class RtEval(object):
         parser.add_option("-s", "--sysreport", dest="sysreport",
                           action="store_true", default=False,
                           help='run sysreport to collect system data')
-        parser.add_option("-L", '--latency', dest='latency',
-                          action="store_true", default=False,
-                          help='run latency detector (default)')
-        parser.add_option("-S", '--smi', dest='smi',
-                          action="store_true", default=False,
-                          help='run smi detector (not implemented)')
         parser.add_option("-D", '--debug', dest='debugging',
                           action='store_true', default=False,
                           help='turn on debug prints')
-        parser.add_option("-O", '--oprofile', dest='oprofile',
-                          action='store_true', default=False,
-                          help='run oprofile while running evaluation (not implemented)')
         parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpchost',
                           action='store', default=None,
                           help='Hostname to XML-RPC server to submit reports', metavar='HOST')
         parser.add_option("-Z", '--summarize', dest='summarize',
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
+        parser.add_option("-f", "--inifile", dest="inifile",
+                          type='string', default="default.ini",
+                          help="initialization file for configuring loads and behavior")
 
         (options, args) = parser.parse_args()
         if options.duration:
@@ -181,9 +174,8 @@ class RtEval(object):
                 v = v[:-1]
                 mult = 3600.0 * 24.0
             options.duration = float(v) * mult
-        if options.latency == False and options.smi == False:
-            options.latency = True
-        return (options, args)
+        self.options = options
+        self.arguments = args
 
     def debug(self, str):
         if self.debugging: print 
@@ -368,15 +360,34 @@ class RtEval(object):
             return
         shutil.copyfile(dpath, os.path.join(self.reportdir, "dmesg"))
 
-    def measure_latency(self):
+    def read_config(self):
+        import ConfigParser
+        self.info("reading config file %s" % self.inifile)
+        ini = ConfigParser.ConfigParser()
+        ini.read(self.inifile)
+        self.config_info = {}
+        for s in ini.sections():
+            d = {}
+            for i in ini.items(s):
+                d[i[0]] = i[1]
+            self.config_info[s] = d
+
+    def measure(self):
         builddir = os.path.join(self.tmpdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
         self.reportfile = os.path.join(self.reportdir, "summary.rpt")
         self.xml = os.path.join(self.reportdir, "summary.xml")
 
-        nthreads = 0
+        # read the config file
+        self.read_config()
 
-        print "setting up loads"
+        # read in loads from the ini file
+        self.load_modules = []
+        for l in self.config_info['loads'].keys():
+            if self.config_info['loads'][l].lower() == 'true':
+                self.load_modules.append(__import__(l))
+
+        self.info("setting up loads")
         self.loads = []
         for m in self.load_modules:
             self.loads.append(m.create(builddir, self.loaddir, self.verbose, self.numcores))
@@ -384,6 +395,7 @@ class RtEval(object):
         self.info("setting up cyclictest")
         self.cyclictest = cyclictest.Cyclictest(duration=self.duration, debugging=self.debugging)
 
+        nthreads = 0
         try:
             # start the loads
             self.start_loads()
@@ -477,20 +489,29 @@ class RtEval(object):
             print "opcontrol failed to set vmlinux image: %s" % vmlinux
             return
 
+    def find_inifile(self, name):
+        for d in (os.getcwd(), self.topdir):
+            tmp = os.path.join(os.getcwd(), name)
+            print "checking %s" % tmp
+            if os.path.exists(tmp):
+                return tmp
+        raise RuntimeError, "Can't find ini file: %s" % name
+
     def rteval(self):
-        (opts, args) = self.parse_options()
-        workdir  = opts.workdir
-        self.loaddir  = opts.loaddir
+        self.parse_options()
+        workdir  = self.options.workdir
+        self.loaddir  = self.options.loaddir
         if not self.loaddir.startswith('/'):
             self.loaddir = os.path.join(self.topdir, self.loaddir)
-        self.verbose  = opts.verbose
-        self.debugging = opts.debugging
-        self.duration = opts.duration
-        self.sysreport = opts.sysreport
-        self.xmlrpchost = opts.xmlrpchost
+        self.verbose  = self.options.verbose
+        self.debugging = self.options.debugging
+        self.duration = self.options.duration
+        self.sysreport = self.options.sysreport
+        self.xmlrpchost = self.options.xmlrpchost
+        self.inifile = self.find_inifile(self.options.inifile)
 
         # if --summarize was specified then just parse the XML, print it and exit
-        if opts.summarize:
+        if self.options.summarize:
             if len(args) < 1:
                 raise RuntimeError, "Must specify at least one XML file with --summarize!"
             for x in args:
@@ -506,25 +527,24 @@ class RtEval(object):
         verbose: %s
         debugging: %s
         duration: %f
-        sysreport: %s''' % (workdir, self.loaddir, self.verbose, 
-                            self.debugging, self.duration, self.sysreport))
+        sysreport: %s
+        inifile:  %s''' % (workdir, self.loaddir, self.verbose, 
+                           self.debugging, self.duration, self.sysreport, self.inifile))
 
         if not os.path.isdir(workdir):
             raise RuntimeError, "work directory %d does not exist" % workdir
 
         if workdir != self.topdir:
-            if not workdir.startswith('/'):
-                self.topdir = os.path.join(os.getcwd(), workdir)
-            else:
+            if os.path.isabs(workdir):
                 self.topdir = workdir
+            else:
+                self.topdir = os.path.abspath(os.path.join(os.getcwd(), workdir))
             os.chdir(workdir)
 
         self.make_report_dir()
-
-        if self.runlatency: 
-            self.measure_latency()
-            self.get_dmesg()
-            self.tar_results()
+        self.measure()
+        self.get_dmesg()
+        self.tar_results()
         
 
 if __name__ == '__main__':

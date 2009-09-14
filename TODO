@@ -1,3 +1,8 @@
+#
+# This is just a random list of things that I think need to be done
+# to rteval
+#
+
 1. Write a man page.
 
 2. Figure out some sort of config file to adjust load and measurement parameters, then
@@ -7,6 +12,7 @@ add an option to tell rteval to use a particular config file.
 
    - create a wrapper python module just like is done for kcompile and hackbench
      then add the new module to a config file so rteval loads it on startup
+     (i.e. a plugin architecture)
 
    - figure out some generic load wrapper so that arbitrary commands may be
      used as loads. 
