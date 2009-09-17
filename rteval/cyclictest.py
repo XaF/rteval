@@ -103,13 +103,13 @@ class RunData(object):
             x.openblock(self.type, {'id': self.id, 'priority': self.priority})
         x.openblock('statistics')
         x.taggedvalue('samples', str(len(self.samples)))
-        x.taggedvalue('minimum', str(self.min))
-        x.taggedvalue('maximum', str(self.max))
-        x.taggedvalue('median', str(self.median))
+        x.taggedvalue('minimum', str(self.min), {"unit": "us"})
+        x.taggedvalue('maximum', str(self.max), {"unit": "us"})
+        x.taggedvalue('median', str(self.median), {"unit": "us"})
         x.taggedvalue('mode', str(self.mode))
-        x.taggedvalue('range', str(self.range))
-        x.taggedvalue('mean', str(self.mean))
-        x.taggedvalue('standard_deviation', str(self.stddev))
+        x.taggedvalue('range', str(self.range), {"unit": "us"})
+        x.taggedvalue('mean', str(self.mean), {"unit": "us"})
+        x.taggedvalue('standard_deviation', str(self.stddev), {"unit": "us"})
         x.closeblock()
         x.closeblock()
 
@@ -232,6 +232,7 @@ class Cyclictest(Thread):
                     sample_n = libxml2.newNode('Sample')
                     sample_n.newProp('seq', str(seq))
                     sample_n.newProp('latency', str(latency))
+                    sample_n.newProp('latency_unit', 'us');
 
                     # Append this sample node to the corresponding thread node
                     grouptags[cpu].addChild(sample_n)
