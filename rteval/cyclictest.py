@@ -221,7 +221,7 @@ class Cyclictest(Thread):
                 samplenodes.addChild(node)
             else:
                 # Parse sample data - must have 3 parts
-                if len(pieces) == 3:
+                if (len(pieces) == 3) and pieces[2].strip() != '':
                     # Split up the data - convert to integers, to be sure
                     # we process them as integers later on (spaces, invalid data, etc)
                     cpu = int(pieces[0])
