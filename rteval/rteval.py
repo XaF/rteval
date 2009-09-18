@@ -191,6 +191,8 @@ class RtEval(object):
                 v = v[:-1]
                 mult = 3600.0 * 24.0
             self.cmd_options.duration = float(v) * mult
+        self.workdir = os.path.abspath(self.cmd_options.workdir)
+
 
     def debug(self, str):
         if self.config.debugging is True:
