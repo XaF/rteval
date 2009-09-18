@@ -38,6 +38,7 @@ class rtevalCfgSection(object):
 
     def __init__(self, section_cfg):
         self.__update_config_vars(section_cfg)
+        self.__iter_list = None
 
     def __str__(self):
         "Simple method for dumping config when object is used as a string"
@@ -52,9 +53,26 @@ class rtevalCfgSection(object):
         for m in section_cfg.keys():
             self.__dict__[m] = section_cfg[m]
 
+
+    def __iter__(self):
+        "Initialises for an iterator loop"
+        self.__iter_list = self.keys()
+        return self
+
+
+    def next(self):
+        "Function used by the iterator"
+        if len(self.__iter_list) == 0:
+            raise StopIteration
+        else:
+            elmt = self.__iter_list.pop()
+            return (elmt, self.__cfgdata[elmt])
+
+
     def has_key(self, key):
         "has_key() wrapper for the configuration data"
         return self.__cfgdata.has_key(key)
+
 
     def keys(self):
         "keys() wrapper for configuration data"
@@ -63,9 +81,10 @@ class rtevalCfgSection(object):
 
 class rtevalConfig(rtevalCfgSection):
     "Config parser for rteval"
-    
+
     def __init__(self, initvars = None, logfunc = None):
         self.__config_data = initvars or {}
+        self.__config_files = []
 
         # export the rteval section to member variables, if section is found
         try:
@@ -103,13 +122,17 @@ class rtevalConfig(rtevalCfgSection):
         "read and parse the configfile"
 
         cfgfile = fname or self.__find_config()
+        if self.ConfigParsed(cfgfile) is True:
+            # Don't try to reread this file if it's already been parsed
+            return
+
         self.__info("reading config file %s" % cfgfile)
         ini = ConfigParser.ConfigParser()
         ini.read(cfgfile)
 
         # wipe any previously read config info (other than the rteval stuff)
         for s in self.__config_data.keys():
-            if s == 'rteval': 
+            if s == 'rteval':
                 continue
             self.__config_data[s] = {}
 
@@ -127,12 +150,20 @@ class rtevalConfig(rtevalCfgSection):
         except Exception, err:
             raise err
 
+        # Register the file as read
+        self.__config_files.append(cfgfile)
+
+
+    def ConfigParsed(self, fname):
+        "Returns True if the config file given by name has already been parsed"
+        return self.__config_files.__contains__(fname)
+
 
     def AppendConfig(self, section, cfgvars):
         "Add more config parameters to a section.  cfgvards must be a dictionary of parameters"
 
-        for o in self.cmd_options.__dict__.keys():
-            self.config_info[section][o] = self.cmd_options.__dict__[o]
+        for o in cfgvars.__dict__.keys():
+            self.__config_data[section][o] = cfgvars.__dict__[o]
 
         if section == 'rteval':
             self._rtevalCfgSection__update_config_vars(self.__config_data['rteval'])
