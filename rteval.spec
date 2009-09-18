@@ -79,6 +79,7 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 * Fri Sep 18 2009 Clark Williams <williams@redhat.com> - 1.2-1
 - added config file handling for modifying load behavior and
   setting defaults
+- added units in report per IBM request
 
 * Wed Aug 26 2009 Clark Williams <williams@redhat.com> - 1.1-2
 - missed a version change in rteval/rteval.py
