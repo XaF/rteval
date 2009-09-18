@@ -71,13 +71,13 @@
   <!-- Generic formatting of statistics information -->
   <xsl:template match="statistics">
           Samples: <xsl:value-of select="samples"/>  
-          Mean: <xsl:value-of select="mean"/> 
-	  Median: <xsl:value-of select="median"/> 
+          Mean: <xsl:value-of select="mean"/><xsl:value-of select="mean/@unit"/>
+	  Median: <xsl:value-of select="median"/><xsl:value-of select="median/@unit"/>
 	  Mode: <xsl:value-of select="mode"/>
-          Range: <xsl:value-of select="range"/>   
-	  Min: <xsl:value-of select="minimum"/>
-          Max: <xsl:value-of select="maximum"/> 
-          Std.dev: <xsl:value-of select="standard_deviation"/>       
+          Range: <xsl:value-of select="range"/><xsl:value-of select="range/@unit"/>
+	  Min: <xsl:value-of select="minimum"/><xsl:value-of select="minimum/@unit"/>
+          Max: <xsl:value-of select="maximum"/><xsl:value-of select="maximum/@unit"/>
+          Std.dev: <xsl:value-of select="standard_deviation"/><xsl:value-of select="standard_deviation/@unit"/>
           
   </xsl:template>
 
