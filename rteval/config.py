@@ -52,13 +52,29 @@ class rtevalCfgSection(object):
         for m in section_cfg.keys():
             self.__dict__[m] = section_cfg[m]
 
+    def has_key(self, key):
+        "has_key() wrapper for the configuration data"
+        return self.__cfgdata.has_key(key)
+
+    def keys(self):
+        "keys() wrapper for configuration data"
+        return self.__cfgdata.keys()
 
 
 class rtevalConfig(rtevalCfgSection):
     "Config parser for rteval"
     
-    def __init__(self, logfunc = None):
-        self.__config_data = {}
+    def __init__(self, initvars = None, logfunc = None):
+        self.__config_data = initvars or {}
+
+        # export the rteval section to member variables, if section is found
+        try:
+            self._rtevalCfgSection__update_config_vars(self.__config_data['rteval'])
+        except KeyError:
+            pass  # If 'rteval' is not found, KeyError is raised and that's okay to ignore
+        except Exception, err:
+            raise err # All other errors will be passed on
+
         self.__info = logfunc or self.__nolog
 
 
@@ -74,6 +90,7 @@ class rtevalConfig(rtevalCfgSection):
 
     def __find_config(self):
         "locate a config file"
+
         for f in ('rteval.conf', '/etc/rteval.conf'):
             p = os.path.abspath(f)
             if os.path.exists(p):
@@ -110,9 +127,21 @@ class rtevalConfig(rtevalCfgSection):
         except Exception, err:
             raise err
 
+
+    def AppendConfig(self, section, cfgvars):
+        "Add more config parameters to a section.  cfgvards must be a dictionary of parameters"
+
+        for o in self.cmd_options.__dict__.keys():
+            self.config_info[section][o] = self.cmd_options.__dict__[o]
+
+        if section == 'rteval':
+            self._rtevalCfgSection__update_config_vars(self.__config_data['rteval'])
+
+
     def GetSection(self, section):
         try:
+            # Return a new object with config settings of a given section
             return rtevalCfgSection(self.__config_data[section])
         except KeyError, err:
-            raise KeyError("The section '%s' does not exist" % section)
+            raise KeyError("The section '%s' does not exist in the config file" % section)
 
