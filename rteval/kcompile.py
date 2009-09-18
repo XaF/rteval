@@ -40,7 +40,7 @@ class Kcompile(load.Load):
     def setup(self):
         # find our source tarball
         if self.params.has_key('tarball'):
-            tarfile = os.path.join(self.srcdir, self.params['tarfile'])
+            tarfile = os.path.join(self.srcdir, self.params.tarfile)
             if not os.path.exists(tarfile):
                 raise RuntimeError, "kcompile: tarfile %s does not exist!" % tarfile
             self.source = tarfile
@@ -102,7 +102,7 @@ class Kcompile(load.Load):
         null = os.open("/dev/null", os.O_RDWR)
         mult=1
         if self.params.has_key('jobspercore'):
-            mult = int(self.params['jobspercore'])
+            mult = int(self.params.jobspercore)
         njobs = self.num_cpus * mult
         self.debug("starting kcompile loop (jobs: %d)" % njobs)
         self.args = ["make", "-C", self.mydir, 

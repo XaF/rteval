@@ -45,7 +45,7 @@ class Load(threading.Thread):
         self.ready = False
         self.params = params
         if params.has_key('source'):
-            self.source = params['source']
+            self.source = params.source
         else:
             self.source = None
 

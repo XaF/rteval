@@ -45,7 +45,7 @@ class Hackbench(load.Load):
     def setup(self):
         # find our tarball
         if self.params.has_key('source'):
-            self.source = os.path.join(self.srcdir, self.params['source'])
+            self.source = os.path.join(self.srcdir, self.params.source)
             if not os.path.exists(self.source):
                 raise RuntimeError, "hackbench: source %s does not exist!" % self.source
         else:
@@ -92,7 +92,7 @@ class Hackbench(load.Load):
             return
         mult = 1
         if self.params.has_key('jobspercore'):
-            mult = int(self.params['jobspercore'])
+            mult = int(self.params.jobspercore)
         jobs = self.num_cpus * mult
         null = os.open("/dev/null", os.O_RDWR)
         self.debug("starting hackbench loop in %s, arg: %d" % (self.mydir, jobs))

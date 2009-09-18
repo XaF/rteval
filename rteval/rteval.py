@@ -9,6 +9,7 @@
 #           to show the latencies encountered during the run.
 #
 #   Copyright 2009   Clark Williams <williams@redhat.com>
+#   Copyright 2009   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -50,47 +51,47 @@ import load
 import cyclictest
 import xmlout
 import dmi
+import rtevalConfig
 
 class RtEval(object):
     def __init__(self):
         self.version = "1.2"
         self.load_modules = []
-        self.config_info = {}
-        self.verbose = True
-        self.debugging = True
         self.workdir = os.getcwd()
-        self.inifile = self.find_config()
+        self.inifile = None
+        self.cmd_options = {}
 
-        self.config_info['rteval'] = {
-            'verbose'   : False,
-            'keepdata'  : True,
-            'debugging' : False,
-            'duration'  : 60.0,
-            'sysreport' : False,
-            'reportdir' : None,
-            'reportfile': None,
-            'installdir': '/usr/share/rteval-%s' % self.version,
+        instdir = '/usr/share/rteval-%s' % self.version
+        default_config = {
+            'rteval': {
+                'verbose'   : False,
+                'keepdata'  : True,
+                'debugging' : False,
+                'duration'  : 60.0,
+                'sysreport' : False,
+                'reportdir' : None,
+                'reportfile': None,
+                'installdir': instdir,
+                'srcdir'    : os.path.join(instdir, 'loadsource'),
+                'xmlrpc'    : None
+                }
             }
-        self.config_info['rteval']['srcdir'] = os.path.join(self.config_info['rteval']['installdir'], 'loadsource')
-        self.update_config_vars()
+        self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
 
         # read in config file info
-        self.read_config()
+        self.config.Load()
 
         # parse command line options
         self.parse_options()
 
         # if one of the command line options was a config file
         # then re-read the config info from there
-        if self.cmd_options.inifile != self.inifile:
+        if not self.config.ConfigParsed(self.cmd_options.inifile):
             self.inifile = self.cmd_options.inifile
-            self.read_config()
+            self.config.Load(self.inifile)
 
         # copy the command line options into the rteval config section
-        for o in self.cmd_options.__dict__.keys():
-            self.config_info['rteval'][o] = self.cmd_options.__dict__[o]
-
-        self.update_config_vars()
+        self.config.AppendConfig('rteval', self.cmd_options)
 
         self.debug("workdir: %s" % self.workdir)
 
@@ -101,7 +102,7 @@ class RtEval(object):
         self.get_clocksources()
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
-        self.xslt = os.path.join(self.installdir, "rteval_text.xsl")
+        self.xslt = os.path.join(self.config.installdir, "rteval_text.xsl")
         if not os.path.exists(self.xslt):
             raise RuntimeError, "can't find XSL template (%s)!" % self.xslt
 
@@ -139,41 +140,33 @@ class RtEval(object):
         self.available_clocksource = f.readline().strip()
         f.close()
 
-    def find_config(self):
-        '''locate a config file'''
-        for f in ('rteval.conf', '/etc/rteval.conf'):
-            p = os.path.abspath(f)
-            if os.path.exists(p):
-                self.info("found config file %s" % p)
-                return p
-        raise RuntimeError, "Unable to find configfile"
 
     def parse_options(self):
         '''parse the command line arguments'''
         parser = optparse.OptionParser()
         parser.add_option("-d", "--duration", dest="duration",
-                          type="string", default=str(self.duration),
+                          type="string", default=self.config.duration,
                           help="specify length of test run")
         parser.add_option("-v", "--verbose", dest="verbose",
-                          action="store_true", default=False,
+                          action="store_true", default=self.config.verbose,
                           help="turn on verbose prints")
         parser.add_option("-w", "--workdir", dest="workdir",
                           type="string", default=self.workdir,
                           help="top directory for rteval data")
         parser.add_option("-l", "--loaddir", dest="loaddir",
-                          type="string", default=self.srcdir,
+                          type="string", default=self.config.srcdir,
                           help="directory for load source tarballs")
         parser.add_option("-i", "--installdir", dest="installdir",
-                          type="string", default=self.installdir,
+                          type="string", default=self.config.installdir,
                           help="place to locate installed templates")
         parser.add_option("-s", "--sysreport", dest="sysreport",
-                          action="store_true", default=False,
+                          action="store_true", default=self.config.sysreport,
                           help='run sysreport to collect system data')
         parser.add_option("-D", '--debug', dest='debugging',
-                          action='store_true', default=False,
+                          action='store_true', default=self.config.debugging,
                           help='turn on debug prints')
-        parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpchost',
-                          action='store', default=None,
+        parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpc',
+                          action='store', default=self.config.xmlrpc,
                           help='Hostname to XML-RPC server to submit reports', metavar='HOST')
         parser.add_option("-Z", '--summarize', dest='summarize',
                           action='store_true', default=False,
@@ -182,10 +175,10 @@ class RtEval(object):
                           type='string', default=self.inifile,
                           help="initialization file for configuring loads and behavior")
 
-        (options, args) = parser.parse_args()
-        if options.duration:
+        (self.cmd_options, self.cmd_arguments) = parser.parse_args()
+        if self.cmd_options.duration:
             mult = 1.0
-            v = options.duration.lower()
+            v = self.cmd_options.duration.lower()
             if v.endswith('s'):
                 v = v[:-1]
             elif v.endswith('m'):
@@ -197,41 +190,15 @@ class RtEval(object):
             elif v.endswith('d'):
                 v = v[:-1]
                 mult = 3600.0 * 24.0
-            options.duration = float(v) * mult
-        self.cmd_options = options
-        self.cmd_arguments = args
-
-    def read_config(self):
-        '''read and parse the configfile'''
-        import ConfigParser
-        self.info("reading config file %s" % self.inifile)
-        ini = ConfigParser.ConfigParser()
-        ini.read(self.inifile)
-
-        # wipe any previously read config info (other than the rteval stuff)
-        for s in self.config_info.keys():
-            if s == 'rteval': continue
-            self.config_info[s] = {}
-
-        # copy the section data into the config_info dictionary
-        for s in ini.sections():
-            self.config_info[s] = {}
-            for i in ini.items(s):
-                self.config_info[s][i[0]] = i[1]
-
-        # export the rteval section to member variables
-        self.update_config_vars()
-        
-    def update_config_vars(self):
-        '''create rteval member variables from config info'''
-        for m in self.config_info['rteval'].keys():
-            self.__dict__[m] = self.config_info['rteval'][m]
+            self.cmd_options.duration = float(v) * mult
 
     def debug(self, str):
-        if self.debugging: print str
+        if self.config.debugging is True:
+            print str
 
     def info(self, str):
-        if self.verbose: print str
+        if self.config.verbose is True:
+            print str
 
     def run_sysreport(self):
         import glob
@@ -335,7 +302,7 @@ class RtEval(object):
         self.cyclictest.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
-        d = dmi.DMIinfo(self.installdir)
+        d = dmi.DMIinfo(self.config.installdir)
         d.genxml(self.xmlreport)
         
         # Close the report - prepare for return the result
@@ -420,23 +387,24 @@ class RtEval(object):
 
         # read in loads from the ini file
         self.load_modules = []
-        for l in self.config_info['loads'].keys():
+        loads = self.config.GetSection("loads")
+        for l in loads:
             # hope to eventually have different kinds but module is only on
             # for now (jcw)
-            if self.config_info['loads'][l].lower() == 'module':
-                self.info("importing load module %s" % l)
-                self.load_modules.append(__import__(l))
+            if l[1].lower() == 'module':
+                self.info("importing load module %s" % l[0])
+                self.load_modules.append(__import__(l[0]))
 
         self.info("setting up loads")
         self.loads = []
         for m in self.load_modules:
             self.info("creating load instance for %s" % m.__name__)
-            self.loads.append(m.create(builddir, self.srcdir, self.verbose, 
-                                       self.numcores, self.config_info[m.__name__]))
+            self.loads.append(m.create(builddir, self.config.srcdir, self.config.verbose,
+                                       self.numcores, self.config.GetSection(m.__name__)))
 
         self.info("setting up cyclictest")
-        self.cyclictest = cyclictest.Cyclictest(duration=self.duration, 
-                                                debugging=self.debugging)
+        self.cyclictest = cyclictest.Cyclictest(duration=self.config.duration,
+                                                debugging=self.config.debugging)
 
         nthreads = 0
         try:
@@ -444,7 +412,7 @@ class RtEval(object):
             self.start_loads()
             
             print "started %d loads on %d cores" % (len(self.loads), self.numcores)
-            print "Run duration: %d seconds" % self.duration
+            print "Run duration: %d seconds" % self.config.duration
             
             start = datetime.now()
             
@@ -464,8 +432,8 @@ class RtEval(object):
             samples = 0
 
             # wait for time to expire or thread to die
-            self.info("waiting for duration (%f)" % self.duration)
-            stoptime = (time.time() + self.duration)
+            self.info("waiting for duration (%f)" % self.config.duration)
+            stoptime = (time.time() + self.config.duration)
             while time.time() <= stoptime:
                 time.sleep(1.0)
                 if not self.cyclictest.isAlive():
@@ -487,12 +455,12 @@ class RtEval(object):
         duration = end - start
         self.genxml(duration, accum, samples)
         self.report()
-        if self.sysreport:
+        if self.config.sysreport:
             self.run_sysreport()
 
         # if --xmlrpc-submit | -X was given, send our report to this host
-        if self.xmlrpchost:
-            url = "http://%s/rteval/API1/" % self.xmlrpchost
+        if self.config.xmlrpc:
+            url = "http://%s/rteval/API1/" % self.config.xmlrpc
 
             client = rtevalclient.rtevalclient(url)
             print "Submitting report to %s" % url
@@ -520,9 +488,9 @@ class RtEval(object):
 
         # if --summarize was specified then just parse the XML, print it and exit
         if self.cmd_options.summarize:
-            if len(args) < 1:
+            if len(self.cmd_arguments) < 1:
                 raise RuntimeError, "Must specify at least one XML file with --summarize!"
-            for x in args:
+            for x in self.cmd_arguments:
                 self.summarize(x)
             sys.exit(0)
 
@@ -537,8 +505,9 @@ class RtEval(object):
         debugging: %s
         duration: %f
         sysreport: %s
-        inifile:  %s''' % (self.workdir, self.srcdir, self.verbose, 
-                           self.debugging, self.duration, self.sysreport, self.inifile))
+        inifile:  %s''' % (self.workdir, self.config.srcdir, self.config.verbose,
+                           self.config.debugging, self.config.duration, self.config.sysreport,
+                           self.inifile))
 
         if not os.path.isdir(self.workdir):
             raise RuntimeError, "work directory %d does not exist" % self.workdir
