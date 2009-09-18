@@ -31,22 +31,26 @@ import subprocess
 import threading
 
 class Load(threading.Thread):
-    def __init__(self, name="<unnamed>", source=None, dir=None, 
+    def __init__(self, name="<unnamed>", builddir=None, srcdir=None,
                  debug=False, num_cpus=1, params={}):
         threading.Thread.__init__(self)
         self.name = name
-        self.source = source	# abs path to source archive
-        self.dir = dir		# abs path to run dir
+        self.builddir = builddir		# abs path to top dir
+        self.srcdir = srcdir		# abs path to src dir
+        self.num_cpus = num_cpus
+        self.debugging = debug
         self.mydir = None
         self.startevent = threading.Event()
         self.stopevent = threading.Event()
         self.ready = False
-        self.debugging = debug
-        self.num_cpus = num_cpus
         self.params = params
+        if params.has_key('source'):
+            self.source = params['source']
+        else:
+            self.source = None
 
-        if not os.path.exists(self.dir):
-            os.makedirs(self.dir)
+        if not os.path.exists(self.builddir):
+            os.makedirs(self.builddir)
 
     def debug(self, str):
         if self.debugging: print str
@@ -60,13 +64,13 @@ class Load(threading.Thread):
     def shouldStart(self):
         return self.startevent.isSet()
 
-    def setup(self, topdir, tarball):
+    def setup(self, builddir, tarball):
         pass
 
-    def build(self, dir):
+    def build(self, builddir):
         pass
 
-    def runload(self, dir):
+    def runload(self, rundir):
         pass
 
     def run(self):

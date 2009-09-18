@@ -34,8 +34,8 @@ sys.pathconf = "."
 import load
 
 class Hackbench(load.Load):
-    def __init__(self, source=None, dir=None, debug=False, num_cpus=1, params={}):
-        load.Load.__init__(self, "hackbench", source, dir, debug, num_cpus)
+    def __init__(self, builddir=None, srcdir=None, debug=False, num_cpus=1, params={}):
+        load.Load.__init__(self, "hackbench", builddir, srcdir, debug, num_cpus, params)
 
     def __del__(self):
         null = open("/dev/null", "w")
@@ -43,11 +43,20 @@ class Hackbench(load.Load):
                         stdout=null, stderr=null)
 
     def setup(self):
+        # find our tarball
+        if self.params.has_key('source'):
+            self.source = os.path.join(self.srcdir, self.params['source'])
+            if not os.path.exists(self.source):
+                raise RuntimeError, "hackbench: source %s does not exist!" % self.source
+        else:
+            tarfiles = glob.glob(os.path.join(self.srcdir, "hackbench*"))
+            if len(tarfiles):
+                self.source = tarfiles[0]
         # check for existing directory
-        self.mydir = os.path.join(self.dir, "hackbench")
+        self.mydir = os.path.join(self.builddir, "hackbench")
         if not os.path.exists(self.mydir):
             self.debug("setting up hackbench self.source")
-            tarargs = ['tar', '-C', self.dir, '-x']
+            tarargs = ['tar', '-C', self.builddir, '-x']
             if self.source.endswith(".bz2"):
                 tarargs.append("-j")
             elif self.source.endswith(".gz"):
@@ -55,7 +64,7 @@ class Hackbench(load.Load):
             tarargs.append("-f")
             tarargs.append(self.source)
 
-            self.debug("unpacking %s into %s" % (self.source, self.dir))
+            self.debug("unpacking %s into %s" % (self.source, self.mydir))
             try:
                 subprocess.call(tarargs)
             except:
@@ -81,9 +90,13 @@ class Hackbench(load.Load):
         if not os.path.exists(exe):
             self.debug("Can't find hackbench exe!")
             return
+        mult = 1
+        if self.params.has_key('jobspercore'):
+            mult = int(self.params['jobspercore'])
+        jobs = self.num_cpus * mult
         null = os.open("/dev/null", os.O_RDWR)
-        self.debug("starting hackbench loop in %s" % self.mydir)
-        self.args = [exe, "20"]
+        self.debug("starting hackbench loop in %s, arg: %d" % (self.mydir, jobs))
+        self.args = [exe, str(jobs)]
         p = subprocess.Popen(self.args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
             time.sleep(1.0)
@@ -96,10 +109,5 @@ class Hackbench(load.Load):
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
 
-def create(dir, source, debug, num_cpus):
-    try:
-        tarball = glob.glob("%s/hackbench*" % source)[0]
-    except:
-        print "can't find hackbench tarball in %s" % source
-        sys.exit(1)
-    return Hackbench(tarball, dir, debug, num_cpus)
+def create(builddir, srcdir, debug, num_cpus, params = {}):
+    return Hackbench(builddir, srcdir, debug, num_cpus, params)

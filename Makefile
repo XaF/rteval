@@ -5,7 +5,7 @@ D	:=	10
 
 runit:
 	[ -d ./run ] || mkdir run
-	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f rteval/default.ini
+	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f rteval/rteval.conf -i rteval
 
 sysreport:
 	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) --sysreport

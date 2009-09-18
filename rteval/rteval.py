@@ -47,78 +47,89 @@ from datetime import datetime
 
 sys.pathconf = "."
 import load
-import hackbench
-import kcompile
 import cyclictest
 import xmlout
 import dmi
 
 class RtEval(object):
     def __init__(self):
-        self.version = "1.1"
+        self.version = "1.2"
         self.load_modules = []
-        self.keepdata = True
-        self.verbose = False
-        self.debugging = False
-        self.duration = 60.0
-        self.interrupted = False
-        self.sysreport = False
-        self.reportdir = None
-        self.reportfile = None
-        self.runsmi = False
-        self.runoprofile = False
+        self.config_info = {}
+        self.verbose = True
+        self.debugging = True
+        self.workdir = os.getcwd()
+        self.inifile = self.find_config()
+
+        self.config_info['rteval'] = {
+            'verbose'   : False,
+            'keepdata'  : True,
+            'debugging' : False,
+            'duration'  : 60.0,
+            'sysreport' : False,
+            'reportdir' : None,
+            'reportfile': None,
+            'installdir': '/usr/share/rteval-%s' % self.version,
+            }
+        self.config_info['rteval']['srcdir'] = os.path.join(self.config_info['rteval']['installdir'], 'loadsource')
+        self.update_config_vars()
+
+        # read in config file info
+        self.read_config()
+
+        # parse command line options
+        self.parse_options()
+
+        # if one of the command line options was a config file
+        # then re-read the config info from there
+        if self.cmd_options.inifile != self.inifile:
+            self.inifile = self.cmd_options.inifile
+            self.read_config()
+
+        # copy the command line options into the rteval config section
+        for o in self.cmd_options.__dict__.keys():
+            self.config_info['rteval'][o] = self.cmd_options.__dict__[o]
+
+        self.update_config_vars()
+
+        self.debug("workdir: %s" % self.workdir)
+
         self.loads = []
-        self.topdir = os.getcwd()
         self.start = datetime.now()
-        self.mydir = '/usr/share/rteval-%s' % self.version
-        if not os.path.exists(self.mydir):
-            self.mydir = os.path.join(self.topdir, "rteval")
-        if not os.path.exists(self.mydir):
-            raise RuntimeError, "Can't find rteval directory (%s)!" % self.mydir
-        self.xslt = os.path.join(self.mydir, "rteval_text.xsl")
-        if not os.path.exists(self.xslt):
-            raise RuntimeError, "can't find XSL template (%s)!" % self.xslt
-        self.loaddir = os.path.join(self.mydir, 'loadsource')
-        self.tmpdir = self.find_biggest_tmp()
         self.numcores = self.get_num_cores()
         self.memsize = self.get_memory_size()
         self.get_clocksources()
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
-
-    def find_biggest_tmp(self):
-        dir = ''
-        avail = 0;
-        for d in ('/tmp', '/var/tmp', '/usr/tmp'):
-            a = os.statvfs(d)[statvfs.F_BAVAIL]
-            if a > avail:
-                dir = d
-                avail = a
-                self.debug("using tmp dir: %s\n" % dir)
-        return dir
+        self.xslt = os.path.join(self.installdir, "rteval_text.xsl")
+        if not os.path.exists(self.xslt):
+            raise RuntimeError, "can't find XSL template (%s)!" % self.xslt
 
 
     def get_num_cores(self):
+        ''' figure out how many processors we have available'''
         f = open('/proc/cpuinfo')
         numcores = 0
         for line in f:
-            if line.startswith('processor'):
+            if line.lower().startswith('processor'):
                 numcores += 1
         f.close()
-        self.debug("counted %d cores\n" % numcores)
+        self.debug("counted %d cores" % numcores)
         return numcores
 
     def get_memory_size(self):
+        '''find out how much memory is installed'''
         f = open('/proc/meminfo')
         for l in f:
             if l.startswith('MemTotal:'):
                 size = int(l.split()[1])
                 f.close()
-                self.debug("memory size %d\n" % size)
+                self.debug("memory size %d" % size)
                 return size
         raise RuntimeError, "can't find memtotal in /proc/meminfo!"
 
     def get_clocksources(self):
+        '''get the available and curent clocksources for this kernel'''
         path = '/sys/devices/system/clocksource/clocksource0'
         if not os.path.exists(path):
             raise RuntimeError, "Can't find clocksource path in /sys"
@@ -128,7 +139,17 @@ class RtEval(object):
         self.available_clocksource = f.readline().strip()
         f.close()
 
+    def find_config(self):
+        '''locate a config file'''
+        for f in ('rteval.conf', '/etc/rteval.conf'):
+            p = os.path.abspath(f)
+            if os.path.exists(p):
+                self.info("found config file %s" % p)
+                return p
+        raise RuntimeError, "Unable to find configfile"
+
     def parse_options(self):
+        '''parse the command line arguments'''
         parser = optparse.OptionParser()
         parser.add_option("-d", "--duration", dest="duration",
                           type="string", default=str(self.duration),
@@ -137,11 +158,14 @@ class RtEval(object):
                           action="store_true", default=False,
                           help="turn on verbose prints")
         parser.add_option("-w", "--workdir", dest="workdir",
-                          type="string", default=self.topdir,
+                          type="string", default=self.workdir,
                           help="top directory for rteval data")
         parser.add_option("-l", "--loaddir", dest="loaddir",
-                          type="string", default=self.loaddir,
-                          help="top directory for rteval data")
+                          type="string", default=self.srcdir,
+                          help="directory for load source tarballs")
+        parser.add_option("-i", "--installdir", dest="installdir",
+                          type="string", default=self.installdir,
+                          help="place to locate installed templates")
         parser.add_option("-s", "--sysreport", dest="sysreport",
                           action="store_true", default=False,
                           help='run sysreport to collect system data')
@@ -155,7 +179,7 @@ class RtEval(object):
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
         parser.add_option("-f", "--inifile", dest="inifile",
-                          type='string', default="default.ini",
+                          type='string', default=self.inifile,
                           help="initialization file for configuring loads and behavior")
 
         (options, args) = parser.parse_args()
@@ -174,11 +198,37 @@ class RtEval(object):
                 v = v[:-1]
                 mult = 3600.0 * 24.0
             options.duration = float(v) * mult
-        self.options = options
-        self.arguments = args
+        self.cmd_options = options
+        self.cmd_arguments = args
+
+    def read_config(self):
+        '''read and parse the configfile'''
+        import ConfigParser
+        self.info("reading config file %s" % self.inifile)
+        ini = ConfigParser.ConfigParser()
+        ini.read(self.inifile)
+
+        # wipe any previously read config info (other than the rteval stuff)
+        for s in self.config_info.keys():
+            if s == 'rteval': continue
+            self.config_info[s] = {}
+
+        # copy the section data into the config_info dictionary
+        for s in ini.sections():
+            self.config_info[s] = {}
+            for i in ini.items(s):
+                self.config_info[s][i[0]] = i[1]
+
+        # export the rteval section to member variables
+        self.update_config_vars()
+        
+    def update_config_vars(self):
+        '''create rteval member variables from config info'''
+        for m in self.config_info['rteval'].keys():
+            self.__dict__[m] = self.config_info['rteval'][m]
 
     def debug(self, str):
-        if self.debugging: print 
+        if self.debugging: print str
 
     def info(self, str):
         if self.verbose: print str
@@ -192,13 +242,13 @@ class RtEval(object):
         else:
             raise RuntimeError, "Can't find sosreport/sysreport"
 
-        self.debug("report tool: %s\n" % exe)
+        self.debug("report tool: %s" % exe)
         options =  ['-k', 'rpm.rpmvma=off',
                     '--name=rteval', 
                     '--ticket=1234',
                     '--no-progressbar']
 
-        print "Generating SOS report"
+        self.info("Generating SOS report")
         subprocess.call([exe] + options)
         for s in glob.glob('/tmp/s?sreport-rteval-*'):
             shutil.move(s, self.reportdir)
@@ -285,7 +335,7 @@ class RtEval(object):
         self.cyclictest.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
-        d = dmi.DMIinfo(self.mydir)
+        d = dmi.DMIinfo(self.installdir)
         d.genxml(self.xmlreport)
         
         # Close the report - prepare for return the result
@@ -304,6 +354,7 @@ class RtEval(object):
         self.xmlreport.Write("-", self.xslt)
 
     def summarize(self, xmlfile):
+        '''summarize a previously generated xml file'''
         print "loading %s for summarizing" % xmlfile
         self.xmlreport.LoadReport(xmlfile)
         self.xmlreport.Write('-', self.xslt)
@@ -343,11 +394,11 @@ class RtEval(object):
     def make_report_dir(self):
         t = self.start
         i = 1
-        self.reportdir = os.path.join(self.topdir,
+        self.reportdir = os.path.join(self.workdir,
                                       t.strftime("rteval-%Y%m%d-"+str(i)))
         while os.path.exists(self.reportdir):
             i += 1
-            self.reportdir = os.path.join(self.topdir,
+            self.reportdir = os.path.join(self.workdir,
                                           t.strftime('rteval-%Y%m%d-'+str(i)))
         if not os.path.isdir(self.reportdir): 
             os.mkdir(self.reportdir)
@@ -360,40 +411,32 @@ class RtEval(object):
             return
         shutil.copyfile(dpath, os.path.join(self.reportdir, "dmesg"))
 
-    def read_config(self):
-        import ConfigParser
-        self.info("reading config file %s" % self.inifile)
-        ini = ConfigParser.ConfigParser()
-        ini.read(self.inifile)
-        self.config_info = {}
-        for s in ini.sections():
-            d = {}
-            for i in ini.items(s):
-                d[i[0]] = i[1]
-            self.config_info[s] = d
 
     def measure(self):
-        builddir = os.path.join(self.tmpdir, 'rteval-build')
+        builddir = os.path.join(self.workdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
         self.reportfile = os.path.join(self.reportdir, "summary.rpt")
         self.xml = os.path.join(self.reportdir, "summary.xml")
 
-        # read the config file
-        self.read_config()
-
         # read in loads from the ini file
         self.load_modules = []
         for l in self.config_info['loads'].keys():
-            if self.config_info['loads'][l].lower() == 'true':
+            # hope to eventually have different kinds but module is only on
+            # for now (jcw)
+            if self.config_info['loads'][l].lower() == 'module':
+                self.info("importing load module %s" % l)
                 self.load_modules.append(__import__(l))
 
         self.info("setting up loads")
         self.loads = []
         for m in self.load_modules:
-            self.loads.append(m.create(builddir, self.loaddir, self.verbose, self.numcores))
+            self.info("creating load instance for %s" % m.__name__)
+            self.loads.append(m.create(builddir, self.srcdir, self.verbose, 
+                                       self.numcores, self.config_info[m.__name__]))
 
         self.info("setting up cyclictest")
-        self.cyclictest = cyclictest.Cyclictest(duration=self.duration, debugging=self.debugging)
+        self.cyclictest = cyclictest.Cyclictest(duration=self.duration, 
+                                                debugging=self.debugging)
 
         nthreads = 0
         try:
@@ -472,46 +515,11 @@ class RtEval(object):
         except:
             os.chdir(cwd)
 
-    def oprofile_setup(self):
-        if self.runoprofile == False:
-            return
-        rel = os.uname()[2]
-        vmlinux = os.path.join('/usr/lib/debug/lib/modules', rel)
-        if not os.path.exists(vmlinux):
-            print "Can't run oprofile. Load kernel-rt-debuginfo packages."
-            return
-        ret = subprocess.call(['opcontrol', '--init'])
-        if ret:
-            print "failed to run opcontrol --init! is oprofile installed?"
-            return
-        ret = subprocess.call(['opcontrol', '--vmlinux=%s' % vmlinux])
-        if ret:
-            print "opcontrol failed to set vmlinux image: %s" % vmlinux
-            return
-
-    def find_inifile(self, name):
-        for d in (os.getcwd(), self.topdir):
-            tmp = os.path.join(os.getcwd(), name)
-            print "checking %s" % tmp
-            if os.path.exists(tmp):
-                return tmp
-        raise RuntimeError, "Can't find ini file: %s" % name
-
     def rteval(self):
-        self.parse_options()
-        workdir  = self.options.workdir
-        self.loaddir  = self.options.loaddir
-        if not self.loaddir.startswith('/'):
-            self.loaddir = os.path.join(self.topdir, self.loaddir)
-        self.verbose  = self.options.verbose
-        self.debugging = self.options.debugging
-        self.duration = self.options.duration
-        self.sysreport = self.options.sysreport
-        self.xmlrpchost = self.options.xmlrpchost
-        self.inifile = self.find_inifile(self.options.inifile)
+        ''' main function for rteval'''
 
         # if --summarize was specified then just parse the XML, print it and exit
-        if self.options.summarize:
+        if self.cmd_options.summarize:
             if len(args) < 1:
                 raise RuntimeError, "Must specify at least one XML file with --summarize!"
             for x in args:
@@ -519,7 +527,8 @@ class RtEval(object):
             sys.exit(0)
 
         if os.getuid() != 0:
-            raise RuntimeError, "Must be root to run evaluator!"
+            print "Must be root to run evaluator!"
+            sys.exit(-1)
 
         self.debug('''rteval options: 
         workdir: %s
@@ -528,18 +537,11 @@ class RtEval(object):
         debugging: %s
         duration: %f
         sysreport: %s
-        inifile:  %s''' % (workdir, self.loaddir, self.verbose, 
+        inifile:  %s''' % (self.workdir, self.srcdir, self.verbose, 
                            self.debugging, self.duration, self.sysreport, self.inifile))
 
-        if not os.path.isdir(workdir):
-            raise RuntimeError, "work directory %d does not exist" % workdir
-
-        if workdir != self.topdir:
-            if os.path.isabs(workdir):
-                self.topdir = workdir
-            else:
-                self.topdir = os.path.abspath(os.path.join(os.getcwd(), workdir))
-            os.chdir(workdir)
+        if not os.path.isdir(self.workdir):
+            raise RuntimeError, "work directory %d does not exist" % self.workdir
 
         self.make_report_dir()
         self.measure()

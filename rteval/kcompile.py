@@ -34,21 +34,33 @@ import xmlout
 kernel_prefix="linux-2.6"
 
 class Kcompile(load.Load):
-    def __init__(self, source=None, dir=None, debug=False, num_cpus=1):
-        load.Load.__init__(self, "kcompile", source, dir, 
-                           debug, num_cpus)
+    def __init__(self, builddir=None, srcdir=None, debug=False, num_cpus=1, params={}):
+        load.Load.__init__(self, "kcompile", builddir, srcdir, debug, num_cpus, params)
 
     def setup(self):
+        # find our source tarball
+        if self.params.has_key('tarball'):
+            tarfile = os.path.join(self.srcdir, self.params['tarfile'])
+            if not os.path.exists(tarfile):
+                raise RuntimeError, "kcompile: tarfile %s does not exist!" % tarfile
+            self.source = tarfile
+        else:
+            tarfiles = glob.glob(os.path.join(self.srcdir, "%s*" % kernel_prefix))
+            if len(tarfiles):
+                self.source = tarfiles[0]
+            else:
+                raise RuntimeError, "kcompile: no kernel tarballs found in %s" % self.srcdir
+
         # check for existing directory
         kdir=None
-        names=os.listdir(self.dir)
+        names=os.listdir(self.builddir)
         for d in names:
             if d.startswith(kernel_prefix):
                 kdir=d
                 break
         if kdir == None:
             self.debug("unpacking kernel tarball")
-            tarargs = ['tar', '-C', self.dir, '-x']
+            tarargs = ['tar', '-C', self.builddir, '-x']
             if self.source.endswith(".bz2"):
                 tarargs.append("-j")
             elif self.source.endswith(".gz"):
@@ -60,16 +72,16 @@ class Kcompile(load.Load):
             except:
                 self.debug("untar'ing kernel self.source failed!")
                 sys.exit(-1)
-            names = os.listdir(self.dir)
+            names = os.listdir(self.builddir)
             for d in names:
-                self.debug("kcompile: checking %s\n" % d)
+                self.debug("kcompile: checking %s" % d)
                 if d.startswith(kernel_prefix):
                     kdir=d
                     break
         if kdir == None:
             raise RuntimeError, "Can't find kernel directory!"
-        self.mydir = os.path.join(self.dir, kdir)
-        self.debug("kcompile: mydir = %s\n" % self.mydir)
+        self.mydir = os.path.join(self.builddir, kdir)
+        self.debug("kcompile: mydir = %s" % self.mydir)
 
     def build(self):
         self.debug("kcompile setting up all module config file in %s" % self.mydir)
@@ -88,9 +100,13 @@ class Kcompile(load.Load):
 
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
-        self.debug("starting kcompile loop (jobs: %d)" % self.num_cpus)
+        mult=1
+        if self.params.has_key('jobspercore'):
+            mult = int(self.params['jobspercore'])
+        njobs = self.num_cpus * mult
+        self.debug("starting kcompile loop (jobs: %d)" % njobs)
         self.args = ["make", "-C", self.mydir, 
-                     "-j%d" % self.num_cpus, 
+                     "-j%d" % njobs, 
                      "clean", "bzImage", "modules"]
         p = subprocess.Popen(self.args, 
                              stdin=null,stdout=null,stderr=null)
@@ -107,7 +123,6 @@ class Kcompile(load.Load):
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile'})
 
-def create(dir, source, debug, num_cpus):
-    tarball = glob.glob("%s*" % os.path.join(source,kernel_prefix))[0]
-    return Kcompile(tarball, dir, debug, num_cpus)
+def create(builddir, srcdir, debug, num_cpus, params = {}):
+    return Kcompile(builddir, srcdir, debug, num_cpus, params)
     

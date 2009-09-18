@@ -3,8 +3,8 @@
 
 
 Name:		rteval
-Version:	1.1
-Release:	2%{?dist}
+Version:	1.2
+Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -45,12 +45,13 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 mkdir -p $RPM_BUILD_ROOT/usr/bin
 mkdir -p $RPM_BUILD_ROOT/%{python_sitelib}
-
+mkdir -p $RPM_BUILD_ROOT/etc
 python setup.py install --root $RPM_BUILD_ROOT
 install %{SOURCE1} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
 install rteval/rteval_text.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_text.xsl
 install rteval/rteval_dmi.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_dmi.xsl
+install rteval/rteval.conf $RPM_BUILD_ROOT/etc/rteval.conf
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -62,10 +63,13 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %files
 %defattr(-,root,root,-)
 %attr(0755, root, root) %{python_sitelib}/rteval
+%config(noreplace) /etc/rteval.conf
 %doc
 %attr(0644, root, root) /usr/share/%{name}-%{version}/loadsource/*
 %attr(0644, root, root) /usr/share/%{name}-%{version}/rteval_text.xsl
 %attr(0644, root, root) /usr/share/%{name}-%{version}/rteval_dmi.xsl
+
+
 
 %if "%{python_ver}" >= "2.5"
 %{python_sitelib}/*.egg-info
