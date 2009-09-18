@@ -79,7 +79,7 @@ class RtEval(object):
         self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
 
         # read in config file info
-        self.config.Load()
+        self.inifile = self.config.Load()
 
         # parse command line options
         self.parse_options()
@@ -146,34 +146,34 @@ class RtEval(object):
         parser = optparse.OptionParser()
         parser.add_option("-d", "--duration", dest="duration",
                           type="string", default=self.config.duration,
-                          help="specify length of test run")
+                          help="specify length of test run (default: %default)")
         parser.add_option("-v", "--verbose", dest="verbose",
                           action="store_true", default=self.config.verbose,
-                          help="turn on verbose prints")
+                          help="turn on verbose prints (default: %default)")
         parser.add_option("-w", "--workdir", dest="workdir",
                           type="string", default=self.workdir,
-                          help="top directory for rteval data")
+                          help="top directory for rteval data (default: %default)")
         parser.add_option("-l", "--loaddir", dest="loaddir",
                           type="string", default=self.config.srcdir,
-                          help="directory for load source tarballs")
+                          help="directory for load source tarballs (default: %default)")
         parser.add_option("-i", "--installdir", dest="installdir",
                           type="string", default=self.config.installdir,
-                          help="place to locate installed templates")
+                          help="place to locate installed templates (default: %default)")
         parser.add_option("-s", "--sysreport", dest="sysreport",
                           action="store_true", default=self.config.sysreport,
-                          help='run sysreport to collect system data')
+                          help='run sysreport to collect system data (default: %default)')
         parser.add_option("-D", '--debug', dest='debugging',
                           action='store_true', default=self.config.debugging,
-                          help='turn on debug prints')
+                          help='turn on debug prints (default: %default)')
         parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpc',
-                          action='store', default=self.config.xmlrpc,
-                          help='Hostname to XML-RPC server to submit reports', metavar='HOST')
+                          action='store', default=self.config.xmlrpc, metavar='HOST',
+                          help='Hostname to XML-RPC server to submit reports')
         parser.add_option("-Z", '--summarize', dest='summarize',
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
         parser.add_option("-f", "--inifile", dest="inifile",
                           type='string', default=self.inifile,
-                          help="initialization file for configuring loads and behavior")
+                          help="initialization file for configuring loads and behavior (default: %default)")
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args()
         if self.cmd_options.duration:
