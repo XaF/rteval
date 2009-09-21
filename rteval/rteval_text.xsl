@@ -54,7 +54,9 @@
       System:  <xsl:value-of select="system/@description"/>
       Statistics: <xsl:apply-templates select="system/statistics"/>
       <!-- Add CPU core info and stats-->
-      <xsl:apply-templates select="core"/>
+      <xsl:apply-templates select="core">
+       <xsl:sort select="@id"/>
+      </xsl:apply-templates>
   </xsl:template>
 
 
