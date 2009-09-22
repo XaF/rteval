@@ -3,7 +3,7 @@
 
 
 Name:		rteval
-Version:	1.2
+Version:	1.3
 Release:	1%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
@@ -76,6 +76,12 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
+* Tue Sep 22 2009 Clark Williams <williams@redhat.com> - 1.3-1
+- changes from davids:
+  * changed report code to sort by processor id
+  * added report submission retry logic
+  * added emailer class
+
 * Fri Sep 18 2009 Clark Williams <williams@redhat.com> - 1.2-1
 - added config file handling for modifying load behavior and
   setting defaults
