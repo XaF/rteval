@@ -53,6 +53,7 @@ import cyclictest
 import xmlout
 import dmi
 import rtevalConfig
+import rtevalMailer
 
 class RtEval(object):
     def __init__(self):
@@ -95,6 +96,12 @@ class RtEval(object):
         self.config.AppendConfig('rteval', self.cmd_options)
 
         self.debug("workdir: %s" % self.workdir)
+
+        # prepare a mailer, if that's configured
+        if self.config.HasSection('smtp'):
+            self.mailer = rtevalMailer.rtevalMailer(self.config.GetSection('smtp'))
+        else:
+            self.mailer = None
 
         self.loads = []
         self.start = datetime.now()
@@ -469,6 +476,7 @@ class RtEval(object):
         url = "http://%s/rteval/API1/" % self.config.xmlrpc
         attempt = 0
         exitcode = 2   # Presume failure
+        warning_sent = False
         while attempt < 6:
             try:
                 client = rtevalclient.rtevalclient(url)
@@ -478,13 +486,33 @@ class RtEval(object):
                 attempt = 10
                 exitcode = 0 # Success
             except socket.error:
+                if (self.mailer is not None) and (not warning_sent):
+                    self.mailer.SendMessage("[RTEVAL:WARNING] Failed to submit report to XML-RPC server",
+                                            "Server %s did not respond.  Not giving up yet."
+                                            % self.config.xmlrpc)
+                    warning_sent = True
+
                 attempt += 1
                 if attempt > 5:
-                    break
+                    break # To avoid sleeping before we abort
+
                 print "Failed sending report.  Doing another attempt(%i) " % attempt
                 time.sleep(attempt*5*60) # Incremental sleep - sleep attempts*5 minutes
+
             except err:
                 raise err
+
+        if (self.mailer is not None):
+            # Send final result messages
+            if exitcode == 2:
+                self.mailer.SendMessage("[RTEVAL:FAILURE] Failed to submit report to XML-RPC server",
+                                        "Server %s did not respond at all after %i attempts."
+                                        % (self.config.xmlrpc, attempt - 1))
+            elif (exitcode == 0) and warning_sent:
+                self.mailer.SendMessage("[RTEVAL:SUCCESS] XML-RPC server available again",
+                                        "Succeeded to submit the report to %s in the end."
+                                        % (self.config.xmlrpc)
+
         return exitcode
 
 
