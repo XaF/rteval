@@ -169,6 +169,10 @@ class rtevalConfig(rtevalCfgSection):
             self._rtevalCfgSection__update_config_vars(self.__config_data['rteval'])
 
 
+    def HasSection(self, section):
+        return self.__config_data.has_key(section)
+
+
     def GetSection(self, section):
         try:
             # Return a new object with config settings of a given section
