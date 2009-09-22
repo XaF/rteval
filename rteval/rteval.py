@@ -513,8 +513,7 @@ class RtEval(object):
             elif (exitcode == 0) and warning_sent:
                 self.mailer.SendMessage("[RTEVAL:SUCCESS] XML-RPC server available again",
                                         "Succeeded to submit the report to %s in the end."
-                                        % (self.config.xmlrpc)
-
+                                        % (self.config.xmlrpc))
         return exitcode
 
 
