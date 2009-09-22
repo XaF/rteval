@@ -152,7 +152,7 @@ class rtevalConfig(rtevalCfgSection):
 
         # Register the file as read
         self.__config_files.append(cfgfile)
-
+        return cfgfile
 
     def ConfigParsed(self, fname):
         "Returns True if the config file given by name has already been parsed"
