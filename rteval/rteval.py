@@ -38,6 +38,7 @@ import os.path
 import time
 import threading
 import subprocess
+import socket
 import optparse
 import tempfile
 import statvfs
@@ -458,14 +459,33 @@ class RtEval(object):
         if self.config.sysreport:
             self.run_sysreport()
 
-        # if --xmlrpc-submit | -X was given, send our report to this host
-        if self.config.xmlrpc:
-            url = "http://%s/rteval/API1/" % self.config.xmlrpc
 
-            client = rtevalclient.rtevalclient(url)
-            print "Submitting report to %s" % url
-            rterid = client.SendReport(self.xmlreport.GetXMLdocument())
-            print "Report registered with rterid %i" % rterid
+    def XMLRPC_Send(self):
+        "Sends the report to a given XML-RPC host.  Returns 0 on success or 2 on submission failure."
+
+        if not self.config.xmlrpc:
+            return 2
+
+        url = "http://%s/rteval/API1/" % self.config.xmlrpc
+        attempt = 0
+        exitcode = 2   # Presume failure
+        while attempt < 6:
+            try:
+                client = rtevalclient.rtevalclient(url)
+                print "Submitting report to %s" % url
+                rterid = client.SendReport(self.xmlreport.GetXMLdocument())
+                print "Report registered with rterid %i" % rterid
+                attempt = 10
+                exitcode = 0 # Success
+            except socket.error:
+                attempt += 1
+                if attempt > 5:
+                    break
+                print "Failed sending report.  Doing another attempt(%i) " % attempt
+                time.sleep(attempt*5*60) # Incremental sleep - sleep attempts*5 minutes
+            except err:
+                raise err
+        return exitcode
 
 
     def tar_results(self):
@@ -485,6 +505,7 @@ class RtEval(object):
 
     def rteval(self):
         ''' main function for rteval'''
+        retval = 0;
 
         # if --summarize was specified then just parse the XML, print it and exit
         if self.cmd_options.summarize:
@@ -514,14 +535,21 @@ class RtEval(object):
 
         self.make_report_dir()
         self.measure()
+
+        # if --xmlrpc-submit | -X was given, send our report to this host
+        if self.config.xmlrpc:
+            retval = self.XMLRPC_Send()
+
         self.get_dmesg()
         self.tar_results()
-        
+
+        return retval
 
 if __name__ == '__main__':
     import pwd, grp
 
     try:
-        RtEval().rteval()
+        ec = RtEval().rteval()
+        sys.exit(ec)
     except KeyboardInterrupt:
         sys.exit(0)
