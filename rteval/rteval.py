@@ -63,7 +63,6 @@ class RtEval(object):
         self.inifile = None
         self.cmd_options = {}
 
-        instdir = '/usr/share/rteval-%s' % self.version
         default_config = {
             'rteval': {
                 'verbose'   : False,
@@ -73,8 +72,8 @@ class RtEval(object):
                 'sysreport' : False,
                 'reportdir' : None,
                 'reportfile': None,
-                'installdir': instdir,
-                'srcdir'    : os.path.join(instdir, 'loadsource'),
+                'installdir': '/usr/share/rteval',
+                'srcdir'    : '/usr/share/rteval/loadsource',
                 'xmlrpc'    : None
                 }
             }

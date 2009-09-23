@@ -4,7 +4,7 @@
 
 Name:		rteval
 Version:	1.3
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	utility to evaluate system suitability for RT Linux
 
 Group:		System/Utilities
@@ -42,15 +42,15 @@ fi
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
+mkdir -p $RPM_BUILD_ROOT/usr/share/%{name}/loadsource
 mkdir -p $RPM_BUILD_ROOT/usr/bin
 mkdir -p $RPM_BUILD_ROOT/%{python_sitelib}
 mkdir -p $RPM_BUILD_ROOT/etc
 python setup.py install --root $RPM_BUILD_ROOT
-install %{SOURCE1} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
-install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/loadsource
-install rteval/rteval_text.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_text.xsl
-install rteval/rteval_dmi.xsl $RPM_BUILD_ROOT/usr/share/%{name}-%{version}/rteval_dmi.xsl
+install %{SOURCE1} $RPM_BUILD_ROOT/usr/share/%{name}/loadsource
+install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}/loadsource
+install rteval/rteval_text.xsl $RPM_BUILD_ROOT/usr/share/%{name}/rteval_text.xsl
+install rteval/rteval_dmi.xsl $RPM_BUILD_ROOT/usr/share/%{name}/rteval_dmi.xsl
 install rteval/rteval.conf $RPM_BUILD_ROOT/etc/rteval.conf
 
 %clean
@@ -65,9 +65,9 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %attr(0755, root, root) %{python_sitelib}/rteval
 %config(noreplace) /etc/rteval.conf
 %doc
-%attr(0644, root, root) /usr/share/%{name}-%{version}/loadsource/*
-%attr(0644, root, root) /usr/share/%{name}-%{version}/rteval_text.xsl
-%attr(0644, root, root) /usr/share/%{name}-%{version}/rteval_dmi.xsl
+%attr(0644, root, root) /usr/share/%{name}/loadsource/*
+%attr(0644, root, root) /usr/share/%{name}/rteval_text.xsl
+%attr(0644, root, root) /usr/share/%{name}/rteval_dmi.xsl
 
 
 
@@ -76,6 +76,9 @@ ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 %endif
 
 %changelog
+* Wed Sep 23 2009 David Sommerseth <davids@redhat.com> - 1.3-2
+- Removed version number from /usr/share/rteval path
+
 * Tue Sep 22 2009 Clark Williams <williams@redhat.com> - 1.3-1
 - changes from davids:
   * changed report code to sort by processor id
