@@ -1,3 +1,13 @@
+-- Create rteval database users
+--
+CREATE USER xmlrpc NOSUPERUSER ENCRYPTED PASSWORD 'rtevaldb';
+
+-- Create rteval database
+--
+CREATE DATABASE rteval ENCODING 'utf-8';
+
+\c rteval
+
 -- TABLE: systems
 -- Overview table over all systems which have sent reports
 -- The dmidata column will keep the complete DMIdata available
