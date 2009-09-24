@@ -34,12 +34,13 @@ import rtevaldb
 
 
 class XMLRPC_API1():
-    def __init__(self, dataroot="/var/lib/rteval", debug=False, nodbaction=False):
+    def __init__(self, config=None, debug=False, nodbaction=False):
         # Some defaults
-        self.dataroot = dataroot
         self.fnametrans = string.maketrans("/\\", "::") # replace path delimiters in filenames
         self.debug = debug
         self.nodbaction = nodbaction
+        self.config = config
+
 
     def __mkdatadir(self, dirpath):
         startdir = os.getcwd()
@@ -64,9 +65,11 @@ class XMLRPC_API1():
                 return filename
             idx += 1
             if comp:
-                filename = "%s/%s/%s-{%i}.bz2" % (self.dataroot, dir, fname.translate(self.fnametrans), idx)
+                filename = "%s/%s/%s-{%i}.bz2" % (self.config.datadir, dir,
+                                                  fname.translate(self.fnametrans), idx)
             else:
-                filename = "%s/%s/%s-{%i}" % (self.dataroot, dir, fname.translate(self.fnametrans), idx)
+                filename = "%s/%s/%s-{%i}" % (self.config.datadir, dir,
+                                              fname.translate(self.fnametrans), idx)
 
 
     def Dispatch(self, method, params):
@@ -87,14 +90,14 @@ class XMLRPC_API1():
 
         # Save a copy of the report on the file system
         # Make sure we have a directory to write files into
-        self.__mkdatadir(self.dataroot + '/reports/' + clientid)
+        self.__mkdatadir(self.config.datadir + '/reports/' + clientid)
         fname = self.__getfilename('reports/' + clientid,'report.xml', False)
         xmldoc.saveFormatFileEnc(fname,'UTF-8',1)
         if self.debug:
             print "Copy of report: %s" % fname
 
         # Register the report into a database and return the rteval run id
-        (syskey, rterid) = rtevaldb.register_report('xmlparser.xsl', xmldoc, fname,
+        (syskey, rterid) = rtevaldb.register_report(self.config, xmldoc, fname,
                                                         debug=self.debug, noaction=self.nodbaction)
         if self.nodbaction:
             rterid = 999999999 # Fake ID when no database registration is done
@@ -110,7 +113,7 @@ class XMLRPC_API1():
             data = base64.b64decode(bzb64data)
 
         # Make sure we have a directory to write files into
-        self.__mkdatadir(self.dataroot + '/uploads/' + clientid)
+        self.__mkdatadir(self.datadir + '/uploads/' + clientid)
 
         # Get a unique filename, as close as possible to the input filename
         fname = self.__getfilename('uploads/' + clientid, filename, not decompdata)

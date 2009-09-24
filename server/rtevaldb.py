@@ -25,13 +25,16 @@
 #   are deemed to be part of the source code.
 #
 
+import os
 from database import Database
 from xmlparser import XMLSQLparser
 
-def register_report(xslt, xmldata, filename, debug=False, noaction=False):
-    dbc = Database(host="rtserver.farm.hsv.redhat.com", database="rteval",
-                   user="xmlrpc", password="RTeval", debug=debug, noaction=noaction)
-    parser = XMLSQLparser(xslt, xmldata)
+def register_report(config, xmldata, filename, debug=False, noaction=False):
+    dbc = Database(host=config.db_server, port=config.db_port, database=config.database,
+                   user=config.db_username, password=config.db_password,
+                   debug=debug, noaction=noaction)
+
+    parser = XMLSQLparser(os.path.join(config.xsltpath, "xmlparser.xsl"), xmldata)
 
     systems = parser.GetSQLdata('systems')
     sysid = dbc.GetValue(systems, 0, 'sysid')

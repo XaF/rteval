@@ -29,10 +29,27 @@ import types
 from mod_python import apache
 from xmlrpclib import dumps, loads, Fault
 from xmlrpc_API1 import XMLRPC_API1
+from rteval.rtevalConfig import rtevalConfig
+
 
 def Dispatch(req, method, args):
+    # Default configuration
+    defcfg = {'xmlrpc_server': { 'datadir':     '/var/lib/rteval',
+                                 'xsltpath':    '/usr/share/rteval',
+                                 'db_server':   'localhost',
+                                 'db_port':     5432,
+                                 'database':    'rteval',
+                                 'db_username': 'xmlrpc',
+                                 'db_password': 'rtevaldb'
+                                 }
+              }
+
+    # Fetch configuration
+    cfg = rtevalConfig(defcfg)
+    cfg.Load(append=True)
+
     # Prepare an object for executing the query
-    xmlrpc = XMLRPC_API1()
+    xmlrpc = XMLRPC_API1(config=cfg.GetSection('xmlrpc_server'))
 
     # Exectute it
     result = xmlrpc.Dispatch(method, args)
