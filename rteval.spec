@@ -1,24 +1,24 @@
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
-
 Name:		rteval
 Version:	1.3
-Release:	2%{?dist}
-Summary:	utility to evaluate system suitability for RT Linux
+Release:	3%{?dist}
+Summary:	Utility to evaluate system suitability for RT Linux
 
-Group:		System/Utilities
-License:	GPL
+Group:		Development/Tools
+License:	GPLv2
+URL:		http://git.kernel.org/?p=linux/kernel/git/clrkwllms/rteval.git
 Source0:	rteval-%{version}.tar.bz2
-Source1:	linux-2.6.26.1.tar.bz2
+Source1:	http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.26.1.tar.bz2
 Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires:	python gcc binutils make libxslt libxslt-python
+Requires:	python gcc binutils make
 Requires:	python-schedutils python-ethtool
 Requires:	python-dmidecode >= 3.10
-Requires: 	rt-tests >= 0.29
-BuildArch: 	noarch
+Requires:	rt-tests >= 0.29
+BuildArch:	noarch
 
 %description
 The rteval script is a utility for measuring various aspects of 
@@ -29,53 +29,67 @@ the cyclictest program is run to measure event response time. After
 the run time completes, a statistical analysis of the event response
 times is done and printed to the screen.
 
+
 %prep
 %setup -q
+
 
 # version sanity check (make sure specfile and rteval.py match)
 srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
 if [ $srcver != %{version} ]; then
+   printf "\n***\n*** rteval spec file version do not match the rteval/rteval.py version\n***\n\n"
    exit -1
 fi
 
+
 %build
 
+
 %install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/share/%{name}/loadsource
-mkdir -p $RPM_BUILD_ROOT/usr/bin
-mkdir -p $RPM_BUILD_ROOT/%{python_sitelib}
-mkdir -p $RPM_BUILD_ROOT/etc
-python setup.py install --root $RPM_BUILD_ROOT
-install %{SOURCE1} $RPM_BUILD_ROOT/usr/share/%{name}/loadsource
-install %{SOURCE2} $RPM_BUILD_ROOT/usr/share/%{name}/loadsource
-install rteval/rteval_text.xsl $RPM_BUILD_ROOT/usr/share/%{name}/rteval_text.xsl
-install rteval/rteval_dmi.xsl $RPM_BUILD_ROOT/usr/share/%{name}/rteval_dmi.xsl
-install rteval/rteval.conf $RPM_BUILD_ROOT/etc/rteval.conf
+rm -rf ${RPM_BUILD_ROOT}
+mkdir -p ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
+mkdir -p ${RPM_BUILD_ROOT}/%{_bindir}
+mkdir -p ${RPM_BUILD_ROOT}/%{python_sitelib}
+mkdir -p ${RPM_BUILD_ROOT}/%{_sysconfdir}
+mkdir -p ${RPM_BUILD_ROOT}/%{_mandir}/man8/
+mkdir -p $RPM_BUILD_ROOT}/%{_defaultdocdir}/%{name}-%{version}
+python setup.py install --root ${RPM_BUILD_ROOT}
+install -m 644 %{SOURCE1} ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
+install -m 644 %{SOURCE2} ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
+install -m 644 rteval/rteval_text.xsl ${RPM_BUILD_ROOT}/%_datadir/%{name}/rteval_text.xsl
+install -m 644 rteval/rteval_dmi.xsl ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/rteval_dmi.xsl
+install -m 644 rteval/rteval.conf ${RPM_BUILD_ROOT}/%{_sysconfdir}/rteval.conf
+install -m 644 doc/rteval.8 ${RPM_BUILD_ROOT}/%{_mandir}/man8/
+chmod 755 ${RPM_BUILD_ROOT}/%{python_sitelib}/rteval/rteval.py
+ln -fs %{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/%{_bindir}/rteval
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post
-rm -f /usr/bin/rteval
-ln -s %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 
 %files
 %defattr(-,root,root,-)
-%attr(0755, root, root) %{python_sitelib}/rteval
-%config(noreplace) /etc/rteval.conf
-%doc
-%attr(0644, root, root) /usr/share/%{name}/loadsource/*
-%attr(0644, root, root) /usr/share/%{name}/rteval_text.xsl
-%attr(0644, root, root) /usr/share/%{name}/rteval_dmi.xsl
-
-
-
 %if "%{python_ver}" >= "2.5"
 %{python_sitelib}/*.egg-info
 %endif
 
+%dir %{_datadir}/%{name}
+%dir %{_datadir}/%{name}/loadsource
+
+%doc COPYING
+%{_mandir}/man8/rteval.8*
+%{_datadir}/%{name}/rteval_*.xsl
+%{_datadir}/%{name}/loadsource/*.tar.bz2
+%config(noreplace) %{_sysconfdir}/rteval.conf
+%{python_sitelib}/rteval/
+%{_bindir}/rteval
+
+
 %changelog
+* Thu Sep 24 2009 David Sommerseth <davids@redhat.com> - 1.3-3
+- Cleaned up the spec file and made rpmlint happy
+
 * Wed Sep 23 2009 David Sommerseth <davids@redhat.com> - 1.3-2
 - Removed version number from /usr/share/rteval path
 

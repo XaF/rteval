@@ -22,7 +22,8 @@ install:
 tarfile:
 	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)
 	cp -r rteval tarball/rteval-$(VERSION)
-	cp Makefile setup.py rteval.spec tarball/rteval-$(VERSION)
+	cp -r doc/ tarball/rteval-$(VERSION)
+	cp Makefile setup.py rteval.spec COPYING tarball/rteval-$(VERSION)
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
 rpm:	tarfile
