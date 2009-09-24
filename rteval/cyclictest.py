@@ -1,4 +1,3 @@
-#!/usr/bin/python -tt
 #
 #   cyclictest.py - object to manage a cyclictest executable instance
 #

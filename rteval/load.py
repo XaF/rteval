@@ -1,4 +1,3 @@
-#!/usr/bin/python -tt
 #
 #   Copyright 2009   Clark Williams <williams@redhat.com>
 #

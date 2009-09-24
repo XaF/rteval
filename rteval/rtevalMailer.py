@@ -1,4 +1,3 @@
-#!/usr/bin/python -tt
 #
 #   rtevalmailer.py - module for sending e-mails
 #

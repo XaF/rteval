@@ -1,4 +1,3 @@
-#!/usr/bin/python -tt
 #
 #   dmi.py - class to wrap DMI Table information
 #

@@ -1,4 +1,3 @@
-#!/usr/bin/python -tt
 #
 #   rteval - script for evaluating platform suitability for RT Linux
 #
