@@ -65,16 +65,17 @@ class RtEval(object):
 
         default_config = {
             'rteval': {
-                'verbose'   : False,
-                'keepdata'  : True,
-                'debugging' : False,
-                'duration'  : 60.0,
-                'sysreport' : False,
-                'reportdir' : None,
-                'reportfile': None,
-                'installdir': '/usr/share/rteval',
-                'srcdir'    : '/usr/share/rteval/loadsource',
-                'xmlrpc'    : None
+                'verbose'    : False,
+                'keepdata'   : True,
+                'debugging'  : False,
+                'duration'   : 60.0,
+                'sysreport'  : False,
+                'reportdir'  : None,
+                'reportfile' : None,
+                'installdir' : '/usr/share/rteval',
+                'srcdir'     : '/usr/share/rteval/loadsource',
+                'xmlrpc'     : None,
+                'xslt_report': '/usr/share/rteval/rteval_text.xsl'
                 }
             }
         self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
@@ -109,9 +110,9 @@ class RtEval(object):
         self.get_clocksources()
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
-        self.xslt = os.path.join(self.config.installdir, "rteval_text.xsl")
-        if not os.path.exists(self.xslt):
-            raise RuntimeError, "can't find XSL template (%s)!" % self.xslt
+
+        if not os.path.exists(self.config.xslt_report):
+            raise RuntimeError, "can't find XSL template (%s)!" % self.config.xslt_report
 
 
     def get_num_cores(self):
@@ -311,7 +312,7 @@ class RtEval(object):
         self.cyclictest.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
-        d = dmi.DMIinfo(self.config.installdir)
+        d = dmi.DMIinfo(self.config.GetSection('rteval'))
         d.genxml(self.xmlreport)
         
         # Close the report - prepare for return the result
@@ -327,13 +328,13 @@ class RtEval(object):
 
     def report(self):
         "Create a screen report, based on a predefined XSLT template"
-        self.xmlreport.Write("-", self.xslt)
+        self.xmlreport.Write("-", self.config.xslt_report)
 
     def summarize(self, xmlfile):
         '''summarize a previously generated xml file'''
         print "loading %s for summarizing" % xmlfile
         self.xmlreport.LoadReport(xmlfile)
-        self.xmlreport.Write('-', self.xslt)
+        self.xmlreport.Write('-', self.config.xslt_report)
 
     def start_loads(self):
         if len(self.loads) == 0:
