@@ -117,7 +117,7 @@ class rtevalConfig(rtevalCfgSection):
         raise RuntimeError, "Unable to find configfile"
 
 
-    def Load(self, fname = None):
+    def Load(self, fname = None, append = False):
         "read and parse the configfile"
 
         cfgfile = fname or self.__find_config()
@@ -130,14 +130,16 @@ class rtevalConfig(rtevalCfgSection):
         ini.read(cfgfile)
 
         # wipe any previously read config info (other than the rteval stuff)
-        for s in self.__config_data.keys():
-            if s == 'rteval':
-                continue
-            self.__config_data[s] = {}
+        if not append:
+            for s in self.__config_data.keys():
+                if s == 'rteval':
+                    continue
+                self.__config_data[s] = {}
 
         # copy the section data into the __config_data dictionary
         for s in ini.sections():
-            self.__config_data[s] = {}
+            if not self.__config_data.has_key(s):
+                self.__config_data[s] = {}
             for i in ini.items(s):
                 self.__config_data[s][i[0]] = i[1]
 
@@ -178,4 +180,3 @@ class rtevalConfig(rtevalCfgSection):
             return rtevalCfgSection(self.__config_data[section])
         except KeyError, err:
             raise KeyError("The section '%s' does not exist in the config file" % section)
-
