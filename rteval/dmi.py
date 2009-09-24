@@ -37,17 +37,16 @@ import dmidecode
 class DMIinfo(object):
     '''class used to obtain DMI info via python-dmidecode'''
 
-    def __init__(self, sharedir):
+    def __init__(self, config):
         self.version = '0.3'
         self.smbios = None
-        self.sharedir = sharedir
+        self.sharedir = config.installdir
 
         self.dmixml = dmidecode.dmidecodeXML()
         self.smbios = dmidecode.dmi.replace('SMBIOS ', '').replace(' present', '')
 
         xsltdoc = self.__load_xslt('rteval_dmi.xsl')
         self.xsltparser = libxslt.parseStylesheetDoc(xsltdoc)
-
 
 
     def __load_xslt(self, fname):
