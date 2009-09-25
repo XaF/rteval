@@ -2,75 +2,117 @@
 ** Setting up a rteval XML-RPC server
 **
 
-The XML-RPC server has the purpose of collecting information from several
-rteval clients.  Each client will get a unique system ID which then can
-be used to track how each system changes behavior on different kernels.
-All of the data in the summary.xml produced by the rteval script is sent
-over to the XML-RPC server and a copy is saved, default location is
-/var/lib/rteval.  This XML file is then parsed and the data is stored in
-a database for further analysis.
+The XML-RPC server has the purpose of collecting information from
+several rteval clients.  Each client will get a unique system ID which
+then can be used to track how each system changes behavior on
+different kernels.  All of the data in the summary.xml produced by the
+rteval script is sent over to the XML-RPC server and a copy is saved,
+default location is /var/lib/rteval.  This XML file is then parsed and
+the data is stored in a database for further analysis.
 
 
-*
-* Apache preparations
-*
-First you will need an Apache server with mod_python available.  The directory
-where the XML-RPC files will be available from needs to have support for 
-.htaccess files as well.  If not, the contents of the .htaccess file needs to
-be implemented into a <Location> or <Directory> directive in your Apache
-server config.
+**
+** Requirements
+**
+   - Apache web server
+   - mod_python-3.3.x
+   - PostgreSQL v8.3 or later
+   - rteval 1.3
+
+
+**
+** Apache preparations
+**
 
 The default path used for the rteval client is
 
     http://{server hostname}/rteval/API1/
 
-If you have a HTTP setup which will follow this scheme, you do not need to
-change any URLs at all.
+If you have a HTTP setup which will follow this scheme, you do not
+need to change any URLs at all.
 
 
-*
-* Database preparations
-*
-This XML-RPC server makes use of a PostgreSQL database for saving the reports.
-It's presumed here that you know how to setup and create a database which the
-rteval XML-RPC interface can make use of.  Further, it is expected that such
-a database is created and that a user called 'xmlrpc' can access it.  Remember
-to also update the pg_hba.conf file in the PostgreSQL data directory, to allow
-the xmlrpc user access from the web server.
+**
+** Database preparations
+**
 
-To populate the database with the needed table, run the SQL script:
+All reports are saved in a database.  To create the needed database
+user and database, execute the following command line:
 
    psql < ../sql/rteval-1.0.sql
 
-This script will create all needed tables and grant the needed access to the
-xmlrpc database user.
+This script will first create a database user called 'xmlrpc', assign
+a default password before creating a database called 'rteval'.  The
+database will be populated with the needed tables and the 'xmlrpc'
+user will get the needed privileges to do its job.
+
+Remember to also update the pg_hba.conf file in the PostgreSQL data
+directory.  You need to allow the xmlrpc user access from the web
+server.
+
+pg_hba.conf entry example:
+
+# TYPE  DATABASE    USER        CIDR-ADDRESS          METHOD
+hostssl rteval	    xmlrpc	127.0.0.1/32	      md5
+
+The XML-RPC database connector will always try to connect via SSL.  To
+modify the default password, connect to the database with psql and
+issue this SQL command:
+
+   rteval=# ALTER USER xmlrpc WITH ENCRYPTED PASSWORD '<newpassword>';
 
 
-*
-* Installing the needed files
-*
+**
+** Installing the needed files
+**
 A quick little shell script will copy the needed files for you.
 
     ./install.sh {server-side file path}
 
-The path given is the directory which you have configured the web server to
-make use of.  The needed .htaccess file will be copied into this directory as
-well.  Restart the web server and watch the log files for errors.
+The {server-side file path} argument need to point at a directory
+Apache uses for htdocs files.
 
-*
-*  Configuration
-*
+When running the install.sh script, a configuration file suitable for
+Apache will be generated (apache-rteval.conf).  This file needs to be
+copied to a directory where Apache will pick it up, or implement its
+content into your apache config file.
 
-- database host, port, user name and password
-  change values in rtevaldb.py, line 32 and 33
-
-- directory for the copy of summary.xml files
-  change the rootdir variable in xmlrpc_API1.py:37
+On RHEL/Fedora based distributions, the apache-rteval.conf can be
+copied into /etc/httpd/conf.d/
 
 
-*
-* Testing the setup
-*
+**
+**  Configuration
+**
+
+If you are not using any of the default values for
+the database configuration, you need to create or modify the
+/etc/rteval.conf file.  The XML-RPC service will read the
+[xmlrpc_server] section in this file.
+
+This is the default values, if the xmlrpc_server section is not found
+or parameters is not set.
+
+     # Paths
+     datadir:     /var/lib/rteval
+     xsltpath:    /usr/share/rteval
+
+     # Database parameters
+     db_server:   localhost
+     db_port:     5432
+     database:    rteval
+     db_username: xmlrpc
+     db_password: rtevaldb
+
+The directory datadir parameter points at must be writable to the
+apache process.  Here copies of the received summary.xml files will be
+saved before being parsed into the the database.
+
+
+**
+** Testing the setup
+**
+
 For a quick test, dig up a summary.xml file from an earlier rteval run and
 try sending it to the XML-RPC server by using the testclient_sendreportfile
 script:
@@ -80,13 +122,4 @@ script:
 
 See --help for more info on this utility.  Usually the log files of Apache and
 PostgreSQL provides pretty good information on what's going wrong.
-
-*
-* Known issues
-*
-One known issue is that some setups requires a full path to xmlparser.xsl in
-xmlparser.py:97.  This xmlparser.xsl is needed to help parsing the summary.xml
-into data structures which is used by database.py to do the SQL operations.
-This will be solved when a configuration file is implemented into the XML-RPC
-service.
 

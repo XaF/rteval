@@ -1,7 +1,6 @@
-# File: .htaccess
+# File: apache-rteval.conf
 #
-# Per-directory config for enabling rteval XML-RPC server
-# on a server with Apache and mod_python
+# Apache config entry to enable the rteval XML-RPC server
 #
 #   Copyright 2009      David Sommerseth <davids@redhat.com>
 #
@@ -25,6 +24,14 @@
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
 #
-SetHandler python-program
-PythonHandler rteval_xmlrpc
-PythonDebug On
+<Directory "{_INSTALLDIR_}">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+
+    SetHandler python-program
+    PythonHandler rteval_xmlrpc
+    PythonDebug On
+</Directory>
+
