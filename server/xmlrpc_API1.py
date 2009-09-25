@@ -56,9 +56,9 @@ class XMLRPC_API1():
     def __getfilename(self, dir, fname, comp):
         idx = 0
         if comp:
-            filename = "%s/%s/%s.bz2" % (self.dataroot, dir, fname.translate(self.fnametrans))
+            filename = "%s/%s/%s.bz2" % (self.config.datadir, dir, fname.translate(self.fnametrans))
         else:
-            filename = "%s/%s/%s" % (self.dataroot, dir, fname.translate(self.fnametrans))
+            filename = "%s/%s/%s" % (self.config.datadir, dir, fname.translate(self.fnametrans))
 
         while 1:
             if not os.path.exists(filename):
