@@ -501,7 +501,7 @@ class RtEval(object):
                 print "Failed sending report.  Doing another attempt(%i) " % attempt
                 time.sleep(attempt*5*60) # Incremental sleep - sleep attempts*5 minutes
 
-            except err:
+            except Exception, err:
                 raise err
 
         if (self.mailer is not None):
