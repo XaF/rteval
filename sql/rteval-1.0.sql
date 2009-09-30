@@ -8,6 +8,25 @@ CREATE DATABASE rteval ENCODING 'utf-8';
 
 \c rteval
 
+-- TABLE: submissionqueue
+-- All XML-RPC clients registers their submissions into this table.  Another parser thread
+-- will pickup the records where parsestart IS NULL.
+--
+    CREATE TABLE submissionqueue (
+           clientid   varchar(128) NOT NULL,
+           filename   VARCHAR(1024) NOT NULL,
+           status     INTEGER DEFAULT '1',
+           received   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+           parsestart TIMESTAMP WITH TIME ZONE,
+           parseend   TIMESTAMP WITH TIME ZONE,
+           submid     SERIAL,
+           PRIMARY KEY(submid)
+    ) WITH OIDS;
+    CREATE INDEX submissionq_status ON submissionqueue(status);
+
+    GRANT INSERT ON submissionqueue TO xmlrpc;
+    GRANT USAGE ON submissionqueue_submid_seq TO xmlrpc;
+
 -- TABLE: systems
 -- Overview table over all systems which have sent reports
 -- The dmidata column will keep the complete DMIdata available
