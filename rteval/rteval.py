@@ -484,7 +484,7 @@ class RtEval(object):
                 client = rtevalclient.rtevalclient(url)
                 print "Submitting report to %s" % url
                 rterid = client.SendReport(self.xmlreport.GetXMLdocument())
-                print "Report registered with rterid %i" % rterid
+                print "Report registered with submission id %i" % rterid
                 attempt = 10
                 exitcode = 0 # Success
             except socket.error:

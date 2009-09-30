@@ -95,3 +95,24 @@ def register_report(config, xmldata, filename, debug=False, noaction=False):
     # We're done
     return (syskey, rterid)
 
+
+def register_submission(config, clientid, filename, debug=False, noaction=False):
+    "Registers a submission of a rteval report and signalises the rtevalparserd process"
+
+    dbc = Database(host=config.db_server, port=config.db_port, database=config.database,
+                   user=config.db_username, password=config.db_password,
+                   debug=debug, noaction=noaction)
+
+    submvars = {"table": "submissionqueue",
+                "fields": ["clientid", "filename"],
+                "records": [[clientid, filename]],
+                "returning": "submid"
+                }
+
+    res = dbc.INSERT(submvars)
+    if len(res) != 1:
+        raise Exception("Could not register the submission")
+
+    dbc.COMMIT()
+    return res[0]
+
