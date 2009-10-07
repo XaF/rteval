@@ -36,12 +36,15 @@ import libxml2
 import xmlout
 
 class RunData(object):
+    '''class to keep instance data from a cyclictest run'''
     def __init__(self, id, type, priority):
         self.id = id
         self.type = type
         self.priority = priority
         self.description = ''
-        self.samples = []
+        # histogram of data
+        self.samples = {}
+        self.numsamples = 0
         self.min = 100000000
         self.max = 0
         self.stddev = 0.0
@@ -49,33 +52,43 @@ class RunData(object):
         self.mode = 0.0
         self.median = 0.0
         self.range = 0.0
+        self.mad = 0.0
 
     def sample(self, value):
-        self.samples.append(value)
+        self.samples[value] += self.samples.setdefault(value, 0) + 1
         if value > self.max: self.max = value
         if value < self.min: self.min = value
+        self.numsamples += 1
+
+    def bucket(self, index, value):
+        self.samples[index] = self.samples.setdefault(index, 0) + value
+        if value and index > self.max: self.max = index
+        if value and index < self.min: self.min = index
+        self.numsamples += value
 
     def reduce(self):
         import math
-        import copy
+        print "reducing %s" % self.id
         total = 0
-        histogram = {}
-        length = len(self.samples)
+        length = 0
+        keys = self.samples.keys()
+        keys.sort()
+        sorted = []
 
         # mean and mode
-        for i in self.samples:
-            total += i
-            histogram[i] = histogram.setdefault(i, 0) + 1
-        self.mean = float(total) / float(len(self.samples))
         occurances = 0
-        for i in histogram.keys():
-            if histogram[i] > occurances:
-                occurances = histogram[i]
+        for i in keys:
+            total += (i * self.samples[i])
+            length += self.samples[i]
+            if self.samples[i] > occurances:
+                occurances = self.samples[i]
                 self.mode = i
+            sorted += (self.samples[i] * [i])
+        if length != self.numsamples:
+            raise RuntimeError, "%s: total != numsamples (%d != %d)" % (self.id, length, self.numsamples)
+        self.mean = float(total) / float(length)
 
         # median and range
-        sorted = copy.copy(self.samples)
-        sorted.sort()
         self.range = sorted[-1] - sorted[0]
         mid = length/2
         if length & 1:
@@ -83,14 +96,13 @@ class RunData(object):
         else:
             self.median = (sorted[mid-1]+sorted[mid]) / 2
 
-        # variance
-        # from Statistics for the Terrified:
-        #n1 = (length * reduce(lambda x,y: x + y**2, self.samples))
-        #n2 = reduce(lambda x,y: x+y, self.samples) ** 2
-        #self.variance = (n1 - n2) / (length * (length - 1))
+        # Mean Absolute Deviation
+        # (from Statistics for the Utterly Confused)
+        self.mad = sum(map(lambda x: float(abs(x - self.mean)), sorted)) / length
 
+        # Variance
         # from Statistics for the Utterly Confused
-        self.variance = sum(map(lambda x: float((x - self.mean) ** 2), self.samples)) / (length - 1)
+        self.variance = sum(map(lambda x: float((x - self.mean) ** 2), sorted)) / (length - 1)
         
         # standard deviation
         self.stddev = math.sqrt(self.variance)
@@ -101,15 +113,27 @@ class RunData(object):
         else:
             x.openblock(self.type, {'id': self.id, 'priority': self.priority})
         x.openblock('statistics')
-        x.taggedvalue('samples', str(len(self.samples)))
+        x.taggedvalue('samples', str(self.numsamples))
         x.taggedvalue('minimum', str(self.min), {"unit": "us"})
         x.taggedvalue('maximum', str(self.max), {"unit": "us"})
         x.taggedvalue('median', str(self.median), {"unit": "us"})
-        x.taggedvalue('mode', str(self.mode))
+        x.taggedvalue('mode', str(self.mode), {"unit": "us"})
         x.taggedvalue('range', str(self.range), {"unit": "us"})
         x.taggedvalue('mean', str(self.mean), {"unit": "us"})
+        x.taggedvalue('mean_absolute_deviation', str(self.mad), {"unit": "us"})
+        x.taggedvalue('variance', str(self.variance), {"unit": "us"})
         x.taggedvalue('standard_deviation', str(self.stddev), {"unit": "us"})
         x.closeblock()
+        h = libxml2.newNode('histogram')
+        h.newProp('nbuckets', str(len(self.samples)))
+        keys = self.samples.keys()
+        keys.sort()
+        for k in keys:
+            b = libxml2.newNode('bucket')
+            b.newProp('index', str(k))
+            b.newProp('value', str(self.samples[k]))
+            h.addChild(b)
+        x.AppendXMLnodes(h)
         x.closeblock()
 
 
@@ -120,24 +144,11 @@ class Cyclictest(Thread):
         Thread.__init__(self)
         self.duration = duration
         self.keepdata = keepdata
-        # if no duration or duration is greater than 3 hours
-        #  set sample interval to 1ms
-        if duration == None or duration > 3600 * 3:
-            self.interval = "-i1000000"
-        # if run between 1 and 3 hours set sample interval
-        #   to 100 microseconds
-        elif duration > 3600:
-            self.interval = "-i100000"
-        # less than 1hr run default to 10us interval
-        else:
-            self.interval = "-i10000"
         self.stopevent = Event()
+        self.finished = Event()
         self.threads = threads
         self.priority = priority
-        if outfile:
-            self.outfile = outfile
-        else:
-            self.outfile = "cyclictest.dat"
+        self.interval = "-i100"
         self.debugging = debugging
         self.reportfile = 'cyclictest.rpt'
         f = open('/proc/cpuinfo')
@@ -156,7 +167,7 @@ class Cyclictest(Thread):
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
-
+        self.numcores = numcores
 
     def __del__(self):
         pass
@@ -165,12 +176,7 @@ class Cyclictest(Thread):
         if self.debugging: print str
 
     def run(self):
-        if self.outfile:
-            self.outhandle = os.open(self.outfile, os.O_RDWR|os.O_CREAT)
-        else:
-            (self.outhandle, self.outfile) = tempfile.mkstemp(prefix='cyclictest-', suffix='.dat')
-
-        self.cmd = ['cyclictest', self.interval, '-nmv', '-d0',
+        self.cmd = ['cyclictest', self.interval, '-a', '-qnm', '-d0', '-h 1000',
                     "-p%d" % self.priority]
         if self.threads:
             self.cmd.append("-t%d" % self.threads)
@@ -179,8 +185,7 @@ class Cyclictest(Thread):
 
         self.debug("starting cyclictest with cmd: %s" % " ".join(self.cmd))
         null = os.open('/dev/null', os.O_RDWR)
-        c = subprocess.Popen(self.cmd, stdout=self.outhandle, 
-                             stderr=null, stdin=null)
+        c = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=null, stdin=null)
         while True:
             if self.stopevent.isSet():
                 break
@@ -190,65 +195,27 @@ class Cyclictest(Thread):
             time.sleep(1.0)
         self.debug("stopping cyclictest")
         os.kill(c.pid, signal.SIGINT)
-        os.close(self.outhandle)
+        # now parse the histogram output
+        for line in c.stdout:
+            if line.startswith('#'): continue
+            vals = line.split()
+            index = int(vals[0])
+            for i in range(0, len(self.data)-1):
+                self.data[str(i)].bucket(index, int(vals[i+1]))
+                self.data['system'].bucket(index, int(vals[i+1]))
+        for n in self.data.keys():
+            self.data[n].reduce()
+        self.finished.set()
 
     def genxml(self, x):
         x.openblock('cyclictest')
         x.taggedvalue('command_line', " ".join(self.cmd))
 
-        samplenodes = libxml2.newNode('RawSampleData')
-        grouptags = {}
-
-        # Parse the cyclictest results
-        f = open(self.outfile)
-        for line in f:
-            pieces = line.split(':')
-
-            if line.startswith("Thread"):
-                # Parse "header" info
-                thread = int(pieces[0].split()[1])
-
-                # Create a thread node for each separate thread which we find
-                node = libxml2.newNode('Thread')
-                node.newProp('id', str(thread))
-                node.newProp('interval', str(int(pieces[1])))
-
-                # Add a direct pointer to each thread
-                grouptags[thread] = node
-
-                # Add this thread node to the complete sample set
-                samplenodes.addChild(node)
-            else:
-                # Parse sample data - must have 3 parts
-                if (len(pieces) == 3) and pieces[2].strip() != '':
-                    # Split up the data - convert to integers, to be sure
-                    # we process them as integers later on (spaces, invalid data, etc)
-                    cpu = int(pieces[0])
-                    seq = int(pieces[1])
-                    latency = int(pieces[2])
-
-                    # Create a sample node
-                    sample_n = libxml2.newNode('Sample')
-                    sample_n.newProp('seq', str(seq))
-                    sample_n.newProp('latency', str(latency))
-                    sample_n.newProp('latency_unit', 'us');
-
-                    # Append this sample node to the corresponding thread node
-                    grouptags[cpu].addChild(sample_n)
-
-                    # Record the latency for calculations later on
-                    self.data[str(cpu)].sample(latency)
-                    self.data['system'].sample(latency)
-
-        for id in self.data.keys():
-            d = self.data[id]
-            d.reduce()
-            d.genxml(x)
-        x.AppendXMLnodes(samplenodes)
+        self.data["system"].genxml(x)
+        for t in range(0, self.numcores):
+            self.data[str(t)].genxml(x)
         x.closeblock()
 
-        if self.outfile and not self.keepdata and os.path.exists(self.outfile):
-            os.remove(self.outfile)
 
 if __name__ == '__main__':
     c = CyclicTest()
