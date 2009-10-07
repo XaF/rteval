@@ -120,7 +120,12 @@ class rtevalConfig(rtevalCfgSection):
     def Load(self, fname = None, append = False):
         "read and parse the configfile"
 
-        cfgfile = fname or self.__find_config()
+        try:
+            cfgfile = fname or self.__find_config()
+        except:
+            self.__info("no config file")
+            return
+
         if self.ConfigParsed(cfgfile) is True:
             # Don't try to reread this file if it's already been parsed
             return
