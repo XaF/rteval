@@ -111,6 +111,9 @@ class RtEval(object):
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
 
+        if not self.config.xslt_report.startswith(self.config.installdir):
+            self.config.xslt_report = os.path.join(self.config.installdir, "rteval_text.xsl")
+
         if not os.path.exists(self.config.xslt_report):
             raise RuntimeError, "can't find XSL template (%s)!" % self.config.xslt_report
 
@@ -161,7 +164,7 @@ class RtEval(object):
         parser.add_option("-w", "--workdir", dest="workdir",
                           type="string", default=self.workdir,
                           help="top directory for rteval data (default: %default)")
-        parser.add_option("-l", "--loaddir", dest="loaddir",
+        parser.add_option("-l", "--loaddir", dest="srcdir",
                           type="string", default=self.config.srcdir,
                           help="directory for load source tarballs (default: %default)")
         parser.add_option("-i", "--installdir", dest="installdir",
@@ -461,6 +464,8 @@ class RtEval(object):
             # stop the loads
             self.stop_loads()
 
+        # wait for cyclictest to finish calculating stats
+        self.cyclictest.finished.wait()
         end = datetime.now()
         duration = end - start
         self.genxml(duration, accum, samples)
