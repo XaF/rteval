@@ -75,10 +75,12 @@
           Samples: <xsl:value-of select="samples"/>  
           Mean: <xsl:value-of select="mean"/><xsl:value-of select="mean/@unit"/>
 	  Median: <xsl:value-of select="median"/><xsl:value-of select="median/@unit"/>
-	  Mode: <xsl:value-of select="mode"/>
+	  Mode: <xsl:value-of select="mode"/><xsl:value-of select="mode/@unit"/>
           Range: <xsl:value-of select="range"/><xsl:value-of select="range/@unit"/>
 	  Min: <xsl:value-of select="minimum"/><xsl:value-of select="minimum/@unit"/>
           Max: <xsl:value-of select="maximum"/><xsl:value-of select="maximum/@unit"/>
+	  Mean Absolute Dev: <xsl:value-of select="mean_absolute_deviation"/><xsl:value-of select="mean_absolute_deviation/@unit"/>
+	  Variance: <xsl:value-of select="variance"/><xsl:value-of select="variance/@unit"/>
           Std.dev: <xsl:value-of select="standard_deviation"/><xsl:value-of select="standard_deviation/@unit"/>
           
   </xsl:template>
