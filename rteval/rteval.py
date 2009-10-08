@@ -57,7 +57,7 @@ import rtevalMailer
 
 class RtEval(object):
     def __init__(self):
-        self.version = "1.3"
+        self.version = "1.4"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.inifile = None
@@ -424,6 +424,7 @@ class RtEval(object):
             # start the loads
             self.start_loads()
             
+            print "rteval run started at %s" % time.asctime()
             print "started %d loads on %d cores" % (len(self.loads), self.numcores)
             print "Run duration: %d seconds" % self.config.duration
             
