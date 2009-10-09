@@ -35,7 +35,7 @@
 #include <xmlparser.h>
 
 
-PGconn *connectdb(eurephiaVALUES *cfg) {
+void *db_connect(eurephiaVALUES *cfg) {
 	PGconn *dbc = NULL;
 
 	dbc = PQsetdbLogin(eGet_value(cfg, "db_server"),
@@ -57,6 +57,11 @@ PGconn *connectdb(eurephiaVALUES *cfg) {
 		exit(2);
 	}
 	return dbc;
+}
+
+
+void db_disconnect(void *dbc) {
+	PQfinish((PGconn *) dbc);
 }
 
 
