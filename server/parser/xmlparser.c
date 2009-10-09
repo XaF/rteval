@@ -26,7 +26,11 @@
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 
+#include <eurephia_nullsafe.h>
+#include <eurephia_xml.h>
 #include <xmlparser.h>
+#include <sha1.h>
+
 
 static char *encapsString(const char *str) {
         char *ret = NULL;
@@ -41,6 +45,7 @@ static char *encapsString(const char *str) {
         snprintf(ret, strlen(str)+3, "'%s'", str);
         return ret;
 }
+
 
 static char *encapsInt(const unsigned int val) {
         char *buf = NULL;
@@ -104,4 +109,148 @@ xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *para
         }
 
         return result_d;
+}
+
+
+char *sqldataValueHash(xmlNode *sql_n) {
+	const char *hash = NULL;
+	SHA1Context shactx;
+	uint8_t shahash[SHA1_HASH_SIZE];
+	char *ret = NULL, *ptr = NULL;;
+	int i;
+
+	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
+	    || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") != 0) ) {
+		    return NULL;
+	}
+
+	hash = xmlGetAttrValue(sql_n->properties, "hash");
+	if( !hash ) {
+		// If no hash attribute is found, just use the raw data
+		ret = xmlExtractContent(sql_n);
+	} else if( strcasecmp(hash, "sha1") == 0 ) {
+		const char *indata = xmlExtractContent(sql_n);
+		// SHA1 hashing requested
+		SHA1Init(&shactx);
+		SHA1Update(&shactx, indata, strlen_nullsafe(indata));
+		SHA1Final(&shactx, shahash);
+
+		// "Convert" to a readable format
+		ret = malloc_nullsafe((SHA1_HASH_SIZE * 2) + 3);
+		ptr = ret;
+		for( i = 0; i < SHA1_HASH_SIZE; i++ ) {
+			sprintf(ptr, "%02x", shahash[i]);
+			ptr += 2;
+		}
+	} else {
+		ret = strdup("<Unsupported hashing algorithm>");
+	}
+
+	return ret;
+}
+
+
+char *sqldataExtractContent(xmlNode *sql_n) {
+	const char *valtype = xmlGetAttrValue(sql_n->properties, "type");
+
+	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
+	    || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") != 0) ) {
+		    return NULL;
+	}
+
+	if( valtype && (strcmp(valtype, "xmlblob") == 0) ) {
+		xmlNode *chld_n = sql_n->children;
+
+		// Go to next "real" tag, skipping non-element nodes
+		while( chld_n && chld_n->type != XML_ELEMENT_NODE ){
+			chld_n = chld_n->next;
+		}
+		return xmlNodeToString(chld_n);
+	} else {
+		return sqldataValueHash(sql_n);
+	}
+}
+
+
+int sqldataGetFid(xmlDoc *sqld, const char *fname) {
+	xmlNode *f_n = NULL;
+
+	f_n = xmlDocGetRootElement(sqld);
+	if( !f_n || (xmlStrcmp(f_n->name, (xmlChar *) "sqldata") != 0) ) {
+		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		return -2;
+	}
+
+	f_n = xmlFindNode(f_n, "fields");
+	if( !f_n || !f_n->children ) {
+		fprintf(stderr, "** ERROR ** Input XML document does not contain a fields section\n");
+		return -2;
+	}
+
+	foreach_xmlnode(f_n->children, f_n) {
+		if( (f_n->type != XML_ELEMENT_NODE)
+		    || xmlStrcmp(f_n->name, (xmlChar *) "field") != 0 ) {
+			// Skip uninteresting nodes
+			continue;
+		}
+
+		if( strcmp(xmlExtractContent(f_n), fname) == 0 ) {
+			char *fid = xmlGetAttrValue(f_n->properties, "fid");
+			if( !fid ) {
+				fprintf(stderr, "** ERROR ** Field node is missing 'fid' attribute\n");
+				return -2;
+			}
+			return atoi_nullsafe(fid);
+		}
+	}
+	return -1;
+}
+
+
+char *sqldataGetValue(xmlDoc *sqld, int fid, int recid ) {
+	xmlNode *r_n = NULL;
+	int rc = 0;
+
+	if( (fid < 0) || (recid < 0) ) {
+		fprintf(stderr, "** ERROR ** sqldataGetValue() :: Invalid fid or recid\n");
+		return NULL;
+	}
+
+	r_n = xmlDocGetRootElement(sqld);
+	if( !r_n || (xmlStrcmp(r_n->name, (xmlChar *) "sqldata") != 0) ) {
+		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		return NULL;
+	}
+
+	r_n = xmlFindNode(r_n, "records");
+	if( !r_n || !r_n->children ) {
+		fprintf(stderr, "** ERROR ** Input XML document does not contain a records section\n");
+		return NULL;
+	}
+
+	foreach_xmlnode(r_n->children, r_n) {
+		if( (r_n->type != XML_ELEMENT_NODE)
+		    || xmlStrcmp(r_n->name, (xmlChar *) "record") != 0 ) {
+			// Skip uninteresting nodes
+			continue;
+		}
+		if( rc == recid ) {
+			xmlNode *v_n = NULL;
+			// The rigth record is found, find the field we're looking for
+			foreach_xmlnode(r_n->children, v_n) {
+				char *fid_s = NULL;
+				if( (v_n->type != XML_ELEMENT_NODE)
+				    || (xmlStrcmp(v_n->name, (xmlChar *) "value") != 0) ) {
+					// Skip uninteresting nodes
+					continue;
+				}
+				fid_s = xmlGetAttrValue(v_n->properties, "fid");
+				if( fid_s && (fid == atoi_nullsafe(fid_s)) ) {
+					return sqldataExtractContent(v_n);
+				}
+			}
+		}
+		rc++;
+	}
+	return NULL;
 }

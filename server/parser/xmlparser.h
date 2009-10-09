@@ -29,5 +29,9 @@ typedef struct {
 } parseParams;
 
 xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params);
+char *sqldataValueHash(xmlNode *sql_n);
+char *sqldataExtractContent(xmlNode *sql_n);
+int sqldataGetFid(xmlDoc *sqld, const char *fname);
+char *sqldataGetValue(xmlDoc *sqld, int fid, int recid );
 
 #endif
