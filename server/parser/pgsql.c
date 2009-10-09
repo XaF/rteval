@@ -33,7 +33,6 @@
 #include <eurephia_values.h>
 #include <configparser.h>
 #include <xmlparser.h>
-#include <sha1.h>
 
 
 PGconn *connectdb(eurephiaVALUES *cfg) {
@@ -58,30 +57,6 @@ PGconn *connectdb(eurephiaVALUES *cfg) {
 		exit(2);
 	}
 	return dbc;
-}
-
-
-char *hash_value(const char *hashtype, const char *indata) {
-	SHA1Context shactx;
-	uint8_t hash[SHA1_HASH_SIZE];
-	char *ret = NULL, *ptr = NULL;;
-	int i;
-
-	if( strcasecmp(hashtype, "sha1") != 0 ) {
-		return strdup("<Unsupported hashing algorithm>");
-	}
-
-	SHA1Init(&shactx);
-	SHA1Update(&shactx, indata, strlen_nullsafe(indata));
-	SHA1Final(&shactx, hash);
-
-	ret = malloc_nullsafe((SHA1_HASH_SIZE * 2) + 3);
-	ptr = ret;
-	for( i = 0; i < SHA1_HASH_SIZE; i++ ) {
-		sprintf(ptr, "%02x", hash[i]);
-		ptr += 2;
-	}
-	return ret;
 }
 
 
@@ -198,7 +173,7 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 		value_ar = calloc(fieldcnt, sizeof(char *));
 		i = 0;
 		foreach_xmlnode(ptr_n->children, val_n) {
-			char *valtype = NULL;
+			char *fid_s = NULL;
 			int fid = -1;
 
 			if( i > fieldcnt ) {
@@ -209,28 +184,12 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 				continue;
 			}
 
-			fid = atoi_nullsafe(xmlGetAttrValue(val_n->properties, "fid"));
-			if( fid < 0 ) {
+			fid_s = xmlGetAttrValue(val_n->properties, "fid");
+			fid = atoi_nullsafe(fid_s);
+			if( (fid_s == NULL) || (fid < 0) ) {
 				continue;
 			}
-
-			valtype = xmlGetAttrValue(val_n->properties, "type");
-			if( valtype && (strcmp(valtype, "xmlblob") == 0) ) {
-				xmlNode *chld_n = val_n->children;
-
-				// Go to next "real" tag, skipping non-element nodes
-				while( chld_n && chld_n->type != XML_ELEMENT_NODE ){
-					chld_n = chld_n->next;
-				}
-				value_ar[field_idx[i]] = xmlNodeToString(chld_n);
-			} else {
-				const char *hash = xmlGetAttrValue(val_n->properties, "hash");
-				if( hash != NULL ) {
-					value_ar[field_idx[i]] = hash_value(hash, xmlExtractContent(val_n));
-				} else {
-					value_ar[field_idx[i]] = strdup_nullsafe(xmlExtractContent(val_n));
-				}
-			}
+			value_ar[field_idx[i]] = sqldataExtractContent(val_n);
 			i++;
 		}
 
@@ -243,6 +202,12 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 			PQclear(dbres);
 			eFree_values(res);
 			res = NULL;
+
+			// Free up the memory we've used for this record
+			for( i = 0; i < fieldcnt; i++ ) {
+				free_nullsafe(value_ar[i]);
+			}
+			free_nullsafe(value_ar);
 			goto exit;
 		}
 		if( key ) {
