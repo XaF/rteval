@@ -70,39 +70,46 @@ class RunData(object):
         import math
         print "reducing %s" % self.id
         total = 0
-        length = 0
         keys = self.samples.keys()
         keys.sort()
         sorted = []
 
-        # mean and mode
+        mid = self.numsamples / 2
+
+        # mean, mode, and median
         occurances = 0
+        lastkey = -1
         for i in keys:
+            if mid > total and mid <= (total + self.samples[i]):
+                if self.numsamples & 1 and mid == total+1:
+                    self.median = (lastkey + i) / 2
+                else:
+                    self.median = i
             total += (i * self.samples[i])
-            length += self.samples[i]
             if self.samples[i] > occurances:
                 occurances = self.samples[i]
                 self.mode = i
-            sorted += (self.samples[i] * [i])
-        if length != self.numsamples:
-            raise RuntimeError, "%s: total != numsamples (%d != %d)" % (self.id, length, self.numsamples)
-        self.mean = float(total) / float(length)
+        self.mean = float(total) / float(self.numsamples)
 
-        # median and range
-        self.range = sorted[-1] - sorted[0]
-        mid = length/2
-        if length & 1:
-            self.median = sorted[mid]
-        else:
-            self.median = (sorted[mid-1]+sorted[mid]) / 2
+        # range
+        for i in keys:
+            if self.samples[i]:
+                low = i
+                break
+        high = keys[-1]
+        while high and self.samples[high] == 0:
+            high -= 1
+        self.range = high - low
 
-        # Mean Absolute Deviation
-        # (from Statistics for the Utterly Confused)
-        self.mad = sum(map(lambda x: float(abs(x - self.mean)), sorted)) / length
-
-        # Variance
-        # from Statistics for the Utterly Confused
-        self.variance = sum(map(lambda x: float((x - self.mean) ** 2), sorted)) / (length - 1)
+        # Mean Absolute Deviation and Variance
+        madsum = 0
+        varsum = 0
+        for i in keys:
+            for j in range(0, self.samples[i]):
+                madsum += float(abs(i - self.mean))
+                varsum += float((i - self.mean) ** 2)
+        self.mad = madsum / self.numsamples
+        self.variance = varsum / (self.numsamples - 1)
         
         # standard deviation
         self.stddev = math.sqrt(self.variance)
