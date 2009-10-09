@@ -87,7 +87,14 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Sep 24 2009 David Sommerseth <davids@redhat.com> - 1.3-3
+* Fri Oct  9 2009 Clark Williams <williams@redhat.com> - 1.4-1
+- changed cyclictest to use histogram rather than sample array
+- calcuated statistics directly from histogram
+- changed sample interval to 100us
+- added -a (affinity) argument to force cpu affinity for
+  measurement threads
+
+* Sep 24 2009 David Sommerseth <davids@redhat.com> - 1.3-3
 - Cleaned up the spec file and made rpmlint happy
 
 * Wed Sep 23 2009 David Sommerseth <davids@redhat.com> - 1.3-2
