@@ -94,7 +94,7 @@ rm -rf $RPM_BUILD_ROOT
 - added -a (affinity) argument to force cpu affinity for
   measurement threads
 
-* Sep 24 2009 David Sommerseth <davids@redhat.com> - 1.3-3
+* Thu Sep 24 2009 David Sommerseth <davids@redhat.com> - 1.3-3
 - Cleaned up the spec file and made rpmlint happy
 
 * Wed Sep 23 2009 David Sommerseth <davids@redhat.com> - 1.3-2
