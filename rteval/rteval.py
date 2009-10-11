@@ -76,23 +76,32 @@ class RtEval(object):
                 'srcdir'     : '/usr/share/rteval/loadsource',
                 'xmlrpc'     : None,
                 'xslt_report': '/usr/share/rteval/rteval_text.xsl'
-                }
+                },
+            'loads' : {
+                'kcompile'   : 'module',
+                'hackbench'  : 'module',
+                },
+            'kcompile' : {
+                'source'     : 'linux-2.6.21.tar.bz2',
+                'jobspercore': '2',
+                },
+            'hackbench' : {
+                'source'     : 'hackbench.tar.bz2',
+                'jobspercore': '5',
+                },
             }
-        self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
 
-        # read in config file info
-        self.inifile = self.config.Load()
+        # setup initial configuration
+        self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
 
         # parse command line options
         self.parse_options()
 
-        # if one of the command line options was a config file
-        # then re-read the config info from there
-        if not self.config.ConfigParsed(self.cmd_options.inifile):
-            self.inifile = self.cmd_options.inifile
-            self.config.Load(self.inifile)
+        # read in config file info
+        self.inifile = self.config.Load()
 
         # copy the command line options into the rteval config section
+        # (cmd line overrides config file values)
         self.config.AppendConfig('rteval', self.cmd_options)
 
         self.debug("workdir: %s" % self.workdir)
