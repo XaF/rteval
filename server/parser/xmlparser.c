@@ -32,6 +32,14 @@
 #include <sha1.h>
 
 
+/**
+ * Simple strdup() function which encapsulates the string in single quotes,
+ * which is needed for XSLT parameter values
+ *
+ * @param str The string to be strdup'ed and encapsulated
+ *
+ * @return Returns a pointer to the new buffer.
+ */
 static char *encapsString(const char *str) {
         char *ret = NULL;
 
@@ -47,6 +55,15 @@ static char *encapsString(const char *str) {
 }
 
 
+/**
+ * Converts an integer to string an encapsulates the value in single quotes,
+ * which is needed for XSLT parameter values.
+ *
+ * @param val Integer value to encapsulate
+ *
+ * @return Returns a pointer to a new buffer with the encapsulated integer value.  This
+ *         buffer must be free'd after usage.
+ */
 static char *encapsInt(const unsigned int val) {
         char *buf = NULL;
 
@@ -56,6 +73,16 @@ static char *encapsInt(const unsigned int val) {
 }
 
 
+/**
+ * Parses any XML input document into a sqldata XML format which can be used by pgsql_INSERT().
+ * The transformation must be defined in the input XSLT template.
+ *
+ * @param xslt      XSLT template defining the data transformation
+ * @param indata_d  Input XML data to transform to a sqldata XML document
+ * @param params    Parameters to be sent to the XSLT parser
+ *
+ * @return Returns a well formed sqldata XML document on success, otherwise NULL is returned.
+ */
 xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params) {
         xmlDoc *result_d = NULL;
         char *xsltparams[10];
@@ -112,7 +139,17 @@ xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *para
 }
 
 
-char *sqldataValueHash(xmlNode *sql_n) {
+/**
+ * Internal xmlparser function.   Extracts the value from a '//sqldata/records/record/value'
+ * node and hashes the value if the 'hash' attribute is set.  Otherwise the value is extracted
+ * from the node directly.  This function is only used by sqldataExtractContent().
+ *
+ * @param sql_n sqldata values node containing the value to extract.
+ *
+ * @return Returns a pointer to a new buffer containing the value on success, otherwise NULL.
+ *         This memory buffer must be free'd after usage.
+ */
+static inline char *sqldataValueHash(xmlNode *sql_n) {
 	const char *hash = NULL;
 	SHA1Context shactx;
 	uint8_t shahash[SHA1_HASH_SIZE];
@@ -150,6 +187,15 @@ char *sqldataValueHash(xmlNode *sql_n) {
 }
 
 
+/**
+ * Extract the content of a '//sqldata/records/record/value' node.  It will consider
+ * both the 'hash' and 'type' attributes of the 'value' tag.
+ *
+ * @param sql_n  Pointer to a value node of a sqldata XML document.
+ *
+ * @return Returns a pointer to a new memory buffer containing the value as a string.
+ *         On errors, NULL is returned.  This memory buffer must be free'd after usage.
+ */
 char *sqldataExtractContent(xmlNode *sql_n) {
 	const char *valtype = xmlGetAttrValue(sql_n->properties, "type");
 
@@ -172,6 +218,16 @@ char *sqldataExtractContent(xmlNode *sql_n) {
 }
 
 
+/**
+ * Return the 'fid' value of a given field in an sqldata XML document.
+ *
+ * @param sql_n  Pointer to the root xmlNode element of a sqldata XML document
+ * @param fname  String containing the field name to look up
+ *
+ * @return Returns a value >= 0 on success, containing the 'fid' value of the field.  Otherwise
+ *         a value < 0 is returned.  -1 if the field is not found or -2 if there are some problems
+ *         with the XML document.
+ */
 int sqldataGetFid(xmlNode *sql_n, const char *fname) {
 	xmlNode *f_n = NULL;
 
@@ -206,6 +262,17 @@ int sqldataGetFid(xmlNode *sql_n, const char *fname) {
 }
 
 
+/**
+ * Retrieves the value of a particular field in an sqldata XML document.
+ *
+ * @param sqld   pointer to an sqldata XML document.
+ * @param fname  String containing the field name to extract the value of.
+ * @param recid  Integer containing the record ID of the record to extract the value.  This starts
+ *               on 0.
+ *
+ * @return Returns a pointer to a new memory buffer containing the extracted value.  On errors or if
+ *         recid is higher than available records, NULL is returned.
+ */
 char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
 	xmlNode *r_n = NULL;
 	int fid = -3, rc = 0;
@@ -260,6 +327,21 @@ char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
 }
 
 
+/**
+ * Helper function to parse an sqldata XML document for the systems_hostname table.  In addition
+ * it will also return two strings containing hostname and ipaddress of the host.
+ *
+ * @param xslt       Pointer to an xmlparser.xml XSLT template
+ * @param summaryxml rteval XML report document
+ * @param syskey     Integer containing the syskey value corresponding to this host
+ * @param hostname   Return pointer for where the hostname will be saved.
+ * @param ipaddr     Return pointer for where the IP address will be saved.
+ *
+ * @return Returns a sqldata XML document on success.  In this case the hostname and ipaddr will point
+ *         at memory buffers containing hostname and ipaddress.  These values must be free'd after usage.
+ *         On errors the function will return NULL and hostname and ipaddr will not have been touched
+ *         at all.
+ */
 xmlDoc *sqldataGetHostInfo(xsltStylesheet *xslt, xmlDoc *summaryxml,
 			   int syskey, char **hostname, char **ipaddr)
 {

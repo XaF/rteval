@@ -35,6 +35,13 @@
 #include <xmlparser.h>
 
 
+/**
+ * Connect to a database, based on the given configuration
+ *
+ * @param cfg eurephiaVALUES containing the configuration
+ *
+ * @return Returns a database handler
+ */
 void *db_connect(eurephiaVALUES *cfg) {
 	PGconn *dbc = NULL;
 
@@ -60,11 +67,75 @@ void *db_connect(eurephiaVALUES *cfg) {
 }
 
 
+/**
+ * Disconnect from the database
+ *
+ * @param dbc Pointer to the database handle to be disconnected.
+ */
 void db_disconnect(void *dbc) {
 	PQfinish((PGconn *) dbc);
 }
 
 
+/**
+ * This function does INSERT SQL queries based on an XML document (sqldata) which contains
+ * all information about table, fields and records to be inserted.  For security and performance,
+ * this function uses prepared SQL statements.
+ *
+ * This function is PostgreSQL specific.
+ *
+ * @param dbc     Database handler to a PostgreSQL
+ * @param sqldoc  sqldata XML document containing the data to be inserted.
+ *
+ * The sqldata XML document must be formated like this:
+ * @code
+ * <sqldata table="{table name}" [key="{field name}">
+ *    <fields>
+ *       <field fid="{integer}">{field name}</field>
+ *       ...
+ *       ...
+ *       <field fid="{integer_n}">{field name 'n'}</field>
+ *    </fields>
+ *    <records>
+ *       <record>
+ *          <value fid="{integer} [type="{data type}"] [hash="{hash type}">{value for field 'fid'</value>
+ *          ...
+ *          ...
+ *          <value fid="{integer_n}">{value for field 'fid_n'</value>
+ *       </record>
+ *       ...
+ *       ...
+ *       ...
+ *    </records>
+ * </sqldata>
+ * @endcode
+ * The 'sqldata' root tag must contain a 'table' attribute.  This must contain the a name of a table
+ * in the database.  If the 'key' attribute is set, the function will return the that field value for
+ * each INSERT query, using INSERT ... RETURNING {field name}.  The sqldata root tag must then have
+ * two children, 'fields' and 'records'.
+ *
+ * The 'fields' tag need to contain 'field' children tags for each field to insert data for.  Each
+ * field in the fields tag must be assigned a unique integer.
+ *
+ * The 'records' tag need to contain 'record' children tags for each record to be inserted.  Each
+ * record tag needs to have 'value' tags for each field which is found in the 'fields' section.
+ *
+ * The 'value' tags must have a 'fid' attribute.  This is the link between the field name in the
+ * 'fields' section and the value to be inserted.
+ *
+ * The 'type' attribute may be used as well, but the only supported data type supported to this
+ * attribute is 'xmlblob'.  In this case, the contents of the 'value' tag must be more XML tags.
+ * These tags will then be serialised to a string which is inserted into the database.
+ *
+ * The 'hash' attribute of the 'value' tag can be set to 'sha1'.  This will make do a SHA1 hash
+ * calculation of the value and this hash value will be used for the insert.
+ *
+ * @return Returns an eurephiaVALUES list containing information about each record which was inserted.
+ *         If the 'key' attribute is not set in the 'sqldata' tag, the OID value of each record will be
+ *         saved.  If the table do not support OIDs, the value will be '0'.  Otherwise the contents of
+ *         the defined field name will be returned.  If one of the INSERT queries fails, it will abort
+ *         further processing and the function will return NULL.
+ */
 eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	xmlNode *root_n = NULL, *fields_n = NULL, *recs_n = NULL, *ptr_n = NULL, *val_n = NULL;
 	char **field_ar = NULL, *fields = NULL, **value_ar = NULL, *values = NULL, *table = NULL, 
@@ -240,6 +311,18 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 }
 
 
+/**
+ * Registers information into the 'systems' and 'systems_hostname' tables, based on the
+ * summary/report XML file from rteval.
+ *
+ * @param indbc      Database handler where to perform the SQL queries
+ * @param xslt       A pointer to a parsed 'xmlparser.xsl' XSLT template
+ * @param summaryxml The XML report from rteval
+ *
+ * @return Returns a value > 0 on success, which is a unique reference to the system of the report.
+ *         If the function detects that this system is already registered, the 'syskey' reference will
+ *         be reused.  On errors, -1 will be returned.
+ */
 int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	PGconn *dbc = (PGconn *) indbc;
 	PGresult *dbres = NULL;
@@ -353,6 +436,18 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 }
 
 
+/**
+ * Registers information into the 'rtevalruns' and 'rtevalruns_details' tables
+ *
+ * @param indbc         Database handler where to perform the SQL queries
+ * @param xslt          A pointer to a parsed 'xmlparser.xsl' XSLT template
+ * @param summaryxml    The XML report from rteval
+ * @param syskey        A positive integer containing the return value from db_register_system()
+ * @param report_fname  A string containing the filename of the report.
+ *
+ * @return Returns a positive integer which references the 'rterid' value (RTEvalRunID) on success,
+ *         otherwise -1 is returned.
+ */
 int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			  int syskey, const char *report_fname)
 {
@@ -433,6 +528,16 @@ int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 }
 
 
+/**
+ * Registers data returned from cyclictest into the database.
+ *
+ * @param indbc      Database handler where to perform the SQL queries
+ * @param xslt       A pointer to a parsed 'xmlparser.xsl' XSLT template
+ * @param summaryxml The XML report from rteval
+ * @param rterid     A positive integer referencing the rteval run ID, returned from db_register_rtevalrun()
+ *
+ * @return Returns 1 on success, otherwise -1
+ */
 int db_register_cyclictest(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid) {
 	PGconn *dbc = (PGconn *) indbc;
 	int result = -1;
