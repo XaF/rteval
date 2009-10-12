@@ -127,7 +127,7 @@ char *sqldataValueHash(xmlNode *sql_n) {
 	hash = xmlGetAttrValue(sql_n->properties, "hash");
 	if( !hash ) {
 		// If no hash attribute is found, just use the raw data
-		ret = strdup(xmlExtractContent(sql_n));
+		ret = strdup_nullsafe(xmlExtractContent(sql_n));
 	} else if( strcasecmp(hash, "sha1") == 0 ) {
 		const char *indata = xmlExtractContent(sql_n);
 		// SHA1 hashing requested
