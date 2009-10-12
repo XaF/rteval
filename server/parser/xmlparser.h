@@ -22,9 +22,9 @@
 #define XSLTFILE "/usr/share/rteval/xmlparser.xsl"
 
 typedef struct {
-        char *table;
+        const char *table;
         unsigned int syskey;
-        char *report_filename;
+        const char *report_filename;
         unsigned int rterid;
 } parseParams;
 

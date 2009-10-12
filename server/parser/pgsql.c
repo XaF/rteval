@@ -349,3 +349,83 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	}
 	return syskey;
 }
+
+
+int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
+			  int syskey, const char *report_fname)
+{
+	PGconn *dbc = (PGconn *) indbc;
+	int rterid = -1;
+	xmlDoc *rtevalrun_d = NULL, *rtevalrundets_d = NULL;
+	parseParams prms;
+	eurephiaVALUES *dbdata = NULL;
+
+	// Parse the rtevalruns information
+	memset(&prms, 0, sizeof(parseParams));
+	prms.table = "rtevalruns";
+	prms.syskey = syskey;
+	prms.report_filename = report_fname;
+	rtevalrun_d = parseToSQLdata(xslt, summaryxml, &prms);
+	if( !rtevalrun_d ) {
+		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
+		rterid = -1;
+		goto exit;
+	}
+
+	// Register the rteval run information
+	dbdata = pgsql_INSERT(dbc, rtevalrun_d);
+	if( !dbdata ) {
+		rterid = -1;
+		goto exit;
+	}
+
+	// Grab the rterid value from the database
+	if( eCount(dbdata) != 1 ) {
+		fprintf(stderr, "** ERROR ** Failed to register the rteval run\n");
+		rterid = -1;
+		eFree_values(dbdata);
+		goto exit;
+	}
+	rterid = atoi_nullsafe(dbdata->val);
+	if( rterid < 1 ) {
+		fprintf(stderr, "** ERROR ** Failed to register the rteval run. Invalid rterid value.\n");
+		rterid = -1;
+		eFree_values(dbdata);
+		goto exit;
+	}
+	eFree_values(dbdata);
+
+	// Parse the rtevalruns_details information
+	memset(&prms, 0, sizeof(parseParams));
+	prms.table = "rtevalruns_details";
+	prms.rterid = rterid;
+	rtevalrundets_d = parseToSQLdata(xslt, summaryxml, &prms);
+	if( !rtevalrundets_d ) {
+		fprintf(stderr, "** ERROR **  Could not parse the input XML data (rtevalruns_details)\n");
+		rterid = -1;
+		goto exit;
+	}
+
+	// Register the rteval_details information
+	dbdata = pgsql_INSERT(dbc, rtevalrundets_d);
+	if( !dbdata ) {
+		rterid = -1;
+		goto exit;
+	}
+
+	// Check that only one record was inserted
+	if( eCount(dbdata) != 1 ) {
+		fprintf(stderr, "** ERROR ** Failed to register the rteval run\n");
+		rterid = -1;
+	}
+	eFree_values(dbdata);
+
+ exit:
+	if( rtevalrun_d ) {
+		xmlFreeDoc(rtevalrun_d);
+	}
+	if( rtevalrundets_d ) {
+		xmlFreeDoc(rtevalrundets_d);
+	}
+	return rterid;
+}
