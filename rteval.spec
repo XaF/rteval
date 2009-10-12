@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.4
+Version:	1.5
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -87,6 +87,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Oct 12 2009 Clark Williams <williams@redhat.com> - 1.5-1
+- changed cyclictest to use less memory when doing statisics
+  calculations
+- updated debug output to use module name prefixes 
+- changed option processing to only process config file once
+
 * Fri Oct  9 2009 Clark Williams <williams@redhat.com> - 1.4-1
 - changed cyclictest to use histogram rather than sample array
 - calcuated statistics directly from histogram
