@@ -258,3 +258,43 @@ char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
 	}
 	return NULL;
 }
+
+
+xmlDoc *sqldataGetHostInfo(xsltStylesheet *xslt, xmlDoc *summaryxml,
+			   int syskey, char **hostname, char **ipaddr)
+{
+	xmlDoc *hostinfo_d = NULL;
+	parseParams prms;
+
+	memset(&prms, 0, sizeof(parseParams));
+	prms.table = "systems_hostname";
+	prms.syskey = syskey;
+
+	hostinfo_d = parseToSQLdata(xslt, summaryxml, &prms);
+	if( !hostinfo_d ) {
+		fprintf(stderr, "** ERROR **  Could not parse input XML data (hostinfo)\n");
+		xmlFreeDoc(hostinfo_d);
+		goto exit;
+	}
+
+	// Grab hostname from input XML
+	*hostname = sqldataGetValue(hostinfo_d, "hostname", 0);
+	if( !hostname ) {
+		fprintf(stderr,
+			"** ERROR **  Could not retrieve the hostname field from the input XML\n");
+		xmlFreeDoc(hostinfo_d);
+		goto exit;
+	}
+
+	// Grab ipaddr from input XML
+	*ipaddr = sqldataGetValue(hostinfo_d, "ipaddr", 0);
+	if( !ipaddr ) {
+		fprintf(stderr,
+			"** ERROR **  Could not retrieve the IP address field from the input XML\n");
+		free_nullsafe(hostname);
+		xmlFreeDoc(hostinfo_d);
+		goto exit;
+	}
+ exit:
+	return hostinfo_d;
+}
