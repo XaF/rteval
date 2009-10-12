@@ -216,7 +216,7 @@ class RtEval(object):
 
     def debug(self, str):
         if self.config.debugging is True:
-            print str
+            print "rteval: %s" % str
 
     def info(self, str):
         if self.config.verbose is True:
