@@ -74,7 +74,7 @@ class Hackbench(load.Load):
                 raise RuntimeError, 'no hackbench directory!'
 
     def build(self):
-        self.debug("building hackbench")
+        self.debug("building")
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
         exe = os.path.join(self.mydir, "hackbench")
@@ -82,20 +82,20 @@ class Hackbench(load.Load):
             os.remove(exe)
         subprocess.call(["make", "-C", self.mydir], 
                               stdin=null, stdout=null, stderr=null)
-        self.debug("hackbench built")
+        self.debug("built")
         self.ready = True
 
     def runload(self):
         exe = os.path.join(self.mydir, "hackbench")
         if not os.path.exists(exe):
-            self.debug("Can't find hackbench exe!")
+            self.debug("Can't find exe!")
             return
         mult = 1
         if self.params.has_key('jobspercore'):
             mult = int(self.params.jobspercore)
         jobs = self.num_cpus * mult
         null = os.open("/dev/null", os.O_RDWR)
-        self.debug("starting hackbench loop in %s, arg: %d" % (self.mydir, jobs))
+        self.debug("starting loop (jobs: %d)" % jobs)
         self.args = [exe, str(jobs)]
         p = subprocess.Popen(self.args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
@@ -103,7 +103,7 @@ class Hackbench(load.Load):
             if p.poll() != None:
                 p.wait()
                 p = subprocess.Popen(self.args,stdin=null,stdout=null,stderr=null)
-        self.debug("stopping hackbench")
+        self.debug("stopping")
         os.kill(p.pid, SIGTERM)
 
     def genxml(self, x):

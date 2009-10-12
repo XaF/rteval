@@ -42,14 +42,14 @@ class Kcompile(load.Load):
         if self.params.has_key('tarball'):
             tarfile = os.path.join(self.srcdir, self.params.tarfile)
             if not os.path.exists(tarfile):
-                raise RuntimeError, "kcompile: tarfile %s does not exist!" % tarfile
+                raise RuntimeError, " tarfile %s does not exist!" % tarfile
             self.source = tarfile
         else:
             tarfiles = glob.glob(os.path.join(self.srcdir, "%s*" % kernel_prefix))
             if len(tarfiles):
                 self.source = tarfiles[0]
             else:
-                raise RuntimeError, "kcompile: no kernel tarballs found in %s" % self.srcdir
+                raise RuntimeError, " no kernel tarballs found in %s" % self.srcdir
 
         # check for existing directory
         kdir=None
@@ -74,17 +74,17 @@ class Kcompile(load.Load):
                 sys.exit(-1)
             names = os.listdir(self.builddir)
             for d in names:
-                self.debug("kcompile: checking %s" % d)
+                self.debug("checking %s" % d)
                 if d.startswith(kernel_prefix):
                     kdir=d
                     break
         if kdir == None:
             raise RuntimeError, "Can't find kernel directory!"
         self.mydir = os.path.join(self.builddir, kdir)
-        self.debug("kcompile: mydir = %s" % self.mydir)
+        self.debug("mydir = %s" % self.mydir)
 
     def build(self):
-        self.debug("kcompile setting up all module config file in %s" % self.mydir)
+        self.debug("setting up all module config file in %s" % self.mydir)
         null = os.open("/dev/null", os.O_RDWR)
         # clean up from potential previous run
         try:
@@ -93,9 +93,9 @@ class Kcompile(load.Load):
             if ret:
                 raise RuntimeError, "kcompile setup failed: %d" % ret
         except KeyboardInterrupt, m:
-            self.debug("keyboard interrupt, kcompile aborted")
+            self.debug("keyboard interrupt, aborting")
             return
-        self.debug("kcompile ready to run")
+        self.debug("ready to run")
         self.ready = True
 
     def runload(self):
@@ -104,7 +104,7 @@ class Kcompile(load.Load):
         if self.params.has_key('jobspercore'):
             mult = int(self.params.jobspercore)
         njobs = self.num_cpus * mult
-        self.debug("starting kcompile loop (jobs: %d)" % njobs)
+        self.debug("starting loop (jobs: %d)" % njobs)
         self.args = ["make", "-C", self.mydir, 
                      "-j%d" % njobs, 
                      "clean", "bzImage", "modules"]
@@ -117,7 +117,7 @@ class Kcompile(load.Load):
                 self.debug("restarting compile job")
                 p = subprocess.Popen(self.args,
                                      stdin=null,stdout=null,stderr=null)
-        self.debug("stopping kcompile")
+        self.debug("stopping")
         os.kill(p.pid, SIGTERM)
 
     def genxml(self, x):
