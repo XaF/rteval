@@ -105,9 +105,14 @@ class RunData(object):
         madsum = 0
         varsum = 0
         for i in keys:
-            for j in range(0, self.samples[i]):
+            # DON'T try using range(0, samples[i] here!
+            # that will create a potentially HUGE list and
+            # in many cases exhaust memory
+            j = 0
+            while j < self.samples[i]:
                 madsum += float(abs(i - self.mean))
                 varsum += float((i - self.mean) ** 2)
+                j += 1
         self.mad = madsum / self.numsamples
         self.variance = varsum / (self.numsamples - 1)
         
@@ -180,7 +185,7 @@ class Cyclictest(Thread):
         pass
 
     def debug(self, str):
-        if self.debugging: print str
+        if self.debugging: print "cyclictest: %s" % str
 
     def run(self):
         self.cmd = ['cyclictest', self.interval, '-a', '-qnm', '-d0', '-h 1000',
@@ -190,17 +195,17 @@ class Cyclictest(Thread):
         else:
             self.cmd.append("-t")
 
-        self.debug("starting cyclictest with cmd: %s" % " ".join(self.cmd))
+        self.debug("starting with cmd: %s" % " ".join(self.cmd))
         null = os.open('/dev/null', os.O_RDWR)
         c = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=null, stdin=null)
         while True:
             if self.stopevent.isSet():
                 break
             if c.poll():
-                self.debug("cyclictest process died! bailng out...")
+                self.debug("process died! bailng out...")
                 break
             time.sleep(1.0)
-        self.debug("stopping cyclictest")
+        self.debug("stopping")
         os.kill(c.pid, signal.SIGINT)
         # now parse the histogram output
         for line in c.stdout:
