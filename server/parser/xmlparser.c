@@ -127,7 +127,7 @@ char *sqldataValueHash(xmlNode *sql_n) {
 	hash = xmlGetAttrValue(sql_n->properties, "hash");
 	if( !hash ) {
 		// If no hash attribute is found, just use the raw data
-		ret = xmlExtractContent(sql_n);
+		ret = strdup(xmlExtractContent(sql_n));
 	} else if( strcasecmp(hash, "sha1") == 0 ) {
 		const char *indata = xmlExtractContent(sql_n);
 		// SHA1 hashing requested
@@ -172,16 +172,15 @@ char *sqldataExtractContent(xmlNode *sql_n) {
 }
 
 
-int sqldataGetFid(xmlDoc *sqld, const char *fname) {
+int sqldataGetFid(xmlNode *sql_n, const char *fname) {
 	xmlNode *f_n = NULL;
 
-	f_n = xmlDocGetRootElement(sqld);
-	if( !f_n || (xmlStrcmp(f_n->name, (xmlChar *) "sqldata") != 0) ) {
+	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "sqldata") != 0) ) {
 		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
 		return -2;
 	}
 
-	f_n = xmlFindNode(f_n, "fields");
+	f_n = xmlFindNode(sql_n, "fields");
 	if( !f_n || !f_n->children ) {
 		fprintf(stderr, "** ERROR ** Input XML document does not contain a fields section\n");
 		return -2;
@@ -207,18 +206,23 @@ int sqldataGetFid(xmlDoc *sqld, const char *fname) {
 }
 
 
-char *sqldataGetValue(xmlDoc *sqld, int fid, int recid ) {
+char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
 	xmlNode *r_n = NULL;
-	int rc = 0;
+	int fid = -3, rc = 0;
 
-	if( (fid < 0) || (recid < 0) ) {
-		fprintf(stderr, "** ERROR ** sqldataGetValue() :: Invalid fid or recid\n");
+	if( recid < 0 ) {
+		fprintf(stderr, "** ERROR ** sqldataGetValue() :: Invalid recid\n");
 		return NULL;
 	}
 
 	r_n = xmlDocGetRootElement(sqld);
 	if( !r_n || (xmlStrcmp(r_n->name, (xmlChar *) "sqldata") != 0) ) {
 		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		return NULL;
+	}
+
+	fid = sqldataGetFid(r_n, fname);
+	if( fid < 0 ) {
 		return NULL;
 	}
 
