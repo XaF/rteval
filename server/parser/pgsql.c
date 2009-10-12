@@ -298,6 +298,8 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			syskey = -1;
 			goto exit;
 		}
+		eFree_values(dbdata);
+
 		dbdata = pgsql_INSERT(dbc, hostinfo_d);
 		syskey = (dbdata ? syskey : -1);
 		eFree_values(dbdata);
@@ -428,4 +430,67 @@ int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 		xmlFreeDoc(rtevalrundets_d);
 	}
 	return rterid;
+}
+
+
+int db_register_cyclictest(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid) {
+	PGconn *dbc = (PGconn *) indbc;
+	int result = -1;
+	xmlDoc *cyclic_d = NULL;
+	parseParams prms;
+	eurephiaVALUES *dbdata = NULL;
+
+	memset(&prms, 0, sizeof(parseParams));
+	prms.table = "cyclic_statistics";
+	prms.rterid = rterid;
+	cyclic_d = parseToSQLdata(xslt, summaryxml, &prms);
+	if( !cyclic_d ) {
+		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
+		result = -1;
+		goto exit;
+	}
+
+	// Register the cyclictest statistics information
+	dbdata = pgsql_INSERT(dbc, cyclic_d);
+	if( !dbdata ) {
+		result = -1;
+		goto exit;
+	}
+	if( eCount(dbdata) < 1 ) {
+		fprintf(stderr, "** ERROR **  Failed to register cyclictest statistics\n");
+		result = -1;
+		eFree_values(dbdata);
+		goto exit;
+	}
+	eFree_values(dbdata);
+	xmlFreeDoc(cyclic_d);
+
+	prms.table = "cyclic_rawdata";
+	cyclic_d = parseToSQLdata(xslt, summaryxml, &prms);
+	if( !cyclic_d ) {
+		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
+		result = -1;
+		goto exit;
+	}
+
+	// Register the cyclictest raw data
+	dbdata = pgsql_INSERT(dbc, cyclic_d);
+	if( !dbdata ) {
+		result = -1;
+		goto exit;
+	}
+	if( eCount(dbdata) < 1 ) {
+		fprintf(stderr, "** ERROR **  Failed to register cyclictest raw data\n");
+		result = -1;
+		eFree_values(dbdata);
+		goto exit;
+	}
+	eFree_values(dbdata);
+	result = 1;
+ exit:
+	if( cyclic_d ) {
+		xmlFreeDoc(cyclic_d);
+	}
+
+	return result;
 }
