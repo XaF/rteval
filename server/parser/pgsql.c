@@ -154,7 +154,6 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 		strcat(sql, " RETURNING ");
 		strcat(sql, key);
 	}
-	fprintf(stderr, "SQL: %s\n", sql);
 
 	// Create a prepared SQL query
 	dbres = PQprepare(dbc, "", sql, fieldcnt, NULL);
@@ -167,7 +166,6 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	PQclear(dbres);
 
 	// Loop through all records and generate SQL statements
-	fprintf(stderr, "Doing inserts ");
 	res = eCreate_value_space(1);
 	foreach_xmlnode(recs_n->children, ptr_n) {
 		if( ptr_n->type != XML_ELEMENT_NODE ) {
@@ -231,7 +229,6 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 		}
 		free_nullsafe(value_ar);
 	}
-	fprintf(stderr, " Done\n");
 
  exit:
 	free_nullsafe(sql);
@@ -240,4 +237,115 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	free_nullsafe(field_ar);
 	free_nullsafe(field_idx);
 	return res;
+}
+
+
+int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
+	PGconn *dbc = (PGconn *) indbc;
+	PGresult *dbres = NULL;
+	eurephiaVALUES *dbdata = NULL;
+	xmlDoc *sysinfo_d = NULL, *hostinfo_d = NULL;
+	parseParams prms;
+	char sqlq[4098];
+	char *sysid = NULL;  // SHA1 value of the system id
+	char *ipaddr = NULL, *hostname = NULL;
+	int syskey = -1;
+
+	memset(&prms, 0, sizeof(parseParams));
+	prms.table = "systems";
+	sysinfo_d = parseToSQLdata(xslt, summaryxml, &prms);
+	if( !sysinfo_d ) {
+		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
+		syskey= -1;
+		goto exit;
+	}
+	sysid = sqldataGetValue(sysinfo_d, "sysid", 0);
+	if( !sysid ) {
+		fprintf(stderr, "** ERROR **  Could not retrieve the sysid field from the input XML\n");
+		syskey= -1;
+		goto exit;
+	}
+
+	memset(&sqlq, 0, 4098);
+	snprintf(sqlq, 4096, "SELECT syskey FROM systems WHERE sysid = '%.256s'", sysid);
+	free_nullsafe(sysid);
+	dbres = PQexec(dbc, sqlq);
+	if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
+		fprintf(stderr, "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
+			sqlq, PQresultErrorMessage(dbres));
+		PQclear(dbres);
+		syskey= -1;
+		goto exit;
+	}
+
+	if( PQntuples(dbres) == 0 ) {  // No record found, need to register this system
+		PQclear(dbres);
+
+		dbdata = pgsql_INSERT(dbc, sysinfo_d);
+		if( !dbdata ) {
+			syskey= -1;
+			goto exit;
+		}
+		if( (eCount(dbdata) != 1) || !dbdata->val ) { // Only one record should be registered
+			fprintf(stderr, "** ERRORR **  Failed to register the system\n");
+			eFree_values(dbdata);
+			syskey= -1;
+			goto exit;
+		}
+		syskey = atoi_nullsafe(dbdata->val);
+		hostinfo_d = sqldataGetHostInfo(xslt, summaryxml, syskey, &hostname, &ipaddr);
+		if( !hostinfo_d ) {
+			syskey = -1;
+			goto exit;
+		}
+		dbdata = pgsql_INSERT(dbc, hostinfo_d);
+		syskey = (dbdata ? syskey : -1);
+		eFree_values(dbdata);
+
+	} else if( PQntuples(dbres) == 1 ) { // System found - check if the host IP is known or not
+		syskey = atoi_nullsafe(PQgetvalue(dbres, 0, 0));
+		hostinfo_d = sqldataGetHostInfo(xslt, summaryxml, syskey, &hostname, &ipaddr);
+		if( !hostinfo_d ) {
+			syskey = -1;
+			goto exit;
+		}
+		PQclear(dbres);
+
+		// Check if this hostname and IP address is registered
+		snprintf(sqlq, 4096,
+			 "SELECT syskey FROM systems_hostname"
+			 " WHERE hostname='%.256s' AND ipaddr='%.64s'",
+			 hostname, ipaddr);
+
+		dbres = PQexec(dbc, sqlq);
+		if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
+			fprintf(stderr, "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
+				sqlq, PQresultErrorMessage(dbres));
+			PQclear(dbres);
+			syskey= -1;
+			goto exit;
+		}
+
+		if( PQntuples(dbres) == 0 ) { // Not registered, then register it
+			dbdata = pgsql_INSERT(dbc, hostinfo_d);
+			syskey = (dbdata ? syskey : -1);
+			eFree_values(dbdata);
+		}
+		PQclear(dbres);
+	} else {
+		// Critical -- system IDs should not be registered more than once
+		fprintf(stderr, "** CRITICAL ERROR **  Multiple systems registered (%s)", sqlq);
+		syskey= -1;
+	}
+
+ exit:
+	free_nullsafe(hostname);
+	free_nullsafe(ipaddr);
+	if( sysinfo_d ) {
+		xmlFreeDoc(sysinfo_d);
+	}
+	if( hostinfo_d ) {
+		xmlFreeDoc(hostinfo_d);
+	}
+	return syskey;
 }
