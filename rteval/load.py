@@ -34,7 +34,7 @@ class Load(threading.Thread):
                  debug=False, num_cpus=1, params={}):
         threading.Thread.__init__(self)
         self.name = name
-        self.builddir = builddir		# abs path to top dir
+        self.builddir = builddir	# abs path to top dir
         self.srcdir = srcdir		# abs path to src dir
         self.num_cpus = num_cpus
         self.debugging = debug
@@ -52,7 +52,7 @@ class Load(threading.Thread):
             os.makedirs(self.builddir)
 
     def debug(self, str):
-        if self.debugging: print str
+        if self.debugging: print "%s: %s" % (self.name, str)
 
     def isReady(self):
         return self.ready
