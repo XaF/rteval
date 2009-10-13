@@ -33,7 +33,7 @@
 #include <eurephia_values.h>
 #include <configparser.h>
 #include <xmlparser.h>
-
+#include <pgsql.h>
 
 /**
  * Connect to a database, based on the given configuration
@@ -72,7 +72,7 @@ void *db_connect(eurephiaVALUES *cfg) {
  *
  * @param dbc Pointer to the database handle to be disconnected.
  */
-void db_disconnect(void *dbc) {
+void db_disconnect(dbconn *dbc) {
 	PQfinish((PGconn *) dbc);
 }
 
@@ -315,7 +315,7 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
  * Registers information into the 'systems' and 'systems_hostname' tables, based on the
  * summary/report XML file from rteval.
  *
- * @param indbc      Database handler where to perform the SQL queries
+ * @param dbc      Database handler where to perform the SQL queries
  * @param xslt       A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml The XML report from rteval
  *
@@ -323,8 +323,7 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
  *         If the function detects that this system is already registered, the 'syskey' reference will
  *         be reused.  On errors, -1 will be returned.
  */
-int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
-	PGconn *dbc = (PGconn *) indbc;
+int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	PGresult *dbres = NULL;
 	eurephiaVALUES *dbdata = NULL;
 	xmlDoc *sysinfo_d = NULL, *hostinfo_d = NULL;
@@ -352,7 +351,7 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	memset(&sqlq, 0, 4098);
 	snprintf(sqlq, 4096, "SELECT syskey FROM systems WHERE sysid = '%.256s'", sysid);
 	free_nullsafe(sysid);
-	dbres = PQexec(dbc, sqlq);
+	dbres = PQexec((PGconn *) dbc, sqlq);
 	if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
 		fprintf(stderr, "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
 			sqlq, PQresultErrorMessage(dbres));
@@ -364,7 +363,7 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	if( PQntuples(dbres) == 0 ) {  // No record found, need to register this system
 		PQclear(dbres);
 
-		dbdata = pgsql_INSERT(dbc, sysinfo_d);
+		dbdata = pgsql_INSERT((PGconn *) dbc, sysinfo_d);
 		if( !dbdata ) {
 			syskey= -1;
 			goto exit;
@@ -383,7 +382,7 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 		}
 		eFree_values(dbdata);
 
-		dbdata = pgsql_INSERT(dbc, hostinfo_d);
+		dbdata = pgsql_INSERT((PGconn *) dbc, hostinfo_d);
 		syskey = (dbdata ? syskey : -1);
 		eFree_values(dbdata);
 
@@ -402,7 +401,7 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			 " WHERE hostname='%.256s' AND ipaddr='%.64s'",
 			 hostname, ipaddr);
 
-		dbres = PQexec(dbc, sqlq);
+		dbres = PQexec((PGconn *) dbc, sqlq);
 		if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
 			fprintf(stderr, "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
 				sqlq, PQresultErrorMessage(dbres));
@@ -412,7 +411,7 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 		}
 
 		if( PQntuples(dbres) == 0 ) { // Not registered, then register it
-			dbdata = pgsql_INSERT(dbc, hostinfo_d);
+			dbdata = pgsql_INSERT((PGconn *) dbc, hostinfo_d);
 			syskey = (dbdata ? syskey : -1);
 			eFree_values(dbdata);
 		}
@@ -439,7 +438,7 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 /**
  * Registers information into the 'rtevalruns' and 'rtevalruns_details' tables
  *
- * @param indbc         Database handler where to perform the SQL queries
+ * @param dbc           Database handler where to perform the SQL queries
  * @param xslt          A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml    The XML report from rteval
  * @param syskey        A positive integer containing the return value from db_register_system()
@@ -448,10 +447,9 @@ int db_register_system(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
  * @return Returns a positive integer which references the 'rterid' value (RTEvalRunID) on success,
  *         otherwise -1 is returned.
  */
-int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
+int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			  int syskey, const char *report_fname)
 {
-	PGconn *dbc = (PGconn *) indbc;
 	int rterid = -1;
 	xmlDoc *rtevalrun_d = NULL, *rtevalrundets_d = NULL;
 	parseParams prms;
@@ -470,7 +468,7 @@ int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	}
 
 	// Register the rteval run information
-	dbdata = pgsql_INSERT(dbc, rtevalrun_d);
+	dbdata = pgsql_INSERT((PGconn *) dbc, rtevalrun_d);
 	if( !dbdata ) {
 		rterid = -1;
 		goto exit;
@@ -504,7 +502,7 @@ int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	}
 
 	// Register the rteval_details information
-	dbdata = pgsql_INSERT(dbc, rtevalrundets_d);
+	dbdata = pgsql_INSERT((PGconn *) dbc, rtevalrundets_d);
 	if( !dbdata ) {
 		rterid = -1;
 		goto exit;
@@ -531,15 +529,14 @@ int db_register_rtevalrun(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 /**
  * Registers data returned from cyclictest into the database.
  *
- * @param indbc      Database handler where to perform the SQL queries
+ * @param dbc      Database handler where to perform the SQL queries
  * @param xslt       A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml The XML report from rteval
  * @param rterid     A positive integer referencing the rteval run ID, returned from db_register_rtevalrun()
  *
  * @return Returns 1 on success, otherwise -1
  */
-int db_register_cyclictest(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid) {
-	PGconn *dbc = (PGconn *) indbc;
+int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid) {
 	int result = -1;
 	xmlDoc *cyclic_d = NULL;
 	parseParams prms;
@@ -556,7 +553,7 @@ int db_register_cyclictest(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 	}
 
 	// Register the cyclictest statistics information
-	dbdata = pgsql_INSERT(dbc, cyclic_d);
+	dbdata = pgsql_INSERT((PGconn *) dbc, cyclic_d);
 	if( !dbdata ) {
 		result = -1;
 		goto exit;
@@ -579,7 +576,7 @@ int db_register_cyclictest(void *indbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 	}
 
 	// Register the cyclictest raw data
-	dbdata = pgsql_INSERT(dbc, cyclic_d);
+	dbdata = pgsql_INSERT((PGconn *) dbc, cyclic_d);
 	if( !dbdata ) {
 		result = -1;
 		goto exit;
