@@ -164,23 +164,33 @@ class RtEval(object):
 
 
     def get_services(self):
-        rejects = ('firstboot', 'functions', 'halt', 'iptables', 'ip6tables', 
-                   'killall', 'lm_sensors', 'network', 'rtctl')
+        rejects = ('capi', 'firstboot', 'functions', 'halt', 'iptables', 'ip6tables', 
+                   'killall', 'lm_sensors', 'microcode_ctl', 'network', 'ntpdate', 
+                   'rtctl', 'udev-post')
         services = filter(lambda x: x not in rejects, os.listdir('/etc/rc.d/init.d'))
         self.services = {}
+        self.debug("getting services status")
         for s in services:
-            c = subprocess.Popen(['/sbin/service', s, 'status'], stdout=subprocess.PIPE)
+            cmd = ['/sbin/service', s, 'status']
+            #self.debug("cmd: %s" % " ".join(cmd))
+            c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
             status = c.stdout.read().strip()
             self.services[s] = status
 
             
     def get_kthreads(self):
-        c = subprocess.Popen(['/sbin/service', 'rtctl', 'status'], stdout=subprocess.PIPE)
+        policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
         self.kthreads = {}
+        if not os.path.exists('/etc/rc.d/init.d/rtctl'):
+            return
+        self.debug("getting kthread status")
+        cmd = '/sbin/service rtctl status'
+        #self.debug("cmd: %s" % cmd)
+        c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         for p in c.stdout:
-            (pid, pol, prio, name) = p.split()
-            self.kthreads[pid] = {'policy' : pol, 'priority' : prio, 'name' : name }
-
+            v = p.strip().split()
+            self.kthreads[v[0]] = {'policy' : policies[v[1]], 
+                                   'priority' : v[2], 'name' : v[3] }
 
     def parse_options(self):
         '''parse the command line arguments'''
@@ -305,6 +315,17 @@ class RtEval(object):
         for s in self.services:
             self.xmlreport.taggedvalue(s, self.services[s])
         self.xmlreport.closeblock()
+
+        keys = self.kthreads.keys()
+        if len(keys):
+            keys.sort()
+            self.xmlreport.openblock('kthreads')
+            for pid in keys:
+                self.xmlreport.taggedvalue('thread', self.kthreads[pid]['name'], 
+                                           { 'policy' : self.kthreads[pid]['policy'],
+                                             'priority' : self.kthreads[pid]['priority'],
+                                             })
+            self.xmlreport.closeblock()
 
         # Retrieve configured IP addresses
         self.xmlreport.openblock('network_config')
@@ -500,6 +521,7 @@ class RtEval(object):
             # stop the loads
             self.stop_loads()
 
+        print "stopping run at %s" % time.asctime()
         # wait for cyclictest to finish calculating stats
         self.cyclictest.finished.wait()
         end = datetime.now()
