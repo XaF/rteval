@@ -12,6 +12,7 @@
    Run time:     <xsl:value-of select="run_info/@days"/> days <xsl:value-of select="run_info/@hours"/>h <xsl:value-of select="run_info/@minutes"/>m <xsl:value-of select="run_info/@seconds"/>s
 
    Tested node:  <xsl:value-of select="uname/node"/>
+   Model:        <xsl:value-of select="HardwareInfo/GeneralInfo/Manufacturer"/> - <xsl:value-of select="HardwareInfo/GeneralInfo/ProductName"/>
    BIOS version: <xsl:value-of select="HardwareInfo/BIOS"/> (ver: <xsl:value-of select="HardwareInfo/BIOS/@Version"/>, rev :<xsl:value-of select="HardwareInfo/BIOS/@BIOSrevision"/>, release date: <xsl:value-of select="HardwareInfo/BIOS/@ReleaseDate"/>)
    CPU cores:    <xsl:value-of select="hardware/cpu_cores"/>
    Memory:       <xsl:value-of select="hardware/memory_size"/> KB
