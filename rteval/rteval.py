@@ -117,6 +117,8 @@ class RtEval(object):
         self.numcores = self.get_num_cores()
         self.memsize = self.get_memory_size()
         self.get_clocksources()
+        self.get_services()
+        self.get_kthreads()
         self.xml = ''
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
 
@@ -159,6 +161,25 @@ class RtEval(object):
         f = open (os.path.join (path, "available_clocksource"))
         self.available_clocksource = f.readline().strip()
         f.close()
+
+
+    def get_services(self):
+        rejects = ('firstboot', 'functions', 'halt', 'iptables', 'ip6tables', 
+                   'killall', 'lm_sensors', 'network', 'rtctl')
+        services = filter(lambda x: x not in rejects, os.listdir('/etc/rc.d/init.d'))
+        self.services = {}
+        for s in services:
+            c = subprocess.Popen(['/sbin/service', s, 'status'], stdout=subprocess.PIPE)
+            status = c.stdout.read().strip()
+            self.services[s] = status
+
+            
+    def get_kthreads(self):
+        c = subprocess.Popen(['/sbin/service', 'rtctl', 'status'], stdout=subprocess.PIPE)
+        self.kthreads = {}
+        for p in c.stdout:
+            (pid, pol, prio, name) = p.split()
+            self.kthreads[pid] = {'policy' : pol, 'priority' : prio, 'name' : name }
 
 
     def parse_options(self):
@@ -278,6 +299,11 @@ class RtEval(object):
         self.xmlreport.openblock('hardware')
         self.xmlreport.taggedvalue('cpu_cores', self.numcores)
         self.xmlreport.taggedvalue('memory_size', self.memsize)
+        self.xmlreport.closeblock()
+
+        self.xmlreport.openblock('services')
+        for s in self.services:
+            self.xmlreport.taggedvalue(s, self.services[s])
         self.xmlreport.closeblock()
 
         # Retrieve configured IP addresses
