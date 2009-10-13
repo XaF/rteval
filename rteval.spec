@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.6
+Version:	1.7
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -87,6 +87,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Oct 13 2009 Clark Williams <williams@redhat.com> - 1.7-1
+- added kthread status to xml file
+- merged davids changes for option processing and additions
+  to xml summary
+
 * Tue Oct 13 2009 Clark Williams <williams@redhat.com> - 1.6-1
 - changed stat calculation to loop less
 - added methods to grab service and kthread status
