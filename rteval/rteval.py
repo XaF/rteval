@@ -68,7 +68,7 @@ class RtEval(object):
                 'verbose'    : False,
                 'keepdata'   : True,
                 'debugging'  : False,
-                'duration'   : 60.0,
+                'duration'   : '60',
                 'sysreport'  : False,
                 'reportdir'  : None,
                 'reportfile' : None,
