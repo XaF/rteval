@@ -105,14 +105,8 @@ class RunData(object):
         madsum = 0
         varsum = 0
         for i in keys:
-            # DON'T try using range(0, samples[i] here!
-            # that will create a potentially HUGE list and
-            # in many cases exhaust memory
-            j = 0
-            while j < self.samples[i]:
-                madsum += float(abs(i - self.mean))
-                varsum += float((i - self.mean) ** 2)
-                j += 1
+            madsum += float(abs(float(i) - self.mean) * self.samples[i])
+            varsum += float(((float(i) - self.mean) ** 2) * self.samples[i])
         self.mad = madsum / self.numsamples
         self.variance = varsum / (self.numsamples - 1)
         
