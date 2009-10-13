@@ -57,7 +57,7 @@ import rtevalMailer
 
 class RtEval(object):
     def __init__(self):
-        self.version = "1.5"
+        self.version = "1.6"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.inifile = None
