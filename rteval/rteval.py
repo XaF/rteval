@@ -98,7 +98,7 @@ class RtEval(object):
         self.parse_options()
 
         # read in config file info
-        self.inifile = self.config.Load()
+        self.inifile = self.config.Load(self.cmd_options.inifile)
 
         # copy the command line options into the rteval config section
         # (cmd line overrides config file values)
@@ -192,8 +192,8 @@ class RtEval(object):
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
         parser.add_option("-f", "--inifile", dest="inifile",
-                          type='string', default=self.inifile,
-                          help="initialization file for configuring loads and behavior (default: %default)")
+                          type='string', default=None,
+                          help="initialization file for configuring loads and behavior")
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args()
         if self.cmd_options.duration:
