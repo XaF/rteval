@@ -19,6 +19,8 @@
 #ifndef _RTEVAL_PGSQL_H
 #define _RTEVAL_PGSQL_H
 
+#include <libpq-fe.h>
+
 #include <libxml/parser.h>
 #include <libxslt/transform.h>
 #include <eurephia_values.h>
@@ -27,6 +29,9 @@ typedef PGconn dbconn;
 
 void *db_connect(eurephiaVALUES *cfg);
 void db_disconnect(dbconn *dbc);
+int db_begin(dbconn *dbc);
+int db_commit(dbconn *dbc);
+int db_rollback(dbconn *dbc);
 int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml);
 int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			  int syskey, const char *report_fname);

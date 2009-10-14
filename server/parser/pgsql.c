@@ -312,10 +312,76 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 
 
 /**
+ * Start an SQL transaction (SQL BEGIN)
+ *
+ * @param dbc Database handler where to perform the SQL queries
+ *
+ * @return Returns 1 on success, otherwise -1 is returned
+ */
+int db_begin(dbconn *dbc) {
+	PGresult *dbres = NULL;
+
+	dbres = PQexec((PGconn *) dbc, "BEGIN");
+	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
+		fprintf(stderr, "** ERROR **  Failed to do prepare a transaction (BEGIN)\n%s\n",
+			PQresultErrorMessage(dbres));
+		PQclear(dbres);
+		return -1;
+	}
+	PQclear(dbres);
+	return 1;
+}
+
+
+/**
+ * Commits an SQL transaction (SQL COMMIT)
+ *
+ * @param dbc Database handler where to perform the SQL queries
+ *
+ * @return Returns 1 on success, otherwise -1 is returned
+ */
+int db_commit(dbconn *dbc) {
+	PGresult *dbres = NULL;
+
+	dbres = PQexec((PGconn *) dbc, "COMMIT");
+	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
+		fprintf(stderr, "** ERROR **  Failed to do commit a database transaction (COMMIT)\n%s\n",
+			PQresultErrorMessage(dbres));
+		PQclear(dbres);
+		return -1;
+	}
+	PQclear(dbres);
+	return 1;
+}
+
+
+/**
+ * Aborts an SQL transaction (SQL ROLLBACK/ABORT)
+ *
+ * @param dbc Database handler where to perform the SQL queries
+ *
+ * @return Returns 1 on success, otherwise -1 is returned
+ */
+int db_rollback(dbconn *dbc) {
+	PGresult *dbres = NULL;
+
+	dbres = PQexec((PGconn *) dbc, "ROLLBACK");
+	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
+		fprintf(stderr, "** ERROR **  Failed to do abort/rollback a transaction (ROLLBACK)\n%s\n",
+			PQresultErrorMessage(dbres));
+		PQclear(dbres);
+		return -1;
+	}
+	PQclear(dbres);
+	return 1;
+}
+
+
+/**
  * Registers information into the 'systems' and 'systems_hostname' tables, based on the
  * summary/report XML file from rteval.
  *
- * @param dbc      Database handler where to perform the SQL queries
+ * @param dbc        Database handler where to perform the SQL queries
  * @param xslt       A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml The XML report from rteval
  *
