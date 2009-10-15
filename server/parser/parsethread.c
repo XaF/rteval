@@ -39,13 +39,13 @@
  * @param thrargs Pointer to a threadData_t struct which contains database connection, XSLT stylesheet
  *                parser and a full path filename to the report to parse
  *
- * @return Returns 0 on success, otherwise a positive integer defining which part it failed on.
- *         Exit codes:
- *              1: Could not parse the XML report file
- *              2: Failed to register the system into the systems or systems_hostname tables
- *              3: Failed to start an SQL transaction (BEGIN)
- *              4: Failed to register the rteval run into rtevalruns or rtevalruns_details tables
- *              5: Failed to register the cyclictest data into cyclic_statistics or cyclic_rawdata tables     
+ * @return Return values:
+ *          STAT_SUCCESS  (1): Successfully registered report
+ *          STAT_XMLFAIL  (2): Could not parse the XML report file
+ *          STAT_SYSREG   (3): Failed to register the system into the systems or systems_hostname tables
+ *          STAT_GENDB    (4): Failed to start an SQL transaction (BEGIN)
+ *          STAT_RTEVRUNS (5): Failed to register the rteval run into rtevalruns or rtevalruns_details
+ *          STAT_CYCLIC   (6): Failed to register the data into cyclic_statistics or cyclic_rawdata tables
  */
 void *parsethread(void *thrargs) {
 	threadData_t *thrdata = (threadData_t *) thrargs;
@@ -60,7 +60,7 @@ void *parsethread(void *thrargs) {
 	if( !repxml ) {
 		fprintf(stderr, "** ERROR **  Could not parse XML file: %s\n", thrdata->filename);
 		thrdata->status = thrFAIL;
-		pthread_exit((void *) 1);
+		pthread_exit((void *) STAT_XMLFAIL);
 	}
 
 	pthread_mutex_lock(thrdata->mtx_sysreg);
@@ -70,14 +70,14 @@ void *parsethread(void *thrargs) {
 		fprintf(stderr, "** ERROR **  Failed to register system (XML file; %s)\n",
 			thrdata->filename);
 		thrdata->status = thrFAIL;
-		rc = 2;
+		rc = STAT_SYSREG;
 		goto exit;
 
 	}
 
 	if( db_begin(thrdata->dbc) < 1 ) {
 		thrdata->status = thrFAIL;
-		rc = 3;
+		rc = STAT_GENDB;
 		goto exit;
 	}
 
@@ -87,7 +87,7 @@ void *parsethread(void *thrargs) {
 			thrdata->filename);
 		thrdata->status = thrFAIL;
 		db_rollback(thrdata->dbc);
-		rc = 4;
+		rc = STAT_RTEVRUNS;
 		goto exit;
 	}
 
@@ -96,13 +96,13 @@ void *parsethread(void *thrargs) {
 			thrdata->filename);
 		thrdata->status = thrFAIL;
 		db_rollback(thrdata->dbc);
-		rc = 5;
+		rc = STAT_CYCLIC;
 		goto exit;
 	}
 
 
 	thrdata->status = thrCOMPLETE;
-	rc = 0;
+	rc = STAT_SUCCESS;
 	db_commit(thrdata->dbc);
 
  exit:

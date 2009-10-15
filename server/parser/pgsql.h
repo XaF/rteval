@@ -25,7 +25,15 @@
 #include <libxslt/transform.h>
 #include <eurephia_values.h>
 
-typedef PGconn dbconn;
+#define STAT_NEW      0		/**< New, unparsed report in the submission queue */
+#define STAT_SUCCESS  1		/**< Report parsed successfully */
+#define STAT_XMLFAIL  2		/**< Failed to parse the report XML file */
+#define STAT_SYSREG   3		/**< System registration failed */
+#define STAT_GENDB    4		/**< General database error */
+#define STAT_RTEVRUNS 5		/**< Registering rteval run information failed */
+#define STAT_CYCLIC   6		/**< Registering cyclictest results failed */
+
+typedef PGconn dbconn;		/**< Wrapper definition, for a more generic DB API */
 
 void *db_connect(eurephiaVALUES *cfg);
 void db_disconnect(dbconn *dbc);
