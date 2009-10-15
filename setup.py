@@ -9,7 +9,7 @@ import os
 PYTHONLIB = join(get_python_lib(standard_lib=1, prefix=''), 'site-packages')
 
 setup(name="rteval",
-      version = "0.9",
+      version = "1.8",
       description = "evaluate system performance for Realtime",
       author = "Clark Williams",
       author_email = "williams@redhat.com",
