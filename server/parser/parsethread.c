@@ -1,10 +1,6 @@
 /*
  * Copyright (C) 2009 Red Hat Inc.
  *
- * David Sommerseth <davids@redhat.com>
- *
- * Contains the "main" functions a parser threads performs
- *
  * This application is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
  * Software Foundation; version 2.
@@ -13,6 +9,16 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
+ */
+
+/**
+ * @file   parsethread.c
+ * @author David Sommerseth <davids@redhat.com>
+ * @date   Thu Oct 15 11:52:10 2009
+ *
+ * @brief  Contains the "main" function which a parser threads runs
+ *
+ *
  */
 
 #include <stdio.h>
@@ -26,15 +32,21 @@
 #include <pgsql.h>
 
 
-
-// For main program
-#include <eurephia_nullsafe.h>
-#include <eurephia_values.h>
-#include <configparser.h>
-
-#define XMLPARSER_XSL "xmlparser.xsl"
-
-
+/**
+ * The core parse function.  It is started via pthread_create() in the main() function.  The
+ * input data contains information on the file to parse
+ *
+ * @param thrargs Pointer to a threadData_t struct which contains database connection, XSLT stylesheet
+ *                parser and a full path filename to the report to parse
+ *
+ * @return Returns 0 on success, otherwise a positive integer defining which part it failed on.
+ *         Exit codes:
+ *              1: Could not parse the XML report file
+ *              2: Failed to register the system into the systems or systems_hostname tables
+ *              3: Failed to start an SQL transaction (BEGIN)
+ *              4: Failed to register the rteval run into rtevalruns or rtevalruns_details tables
+ *              5: Failed to register the cyclictest data into cyclic_statistics or cyclic_rawdata tables     
+ */
 void *parsethread(void *thrargs) {
 	threadData_t *thrdata = (threadData_t *) thrargs;
 	int syskey = -1, rterid = -1;
@@ -58,15 +70,14 @@ void *parsethread(void *thrargs) {
 		fprintf(stderr, "** ERROR **  Failed to register system (XML file; %s)\n",
 			thrdata->filename);
 		thrdata->status = thrFAIL;
-		db_rollback(thrdata->dbc);
-		rc = 3;
+		rc = 2;
 		goto exit;
 
 	}
 
 	if( db_begin(thrdata->dbc) < 1 ) {
 		thrdata->status = thrFAIL;
-		rc = 2;
+		rc = 3;
 		goto exit;
 	}
 
