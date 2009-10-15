@@ -1,7 +1,23 @@
 HERE	:=	$(shell pwd)
 PACKAGE :=	rteval
-VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec)
+VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec | head -n 1)
 D	:=	10
+PYSRC	:=	rteval/rteval.py 	\
+		rteval/cyclictest.py 	\
+		rteval/dmi.py 		\
+		rteval/hackbench.py 	\
+		rteval/__init__.py 	\
+		rteval/kcompile.py 	\
+		rteval/load.py 		\
+		rteval/rtevalclient.py 	\
+		rteval/rtevalConfig.py 	\
+		rteval/rtevalMailer.py 	\
+		rteval/xmlout.py
+
+XSLSRC	:=	rteval/rteval_dmi.xsl 	\
+		rteval/rteval_text.xsl
+
+CONFSRC	:=	rteval/rteval.conf
 
 runit:
 	[ -d ./run ] || mkdir run
@@ -20,8 +36,10 @@ install:
 	python setup.py --dry-run install
 
 tarfile:
-	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)
-	cp -r rteval tarball/rteval-$(VERSION)
+	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)/rteval
+	cp $(PYSRC) tarball/rteval-$(VERSION)/rteval
+	cp $(XSLSRC) tarball/rteval-$(VERSION)/rteval
+	cp $(CONFSRC) tarball/rteval-$(VERSION)/rteval
 	cp -r doc/ tarball/rteval-$(VERSION)
 	cp Makefile setup.py rteval.spec COPYING tarball/rteval-$(VERSION)
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
