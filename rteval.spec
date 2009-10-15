@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.7
+Version:	1.8
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -18,6 +18,7 @@ Requires:	python gcc binutils make
 Requires:	python-schedutils python-ethtool libxslt-python
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.29
+Requires:	rteval-kcompile rteval-hackbench
 BuildArch:	noarch
 
 %description
@@ -45,14 +46,38 @@ fi
 %build
 
 
+%package kcompile
+Version:	1.0
+Release:	1%{?dist}
+Summary:	kernel compile load for rteval
+Group:		Development/Tools
+License:	GPLv2
+Requires:	rteval >= 1.8
+Obsoletes:	rteval <= 1.7
+
+%description kcompile
+The kcompile package provides a load which is a parallel Linux kernel compilation
+
+%package hackbench
+Version:	1.0
+Release:	1%{?dist}
+Summary:	hackbench synthectic load for rteval
+Group:		Development/Tools
+License:	GPLv2
+Requires: 	rteval >= 1.8
+Obsoletes:	rteval <= 1.7
+
+%description hackbench
+the hackbench package provides a synthetic load program named hackbench
+
 %install
 rm -rf ${RPM_BUILD_ROOT}
-mkdir -p ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
-mkdir -p ${RPM_BUILD_ROOT}/%{_bindir}
-mkdir -p ${RPM_BUILD_ROOT}/%{python_sitelib}
-mkdir -p ${RPM_BUILD_ROOT}/%{_sysconfdir}
-mkdir -p ${RPM_BUILD_ROOT}/%{_mandir}/man8/
-mkdir -p $RPM_BUILD_ROOT}/%{_defaultdocdir}/%{name}-%{version}
+mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/%{name}/loadsource
+mkdir -p ${RPM_BUILD_ROOT}%{_bindir}
+mkdir -p ${RPM_BUILD_ROOT}%{python_sitelib}
+mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}
+mkdir -p ${RPM_BUILD_ROOT}%{_mandir}/man8/
+mkdir -p $RPM_BUILD_ROOT}%{_defaultdocdir}/%{name}-%{version}
 python setup.py install --root ${RPM_BUILD_ROOT}
 install -m 644 %{SOURCE1} ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
 install -m 644 %{SOURCE2} ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
@@ -86,7 +111,20 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/rteval
 
 
+%files kcompile
+%{_datadir}/%{name}/loadsource/linux*.tar.bz2
+%{python_sitelib}/rteval/kcompile.py
+
+%files hackbench
+%{_datadir}/%{name}/loadsource/hackbench.tar.bz2
+%{python_sitelib}/rteval/hackbench.py
+
+
+
 %changelog
+* Wed Oct 14 2009 Clark Williams <williams@redhat.com> - 1.8-1
+- split kcompile and hackbench into sub-packages
+
 * Tue Oct 13 2009 Clark Williams <williams@redhat.com> - 1.7-1
 - added kthread status to xml file
 - merged davids changes for option processing and additions
