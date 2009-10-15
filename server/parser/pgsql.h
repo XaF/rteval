@@ -26,12 +26,13 @@
 #include <eurephia_values.h>
 
 #define STAT_NEW      0		/**< New, unparsed report in the submission queue */
-#define STAT_SUCCESS  1		/**< Report parsed successfully */
-#define STAT_XMLFAIL  2		/**< Failed to parse the report XML file */
-#define STAT_SYSREG   3		/**< System registration failed */
-#define STAT_GENDB    4		/**< General database error */
-#define STAT_RTEVRUNS 5		/**< Registering rteval run information failed */
-#define STAT_CYCLIC   6		/**< Registering cyclictest results failed */
+#define STAT_INPROG   1		/**< Parsing has started */
+#define STAT_SUCCESS  2		/**< Report parsed successfully */
+#define STAT_XMLFAIL  3		/**< Failed to parse the report XML file */
+#define STAT_SYSREG   4		/**< System registration failed */
+#define STAT_GENDB    5		/**< General database error */
+#define STAT_RTEVRUNS 6		/**< Registering rteval run information failed */
+#define STAT_CYCLIC   7		/**< Registering cyclictest results failed */
 
 typedef PGconn dbconn;		/**< Wrapper definition, for a more generic DB API */
 

@@ -40,12 +40,12 @@
  *                parser and a full path filename to the report to parse
  *
  * @return Return values:
- *          STAT_SUCCESS  (1): Successfully registered report
- *          STAT_XMLFAIL  (2): Could not parse the XML report file
- *          STAT_SYSREG   (3): Failed to register the system into the systems or systems_hostname tables
- *          STAT_GENDB    (4): Failed to start an SQL transaction (BEGIN)
- *          STAT_RTEVRUNS (5): Failed to register the rteval run into rtevalruns or rtevalruns_details
- *          STAT_CYCLIC   (6): Failed to register the data into cyclic_statistics or cyclic_rawdata tables
+ *          STAT_SUCCESS : Successfully registered report
+ *          STAT_XMLFAIL : Could not parse the XML report file
+ *          STAT_SYSREG  : Failed to register the system into the systems or systems_hostname tables
+ *          STAT_GENDB   : Failed to start an SQL transaction (BEGIN)
+ *          STAT_RTEVRUNS: Failed to register the rteval run into rtevalruns or rtevalruns_details
+ *          STAT_CYCLIC  : Failed to register the data into cyclic_statistics or cyclic_rawdata tables
  */
 void *parsethread(void *thrargs) {
 	threadData_t *thrdata = (threadData_t *) thrargs;
