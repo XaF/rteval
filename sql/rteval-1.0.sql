@@ -1,6 +1,7 @@
 -- Create rteval database users
 --
-CREATE USER xmlrpc NOSUPERUSER ENCRYPTED PASSWORD 'rtevaldb';
+CREATE USER rtevxmlrpc NOSUPERUSER ENCRYPTED PASSWORD 'rtevaldb';
+CREATE USER rtevparser NOSUPERUSER ENCRYPTED PASSWORD 'rtevaldb_parser';
 
 -- Create rteval database
 --
@@ -15,7 +16,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     CREATE TABLE submissionqueue (
            clientid   varchar(128) NOT NULL,
            filename   VARCHAR(1024) NOT NULL,
-           status     INTEGER DEFAULT '1',
+           status     INTEGER DEFAULT '0',
            received   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
            parsestart TIMESTAMP WITH TIME ZONE,
            parseend   TIMESTAMP WITH TIME ZONE,
@@ -24,8 +25,9 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     ) WITH OIDS;
     CREATE INDEX submissionq_status ON submissionqueue(status);
 
-    GRANT INSERT ON submissionqueue TO xmlrpc;
-    GRANT USAGE ON submissionqueue_submid_seq TO xmlrpc;
+    GRANT SELECT, INSERT ON submissionqueue TO rtevxmlrpc;
+    GRANT USAGE ON submissionqueue_submid_seq TO rtevxmlrpc;
+    GRANT SELECT, UPDATE ON submissionqueue TO rtevparser;
 
 -- TABLE: systems
 -- Overview table over all systems which have sent reports
@@ -39,8 +41,8 @@ CREATE DATABASE rteval ENCODING 'utf-8';
         PRIMARY KEY(syskey)
     ) WITH OIDS;
 
-    GRANT SELECT,INSERT ON systems TO xmlrpc;
-    GRANT USAGE ON systems_syskey_seq TO xmlrpc;
+    GRANT SELECT,INSERT ON systems TO rtevparser;
+    GRANT USAGE ON systems_syskey_seq TO rtevparser;
 
 -- TABLE: systems_hostname
 -- This table is used to track the hostnames and IP addresses
@@ -55,7 +57,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     CREATE INDEX systems_hostname_hostname ON systems_hostname(hostname);
     CREATE INDEX systems_hostname_ipaddr ON systems_hostname(ipaddr);
 
-    GRANT SELECT, INSERT ON systems_hostname TO xmlrpc;
+    GRANT SELECT, INSERT ON systems_hostname TO rtevparser;
 
 
 -- TABLE: rtevalruns
@@ -75,8 +77,8 @@ CREATE DATABASE rteval ENCODING 'utf-8';
         PRIMARY KEY(rterid)
     ) WITH OIDS;
 
-    GRANT SELECT,INSERT ON rtevalruns TO xmlrpc;
-    GRANT USAGE ON rtevalruns_rterid_seq TO xmlrpc;
+    GRANT SELECT,INSERT ON rtevalruns TO rtevparser;
+    GRANT USAGE ON rtevalruns_rterid_seq TO rtevparser;
 
 -- TABLE rtevalruns_details
 -- More specific information on the rteval run.  The data is stored
@@ -90,7 +92,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
         xmldata       xml NOT NULL,
         PRIMARY KEY(rterid)
     );
-    GRANT INSERT ON rtevalruns_details TO xmlrpc;
+    GRANT INSERT ON rtevalruns_details TO rtevparser;
 
 -- TABLE: cyclic_statistics
 -- This table keeps statistics overview over a particular rteval run
@@ -112,8 +114,8 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     ) WITH OIDS;
     CREATE INDEX cyclic_statistics_rterid ON cyclic_statistics(rterid);
 
-    GRANT INSERT ON cyclic_statistics TO xmlrpc;
-    GRANT USAGE ON cyclic_statistics_cstid_seq TO xmlrpc;
+    GRANT INSERT ON cyclic_statistics TO rtevparser;
+    GRANT USAGE ON cyclic_statistics_cstid_seq TO rtevparser;
 
 -- TABLE: cyclic_rawdata
 -- This table keeps the raw data for each rteval run being reported.
@@ -128,7 +130,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     ) WITHOUT OIDS;
     CREATE INDEX cyclic_rawdata_rterid ON cyclic_rawdata(rterid);
 
-    GRANT INSERT ON cyclic_rawdata TO xmlrpc;
+    GRANT INSERT ON cyclic_rawdata TO rtevparser;
 
 -- TABLE: notes
 -- This table is purely to make notes, connected to different 

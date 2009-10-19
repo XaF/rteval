@@ -39,7 +39,7 @@ def Dispatch(req, method, args):
                                  'db_server':   'localhost',
                                  'db_port':     5432,
                                  'database':    'rteval',
-                                 'db_username': 'xmlrpc',
+                                 'db_username': 'rtevxmlrpc',
                                  'db_password': 'rtevaldb'
                                  }
               }
