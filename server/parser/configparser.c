@@ -114,7 +114,7 @@ static inline eurephiaVALUES *default_cfg_values() {
 	eAdd_value(cfg, "db_port", "5432");
 	eAdd_value(cfg, "database", "rteval");
 	eAdd_value(cfg, "db_username", "rtevparser");
-	eAdd_value(cfg, "db_password", " rtevalParser");
+	eAdd_value(cfg, "db_password", "rtevaldb_parser");
 
 	return cfg;
 }

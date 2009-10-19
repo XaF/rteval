@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <assert.h>
 
 #include <libpq-fe.h>
@@ -373,6 +374,130 @@ int db_rollback(dbconn *dbc) {
 		return -1;
 	}
 	PQclear(dbres);
+	return 1;
+}
+
+
+/**
+ * Retrive the first available submitted report
+ *
+ * @param dbc   Database connection
+ * @param mtx   pthread_mutex to avoid parallel access to the submission queue table, to avoid
+ *              the same job being retrieved multiple times.
+ *
+ * @return Returns a pointer to a parseJob_t struct, with the parse job info on success, otherwise NULL
+ */
+parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
+	parseJob_t *job = NULL;
+	PGresult *res = NULL;
+	char sql[4098];
+	job = (parseJob_t *) malloc_nullsafe(sizeof(parseJob_t));
+	if( !job ) {
+		fprintf(stderr, "** ERROR **  Failed to allocate memory for a new parsing job\n");
+		return NULL;
+	}
+
+	// Get the first available submission
+	memset(&sql, 0, 4098);
+	snprintf(sql, 4096,
+		 "SELECT submid, filename"
+		 "  FROM submissionqueue"
+		 " WHERE status = %i"
+		 " ORDER BY submid"
+		 " LIMIT 1",
+		 STAT_NEW);
+	pthread_mutex_lock(mtx);
+	res = PQexec((PGconn *) dbc, sql);
+	if( PQresultStatus(res) != PGRES_TUPLES_OK ) {
+		pthread_mutex_unlock(mtx);
+		fprintf(stderr, "** ERROR **  Failed to query submission queue (SELECT)\n%s\n",
+			PQresultErrorMessage(res));
+		PQclear(res);
+		free_nullsafe(job);
+		return NULL;
+	}
+
+	if( PQntuples(res) == 1 ) {
+		job->status = jbAVAIL;
+		job->submid = atoi_nullsafe(PQgetvalue(res, 0, 0));
+		snprintf(job->filename, 4090, "%.4090s", PQgetvalue(res, 0, 1));
+
+		// Update the submission queue status
+		if( db_update_submissionqueue(dbc, job->submid, STAT_ASSIGNED) < 1 ) {
+			pthread_mutex_unlock(mtx);
+			fprintf(stderr,
+				"** ERROR **  Failed to update submission queue statis to STAT_ASSIGNED\n");
+			free_nullsafe(job);
+			return NULL;
+		}
+	} else {
+		job->status = jbNONE;
+	}
+	pthread_mutex_unlock(mtx);
+	PQclear(res);
+	return job;
+}
+
+
+/**
+ * Updates the submission queue table with the new status and the appropriate timestamps
+ *
+ * @param dbc     Database handler to the rteval database
+ * @param submid  Submission ID to update
+ * @param status  The new status
+ *
+ * @return Returns 1 on success, 0 on invalid status ID and -1 on database errors.
+ */
+int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
+	PGresult *res = NULL;
+	char sql[4098];
+
+	memset(&sql, 0, 4098);
+	switch( status ) {
+	case STAT_ASSIGNED:
+		snprintf(sql, 4096,
+			 "UPDATE submissionqueue SET status = %i"
+			 " WHERE submid = %i", status, submid);
+		break;
+
+	case STAT_INPROG:
+		snprintf(sql, 4096,
+			 "UPDATE submissionqueue SET status = %i, parsestart = NOW()"
+			 " WHERE submid = %i", status, submid);
+		break;
+
+	case STAT_SUCCESS:
+	case STAT_UNKNFAIL:
+	case STAT_XMLFAIL:
+	case STAT_SYSREG:
+	case STAT_GENDB:
+	case STAT_RTEVRUNS:
+	case STAT_CYCLIC:
+		snprintf(sql, 4096,
+			 "UPDATE submissionqueue SET status = %i, parseend = NOW() WHERE submid = %i",
+			 status, submid);
+		break;
+
+	default:
+	case STAT_NEW:
+		fprintf(stderr, "** ERROR **  Invalid status (%i) attempted to set on submid %i\n",
+			status, submid);
+		return 0;
+	}
+
+	res = PQexec(dbc, sql);
+	if( !res ) {
+		fprintf(stderr, "** ERROR **  Unkown error when updating submid %i to status %i\n",
+			submid, status);
+		return -1;
+	} else if( PQresultStatus(res) != PGRES_COMMAND_OK ) {
+		fprintf(stderr,
+			"** ERROR **  Failed to UPDATE submissionqueue (submid: %i, status: %i)\n%s\n",
+			submid, status, PQresultErrorMessage(res));
+		PQclear(res);
+		return -1;
+	}
+	PQclear(res);
 	return 1;
 }
 

@@ -23,35 +23,19 @@
 #ifndef _THREADINFO_H
 #define _THREADINFO_H
 
-#include <pgsql.h>
+#include <mqueue.h>
 #include <libxslt/transform.h>
 
 /**
- *  States for the thread slots, also used to identify if the main program
- *  can assign a new job to a thread or not.
- *
- */
-typedef enum { thrREADY,     /**< Set by main() - thread slot is ready for a job */
-	       thrSTARTED,   /**< Set by main() - thread slot is assigned to a running thread*/
-	       thrRUNNING,   /**< Set by parsethread() - thread started running */
-	       thrCOMPLETE,  /**< Set by parsethread() on success - thread completed */
-	       thrFAIL       /**< Set by parsethread() on failure - thread completed */
-} threadState;
-
-
-/**
  *  Thread slot information.  Each thread slot is assigned with one threadData_t element.
- *
  */
 typedef struct {
-	threadState status;           /**< State of the current thread */
-	pthread_mutex_t *mtx_sysreg;  /**< Mutex locking, to avoid clashes with registering systems */
-	unsigned int id;	      /**< Numeric ID for this thread */
-	dbconn *dbc;                  /**< Database connection assigned to this thread */
-	xsltStylesheet *xslt;         /**< XSLT stylesheet assigned to this thread */
-
-	unsigned int submid;          /**< Work info: Numeric ID of the job being parsed */
-	const char *filename;         /**< Work info: Full filename of the report to be parsed*/
+        int *shutdown;                /**< If set to 1, the thread should shut down */
+	mqd_t msgq;                   /**< POSIX MQ descriptor */
+        pthread_mutex_t *mtx_sysreg;  /**< Mutex locking, to avoid clashes with registering systems */
+        unsigned int id;              /**< Numeric ID for this thread */
+        dbconn *dbc;                  /**< Database connection assigned to this thread */
+        xsltStylesheet *xslt;         /**< XSLT stylesheet assigned to this thread */
 } threadData_t;
 
 #endif
