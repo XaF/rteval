@@ -19,7 +19,6 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 
 CONFSRC	:=	rteval/rteval.conf
 
-
 DESTDIR	:=
 DATADIR	:=	$(DESTDIR)/usr/share
 CONFDIR	:=	$(DESTDIR)/etc

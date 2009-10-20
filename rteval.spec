@@ -40,9 +40,7 @@ if [ $srcver != %{version} ]; then
    exit -1
 fi
 
-
 %build
-
 
 %package kcompile
 Version:	1.0
@@ -82,7 +80,6 @@ rm -f /usr/bin/rteval
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-
 %files
 %defattr(-,root,root,-)
 %if "%{python_ver}" >= "2.5"
@@ -112,6 +109,8 @@ rm -rf $RPM_BUILD_ROOT
 * Tue Oct 20 2009 Clark Williams <williams@redhat.com> - 1.8-1
 - split kcompile and hackbench into sub-packages
 - reworked Makefile (and specfile) install/uninstall logic
+- fixed sysreport incorrect plugin option
+- catch failure when running on root-squashed NFS
 
 * Tue Oct 13 2009 Clark Williams <williams@redhat.com> - 1.7-1
 - added kthread status to xml file
