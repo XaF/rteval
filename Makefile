@@ -32,10 +32,10 @@ HLOAD	:=	$(LOADDIR)/hackbench.tar.bz2
 
 runit:
 	[ -d ./run ] || mkdir run
-	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval rteval
+	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval
 
 sysreport:
-	python rteval/rteval.py -v --workdir=./run --loaddir=./loadsource --duration=$(D) --sysreport
+	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
 	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2

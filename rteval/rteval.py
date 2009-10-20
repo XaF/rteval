@@ -263,14 +263,16 @@ class RtEval(object):
             raise RuntimeError, "Can't find sosreport/sysreport"
 
         self.debug("report tool: %s" % exe)
-        options =  ['-k', 'rpm.rpmvma=off',
+        options =  ['-k', 'rpm.rpmva=off',
                     '--name=rteval', 
-                    '--ticket=1234',
+                    '--batch',
                     '--no-progressbar']
 
         self.info("Generating SOS report")
+        self.info("using command %s" % " ".join([exe]+options))
         subprocess.call([exe] + options)
         for s in glob.glob('/tmp/s?sreport-rteval-*'):
+            self.debug("moving %s to %s" % (s, self.reportdir))
             shutil.move(s, self.reportdir)
     
 
