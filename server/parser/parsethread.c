@@ -68,7 +68,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	syskey = db_register_system(dbc, xslt, repxml);
 	pthread_mutex_unlock(mtx_sysreg);
 	if( syskey < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to register system (XML file; %s)\n", fname);
+		fprintf(stderr, "** ERROR **  Failed to register system (XML file: %s)\n", fname);
 		rc = STAT_SYSREG;
 		goto exit;
 
@@ -81,7 +81,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 
 	rterid = db_register_rtevalrun(dbc, xslt, repxml, syskey, fname);
 	if( rterid < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file; %s)\n",
+		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file: %s)\n",
 			fname);
 		db_rollback(dbc);
 		rc = STAT_RTEVRUNS;
@@ -89,7 +89,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	}
 
 	if( db_register_cyclictest(dbc, xslt, repxml, rterid) != 1 ) {
-		fprintf(stderr, "** ERROR **  Failed to register cyclictest data (XML file; %s)\n",
+		fprintf(stderr, "** ERROR **  Failed to register cyclictest data (XML file: %s)\n",
 			fname);
 		db_rollback(dbc);
 		rc = STAT_CYCLIC;
