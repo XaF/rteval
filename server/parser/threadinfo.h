@@ -36,6 +36,7 @@ typedef struct {
         unsigned int id;              /**< Numeric ID for this thread */
         dbconn *dbc;                  /**< Database connection assigned to this thread */
         xsltStylesheet *xslt;         /**< XSLT stylesheet assigned to this thread */
+	const char *destdir;          /**< Directory where to put the parsed reports */
 } threadData_t;
 
 #endif

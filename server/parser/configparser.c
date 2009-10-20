@@ -115,6 +115,7 @@ static inline eurephiaVALUES *default_cfg_values() {
 	eAdd_value(cfg, "database", "rteval");
 	eAdd_value(cfg, "db_username", "rtevparser");
 	eAdd_value(cfg, "db_password", "rtevaldb_parser");
+	eAdd_value(cfg, "reportdir", "/var/lib/rteval/reports");
 
 	return cfg;
 }

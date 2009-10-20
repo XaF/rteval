@@ -47,6 +47,11 @@
             <xsl:text>Invalid 'syskey' parameter value: </xsl:text><xsl:value-of select="syskey"/>
           </xsl:message>
         </xsl:if>
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
         <xsl:if test="$report_filename = ''">
           <xsl:message terminate="yes">
             <xsl:text>The parameter 'report_filename' parameter cannot be empty</xsl:text>
@@ -153,7 +158,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_sql">
-    <sqldata table="rtevalruns" key="rterid">
+    <sqldata table="rtevalruns">
       <fields>
         <field fid="0">syskey</field>
         <field fid="1">kernel_ver</field>
@@ -164,6 +169,7 @@
         <field fid="6">load_avg</field>
         <field fid="7">version</field>
         <field fid="8">report_filename</field>
+	<field fid="9">rterid</field>
       </fields>
       <records>
         <record>
@@ -182,6 +188,7 @@
           <value fid="6"><xsl:value-of select="loads/@load_average"/></value>
           <value fid="7"><xsl:value-of select="@version"/></value>
           <value fid="8"><xsl:value-of select="$report_filename"/></value>
+          <value fid="9"><xsl:value-of select="$rterid"/></value>
         </record>
       </records>
     </sqldata>

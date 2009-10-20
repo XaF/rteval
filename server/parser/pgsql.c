@@ -455,6 +455,8 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 	memset(&sql, 0, 4098);
 	switch( status ) {
 	case STAT_ASSIGNED:
+	case STAT_RTERIDREG:
+	case STAT_REPMOVE:
 		snprintf(sql, 4096,
 			 "UPDATE submissionqueue SET status = %i"
 			 " WHERE submid = %i", status, submid);
@@ -627,21 +629,50 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 
 
 /**
+ * Retrieves the next available rteval run ID (rterid)
+ *
+ * @param dbc  Database handler where to perform the SQL query
+ *
+ * @return Returns a value > 0 on success, containing the assigned rterid value.  Otherwise -1 is returned.
+ */
+int db_get_new_rterid(dbconn *dbc) {
+	PGresult *dbres = NULL;
+	int rterid = 0;
+
+	dbres = PQexec((PGconn *)dbc, "SELECT nextval('rtevalruns_rterid_seq')");
+	if( (PQresultStatus(dbres) != PGRES_TUPLES_OK) || (PQntuples(dbres) != 1) ) {
+		rterid = -1;
+	} else {
+		rterid = atoi_nullsafe(PQgetvalue(dbres, 0, 0));
+	}
+
+	if( rterid < 1 ) {
+		fprintf(stderr, "** ERROR **  Failed to retrieve a new rterid value\n");
+	}
+	if( rterid < 0 ) {
+		fprintf(stderr, "SQL %s\n", PQresultErrorMessage(dbres));
+	}
+	PQclear(dbres);
+	return rterid;
+}
+
+
+/**
  * Registers information into the 'rtevalruns' and 'rtevalruns_details' tables
  *
  * @param dbc           Database handler where to perform the SQL queries
  * @param xslt          A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml    The XML report from rteval
  * @param syskey        A positive integer containing the return value from db_register_system()
+ * @param rterid        A positive integer containing the return value from db_get_new_rterid()
  * @param report_fname  A string containing the filename of the report.
  *
- * @return Returns a positive integer which references the 'rterid' value (RTEvalRunID) on success,
- *         otherwise -1 is returned.
+ * @return Returns 1 on success, otherwise -1 is returned.
  */
 int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
-			  int syskey, const char *report_fname)
+			  int syskey, int rterid, const char *report_fname)
 {
-	int rterid = -1;
+	int ret = -1;
 	xmlDoc *rtevalrun_d = NULL, *rtevalrundets_d = NULL;
 	parseParams prms;
 	eurephiaVALUES *dbdata = NULL;
@@ -650,32 +681,25 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	memset(&prms, 0, sizeof(parseParams));
 	prms.table = "rtevalruns";
 	prms.syskey = syskey;
+	prms.rterid = rterid;
 	prms.report_filename = report_fname;
 	rtevalrun_d = parseToSQLdata(xslt, summaryxml, &prms);
 	if( !rtevalrun_d ) {
 		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
-		rterid = -1;
+		ret = -1;
 		goto exit;
 	}
 
 	// Register the rteval run information
 	dbdata = pgsql_INSERT((PGconn *) dbc, rtevalrun_d);
 	if( !dbdata ) {
-		rterid = -1;
+		ret = -1;
 		goto exit;
 	}
 
-	// Grab the rterid value from the database
 	if( eCount(dbdata) != 1 ) {
 		fprintf(stderr, "** ERROR ** Failed to register the rteval run\n");
-		rterid = -1;
-		eFree_values(dbdata);
-		goto exit;
-	}
-	rterid = atoi_nullsafe(dbdata->val);
-	if( rterid < 1 ) {
-		fprintf(stderr, "** ERROR ** Failed to register the rteval run. Invalid rterid value.\n");
-		rterid = -1;
+		ret = -1;
 		eFree_values(dbdata);
 		goto exit;
 	}
@@ -688,24 +712,24 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	rtevalrundets_d = parseToSQLdata(xslt, summaryxml, &prms);
 	if( !rtevalrundets_d ) {
 		fprintf(stderr, "** ERROR **  Could not parse the input XML data (rtevalruns_details)\n");
-		rterid = -1;
+		ret = -1;
 		goto exit;
 	}
 
 	// Register the rteval_details information
 	dbdata = pgsql_INSERT((PGconn *) dbc, rtevalrundets_d);
 	if( !dbdata ) {
-		rterid = -1;
+		ret = -1;
 		goto exit;
 	}
 
 	// Check that only one record was inserted
 	if( eCount(dbdata) != 1 ) {
 		fprintf(stderr, "** ERROR ** Failed to register the rteval run\n");
-		rterid = -1;
+		ret = -1;
 	}
 	eFree_values(dbdata);
-
+	ret = 1;
  exit:
 	if( rtevalrun_d ) {
 		xmlFreeDoc(rtevalrun_d);
@@ -713,7 +737,7 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	if( rtevalrundets_d ) {
 		xmlFreeDoc(rtevalrundets_d);
 	}
-	return rterid;
+	return ret;
 }
 
 
