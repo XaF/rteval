@@ -756,8 +756,10 @@ int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 				cyclicdata++;
 			}
 			eFree_values(dbdata);
-			xmlFreeDoc(cyclic_d);
 			cyclicdata = 1;
+		}
+		if( cyclic_d ) {
+			xmlFreeDoc(cyclic_d);
 		}
 	}
 
