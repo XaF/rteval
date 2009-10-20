@@ -117,6 +117,20 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     GRANT INSERT ON cyclic_statistics TO rtevparser;
     GRANT USAGE ON cyclic_statistics_cstid_seq TO rtevparser;
 
+-- TABLE: cyclic_histogram
+-- This table keeps the raw histogram data for each rteval run being
+-- reported.
+--
+    CREATE TABLE cyclic_histogram (
+        rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
+        core          INTEGER, -- NULL=system
+        index         INTEGER NOT NULL,
+        value         INTEGER NOT NULL
+    ) WITHOUT OIDS;
+    CREATE INDEX cyclic_histogram_rterid ON cyclic_histogram(rterid);
+
+    GRANT INSERT ON cyclic_histogram TO rtevparser;
+
 -- TABLE: cyclic_rawdata
 -- This table keeps the raw data for each rteval run being reported.
 -- Due to that it will be an enormous amount of data, we avoid using
@@ -146,4 +160,3 @@ CREATE DATABASE rteval ENCODING 'utf-8';
         PRIMARY KEY(ntid)
     ) WITH OIDS;
     CREATE INDEX notes_refid ON notes(reftbl,refid);
-

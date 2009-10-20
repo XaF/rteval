@@ -85,6 +85,29 @@
         <xsl:apply-templates select="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql"/>
       </xsl:when>
 
+      <!-- TABLE: cyclic_histogram -->
+      <xsl:when test="$table = 'cyclic_histogram'">
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+	<sqldata table="cyclic_histogram">
+	  <fields>
+            <field fid="0">rterid</field>
+            <field fid="1">core</field>
+            <field fid="2">index</field>
+            <field fid="3">value</field>
+	  </fields>
+	  <records>
+            <xsl:apply-templates select="/rteval/cyclictest/system/histogram/bucket"
+				 mode="cyclic_histogram_sql"/>
+            <xsl:apply-templates select="/rteval/cyclictest/core/histogram/bucket"
+				 mode="cyclic_histogram_sql"/>
+	  </records>
+	</sqldata>
+      </xsl:when>
+
       <xsl:otherwise>
         <xsl:message terminate="yes">
           <xsl:text>Invalid 'table' parameter value: </xsl:text><xsl:value-of select="$table"/>
@@ -243,5 +266,15 @@
         </xsl:for-each>
       </records>
     </sqldata>
+  </xsl:template>
+
+  <xsl:template match="/rteval/cyclictest/system/histogram/bucket|/rteval/cyclictest/core/histogram/bucket"
+		mode="cyclic_histogram_sql">
+      <record>
+	<value fid="0"><xsl:value-of select="$rterid"/></value>
+	<value fid="1"><xsl:value-of select="../../@id"/></value>
+	<value fid="2"><xsl:value-of select="@index"/></value>
+	<value fid="3"><xsl:value-of select="@value"/></value>
+      </record>
   </xsl:template>
 </xsl:stylesheet>

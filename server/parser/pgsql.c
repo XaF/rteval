@@ -732,58 +732,42 @@ int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 	xmlDoc *cyclic_d = NULL;
 	parseParams prms;
 	eurephiaVALUES *dbdata = NULL;
+	int cyclicdata = 0;
+	const char *cyclictables[] = { "cyclic_statistics", "cyclic_histogram", "cyclic_rawdata", NULL };
+	int i;
 
 	memset(&prms, 0, sizeof(parseParams));
-	prms.table = "cyclic_statistics";
 	prms.rterid = rterid;
-	cyclic_d = parseToSQLdata(xslt, summaryxml, &prms);
-	if( !cyclic_d ) {
-		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
-		result = -1;
-		goto exit;
+
+	// Register the cyclictest data
+	for( i = 0; cyclictables[i]; i++ ) {
+		prms.table = cyclictables[i];
+		cyclic_d = parseToSQLdata(xslt, summaryxml, &prms);
+		if( cyclic_d && cyclic_d->children ) {
+			// Insert SQL data which was found and generated
+			dbdata = pgsql_INSERT((PGconn *) dbc, cyclic_d);
+			if( !dbdata ) {
+				result = -1;
+				xmlFreeDoc(cyclic_d);
+				goto exit;
+			}
+
+			if (eCount(dbdata) > 0) {
+				cyclicdata++;
+			}
+			eFree_values(dbdata);
+			xmlFreeDoc(cyclic_d);
+			cyclicdata = 1;
+		}
 	}
 
-	// Register the cyclictest statistics information
-	dbdata = pgsql_INSERT((PGconn *) dbc, cyclic_d);
-	if( !dbdata ) {
+	// Report error if not enough cyclictest data is registered.
+	if( cyclicdata > 1 ) {
+		fprintf(stderr, "** ERROR **  No cyclictest raw data or histogram data registered\n");
 		result = -1;
-		goto exit;
+	} else {
+		result = 1;
 	}
-	if( eCount(dbdata) < 1 ) {
-		fprintf(stderr, "** ERROR **  Failed to register cyclictest statistics\n");
-		result = -1;
-		eFree_values(dbdata);
-		goto exit;
-	}
-	eFree_values(dbdata);
-	xmlFreeDoc(cyclic_d);
-
-	prms.table = "cyclic_rawdata";
-	cyclic_d = parseToSQLdata(xslt, summaryxml, &prms);
-	if( !cyclic_d ) {
-		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
-		result = -1;
-		goto exit;
-	}
-
-	// Register the cyclictest raw data
-	dbdata = pgsql_INSERT((PGconn *) dbc, cyclic_d);
-	if( !dbdata ) {
-		result = -1;
-		goto exit;
-	}
-	if( eCount(dbdata) < 1 ) {
-		fprintf(stderr, "** ERROR **  Failed to register cyclictest raw data\n");
-		result = -1;
-		eFree_values(dbdata);
-		goto exit;
-	}
-	eFree_values(dbdata);
-	result = 1;
  exit:
-	if( cyclic_d ) {
-		xmlFreeDoc(cyclic_d);
-	}
-
 	return result;
 }
