@@ -19,6 +19,17 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 
 CONFSRC	:=	rteval/rteval.conf
 
+
+DESTDIR	:=
+DATADIR	:=	$(DESTDIR)/usr/share
+CONFDIR	:=	$(DESTDIR)/etc
+MANDIR	:=	$(DESTDIR)/usr/share/man
+PYLIB	:= 	$(DESTDIR)$(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
+LOADDIR	:=	loadsource
+
+KLOAD	:=	$(LOADDIR)/linux-2.6.26.1.tar.bz2
+HLOAD	:=	$(LOADDIR)/hackbench.tar.bz2
+
 runit:
 	[ -d ./run ] || mkdir run
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval rteval
@@ -32,8 +43,38 @@ clean:
 realclean: clean
 	rm -rf run tarball rpm
 
-install:
-	python setup.py --dry-run install
+install: installdirs
+	if [ "$(DESTDIR)" = "" ]; then \
+		python setup.py install; \
+	else \
+		python setup.py install --root=$(DESTDIR); \
+	fi
+	install -m 644 $(KLOAD) $(DATADIR)/rteval/loadsource
+	install -m 644 $(HLOAD) $(DATADIR)/rteval/loadsource
+	install -m 644 rteval/rteval_text.xsl $(DATADIR)/rteval
+	install -m 644 rteval/rteval_dmi.xsl $(DATADIR)/rteval
+	install -m 644 rteval/rteval.conf $(CONFDIR)
+	install -m 644 doc/rteval.8 $(MANDIR)/man8/
+	gzip $(MANDIR)/man8/rteval.8
+	chmod 755 $(PYLIB)/rteval/rteval.py
+	if [ "$(DESTDIR)" = "" ]; then \
+		ln -s $(PYLIB)/rteval/rteval.py /usr/bin/rteval; \
+	fi
+
+
+installdirs:
+	[ -d $(DATADIR)/rteval/loadsource ] || mkdir -p $(DATADIR)/rteval/loadsource
+	[ -d $(CONFDIR) ] || mkdir -p $(CONFDIR)
+	[ -d $(MANDIR)/man8 ]  || mkdir -p $(MANDIR)/man8
+	[ -d $(PYLIB) ]   || mkdir -p $(PYLIB)
+	[ -d $(DESTDIR)/usr/bin ] || mkdir -p $(DESTDIR)/usr/bin
+
+uninstall:
+	rm -f /usr/bin/rteval
+	rm -f $(CONFDIR)/rteval.conf
+	rm -f $(MANDIR)/man8/rteval.8.gz
+	rm -rf $(PYLIB)/rteval
+	rm -rf $(DATADIR)/rteval
 
 tarfile:
 	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)/rteval

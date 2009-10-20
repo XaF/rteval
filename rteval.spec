@@ -33,8 +33,6 @@ times is done and printed to the screen.
 
 %prep
 %setup -q
-
-
 # version sanity check (make sure specfile and rteval.py match)
 srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
 if [ $srcver != %{version} ]; then
@@ -72,22 +70,14 @@ the hackbench package provides a synthetic load program named hackbench
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
-mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/%{name}/loadsource
-mkdir -p ${RPM_BUILD_ROOT}%{_bindir}
-mkdir -p ${RPM_BUILD_ROOT}%{python_sitelib}
-mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}
-mkdir -p ${RPM_BUILD_ROOT}%{_mandir}/man8/
-mkdir -p $RPM_BUILD_ROOT}%{_defaultdocdir}/%{name}-%{version}
-python setup.py install --root ${RPM_BUILD_ROOT}
-install -m 644 %{SOURCE1} ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
-install -m 644 %{SOURCE2} ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/loadsource
-install -m 644 rteval/rteval_text.xsl ${RPM_BUILD_ROOT}/%_datadir/%{name}/rteval_text.xsl
-install -m 644 rteval/rteval_dmi.xsl ${RPM_BUILD_ROOT}/%{_datadir}/%{name}/rteval_dmi.xsl
-install -m 644 rteval/rteval.conf ${RPM_BUILD_ROOT}/%{_sysconfdir}/rteval.conf
-install -m 644 doc/rteval.8 ${RPM_BUILD_ROOT}/%{_mandir}/man8/
-chmod 755 ${RPM_BUILD_ROOT}/%{python_sitelib}/rteval/rteval.py
-ln -fs %{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/%{_bindir}/rteval
+mkdir -p ${RPM_BUILD_ROOT}
+make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=%{_sourcedir} install
 
+%post
+ln -fs %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
+
+%postun
+rm -f /usr/bin/rteval
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -108,8 +98,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/%{name}/loadsource/*.tar.bz2
 %config(noreplace) %{_sysconfdir}/rteval.conf
 %{python_sitelib}/rteval/
-%{_bindir}/rteval
-
 
 %files kcompile
 %{_datadir}/%{name}/loadsource/linux*.tar.bz2
@@ -122,8 +110,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Oct 14 2009 Clark Williams <williams@redhat.com> - 1.8-1
+* Tue Oct 202009 Clark Williams <williams@redhat.com> - 1.8-1
 - split kcompile and hackbench into sub-packages
+- reworked Makefile (and specfile) install/uninstall logic
 
 * Tue Oct 13 2009 Clark Williams <williams@redhat.com> - 1.7-1
 - added kthread status to xml file
