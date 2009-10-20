@@ -95,7 +95,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %{_mandir}/man8/rteval.8*
 %{_datadir}/%{name}/rteval_*.xsl
-%{_datadir}/%{name}/loadsource/*.tar.bz2
 %config(noreplace) %{_sysconfdir}/rteval.conf
 %{python_sitelib}/rteval/
 
@@ -110,7 +109,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Tue Oct 202009 Clark Williams <williams@redhat.com> - 1.8-1
+* Tue Oct 20 2009 Clark Williams <williams@redhat.com> - 1.8-1
 - split kcompile and hackbench into sub-packages
 - reworked Makefile (and specfile) install/uninstall logic
 
