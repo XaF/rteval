@@ -125,12 +125,17 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 		if( !job ) {
 			fprintf(stderr, "** ERROR **  Failed to get submission queue job - shutting down\n");
 			shutdown = 1;
-			rc = 11;
-			break;
+			rc = 1;
+			goto exit;
 		}
 		if( job->status == jbNONE ) {
 			free_nullsafe(job);
-			sleep(15);
+			if( db_wait_notification(dbc, &shutdown, "rteval_submq") < 1 ) {
+				fprintf(stderr, "** ERROR **  Failed to wait for DB notification\n");
+				shutdown = 1;
+				rc = 1;
+				goto exit;
+			}
 			continue;
 		}
 
@@ -145,16 +150,17 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 				fprintf(stderr, "** ERROR **  Could not send parse job to the queue\n");
 				shutdown = 1;
 				rc = 2;
-				break;
+				goto exit;
 			} else if( errno == EAGAIN ) {
 				fprintf(stderr,
-					"** ERROR **  Message queue filled up.  "
+					"** WARNING **  Message queue filled up.  "
 					"Will not add new messages to queue for the next 60 seconds\n");
 				sleep(60);
 			}
 		} while( (errno == EAGAIN) );
 		free_nullsafe(job);
 	}
+ exit:
 	return rc;
 }
 

@@ -48,6 +48,7 @@ int db_commit(dbconn *dbc);
 int db_rollback(dbconn *dbc);
 
 /* rteval specific database functions */
+int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor);
 parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx);
 int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status);
 int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml);
