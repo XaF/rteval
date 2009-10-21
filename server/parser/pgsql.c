@@ -406,6 +406,7 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 		PQclear(dbres);
 		return -1;
 	}
+	PQclear(dbres);
 
 	// Start listening and waiting
 	while( ret == 0 ) {
@@ -452,7 +453,9 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 		free_nullsafe(sql);
 		ret = -1;
 	}
+	free_nullsafe(sql);
 	PQclear(dbres);
+
 	return ret;
 }
 
