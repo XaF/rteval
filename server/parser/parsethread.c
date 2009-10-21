@@ -199,7 +199,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 		goto exit;
 	}
 
-	if( db_register_rtevalrun(dbc, xslt, repxml, syskey, rterid, destfname) < 0 ) {
+	if( db_register_rtevalrun(dbc, xslt, repxml, job->submid, syskey, rterid, destfname) < 0 ) {
 		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file: %s)\n",
 			job->filename);
 		db_rollback(dbc);

@@ -23,6 +23,7 @@
 
 typedef struct {
         const char *table;
+        unsigned int submid;
         unsigned int syskey;
         const char *report_filename;
         unsigned int rterid;

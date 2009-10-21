@@ -89,6 +89,7 @@ CREATE LANGUAGE 'plpgsql';
 --
     CREATE TABLE rtevalruns (
         rterid          SERIAL NOT NULL, -- RTEval Run Id
+        submid          INTEGER REFERENCES submissionqueue(submid) NOT NULL,
         syskey          INTEGER REFERENCES systems(syskey) NOT NULL,
         kernel_ver      VARCHAR(32) NOT NULL,
         kernel_rt       BOOLEAN NOT NULL,

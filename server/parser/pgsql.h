@@ -53,7 +53,7 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status);
 int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml);
 int db_get_new_rterid(dbconn *dbc);
 int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
-			  int syskey, int rterid, const char *report_fname);
+			  unsigned int submid, int syskey, int rterid, const char *report_fname);
 int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid);
 
 #endif

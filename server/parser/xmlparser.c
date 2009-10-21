@@ -86,7 +86,8 @@ static char *encapsInt(const unsigned int val) {
 xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params) {
         xmlDoc *result_d = NULL;
         char *xsltparams[10];
-        unsigned int idx = 0, idx_table = 0, idx_syskey = 0, idx_rterid = 0, idx_repfname = 0;
+        unsigned int idx = 0, idx_table = 0, idx_submid = 0,
+		idx_syskey = 0, idx_rterid = 0, idx_repfname = 0;
 
         if( params->table == NULL ) {
                 fprintf(stderr, "Table is not defined\n");
@@ -97,6 +98,12 @@ xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *para
         xsltparams[idx++] = "table\0";
         xsltparams[idx] = (char *) encapsString(params->table);
         idx_table = idx++;
+
+        if( params->submid > 0) {
+                xsltparams[idx++] = "submid\0";
+                xsltparams[idx] = (char *) encapsInt(params->submid);
+                idx_submid = idx++;
+        }
 
         if( params->syskey > 0) {
                 xsltparams[idx++] = "syskey\0";
@@ -125,6 +132,9 @@ xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *para
 
         // Free memory we allocated via encapsString()/encapsInt()
         free(xsltparams[idx_table]);
+        if( params->submid ) {
+                free(xsltparams[idx_submid]);
+        }
         if( params->syskey ) {
                 free(xsltparams[idx_syskey]);
         }

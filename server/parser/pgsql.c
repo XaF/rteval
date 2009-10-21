@@ -671,7 +671,7 @@ int db_get_new_rterid(dbconn *dbc) {
  * @return Returns 1 on success, otherwise -1 is returned.
  */
 int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
-			  int syskey, int rterid, const char *report_fname)
+			  unsigned int submid, int syskey, int rterid, const char *report_fname)
 {
 	int ret = -1;
 	xmlDoc *rtevalrun_d = NULL, *rtevalrundets_d = NULL;
@@ -683,6 +683,7 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	prms.table = "rtevalruns";
 	prms.syskey = syskey;
 	prms.rterid = rterid;
+	prms.submid = submid;
 	prms.report_filename = report_fname;
 	rtevalrun_d = parseToSQLdata(xslt, summaryxml, &prms);
 	if( !rtevalrun_d ) {

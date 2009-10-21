@@ -170,6 +170,7 @@
         <field fid="7">version</field>
         <field fid="8">report_filename</field>
 	<field fid="9">rterid</field>
+	<field fid="10">submid</field>
       </fields>
       <records>
         <record>
@@ -189,6 +190,7 @@
           <value fid="7"><xsl:value-of select="@version"/></value>
           <value fid="8"><xsl:value-of select="$report_filename"/></value>
           <value fid="9"><xsl:value-of select="$rterid"/></value>
+          <value fid="10"><xsl:value-of select="$submid"/></value>
         </record>
       </records>
     </sqldata>
