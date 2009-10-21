@@ -114,40 +114,21 @@ static int make_report_dir(const char *fname) {
  *
  * @return Returns a pointer to a string with the new full path filename on success, otherwise NULL.
  */
-static char *get_destination_path(const char *destdir, const char *fname, const int rterid) {
-	char *fname_cp = NULL;
-	char *bname = NULL, *newfname = NULL;
-	const char *sep = NULL;
-	int blen = 0, retlen = 0;
+static char *get_destination_path(const char *destdir, parseJob_t *job, const int rterid) {
+        char *newfname = NULL;
+        int retlen = 0;
 
-	if( !fname || !destdir || rterid < 0 ) {
-		return NULL;
-	}
-	fname_cp = strdup(fname);
-	assert( fname_cp != NULL );
+        if( !job || rterid < 0 ) {
+                return NULL;
+        }
 
-	bname = basename(fname_cp);
-	blen = strlen(bname);
-	if( (sep = strstr(bname, "-{")) ) {
-		char *buf = malloc_nullsafe(blen+4);
-		assert( buf != NULL);
+        retlen = strlen_nullsafe(job->clientid) + strlen(destdir) + 24;
+        newfname = malloc_nullsafe(retlen+2);
+        assert( newfname != NULL );
 
-		retlen = blen + strlen(destdir) + 24;
-		newfname = malloc_nullsafe(retlen+2);
-		assert( newfname != NULL );
+        snprintf(newfname, retlen, "%s/%s/report-%i.xml", destdir, job->clientid, rterid);
 
-		strncpy(buf, bname, (sep-bname > blen ? blen : sep-bname));
-		snprintf(newfname, retlen, "%s/%s/report-%i.xml", destdir, buf, rterid);
-		free_nullsafe(buf);
-	} else {
-		retlen = blen + strlen(destdir) + 24;
-		newfname = malloc_nullsafe(retlen+2);
-		assert( newfname != NULL );
-		snprintf(newfname, retlen, "%s/%s/report-%i.xml", destdir, bname, rterid);
-	}
-	free_nullsafe(fname_cp);
-
-	return newfname;
+        return newfname;
 }
 
 
@@ -174,22 +155,22 @@ static char *get_destination_path(const char *destdir, const char *fname, const 
  *          STAT_REPMOVE  : Failed to move the report file
  */
 inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_sysreg,
-			const char *destdir, unsigned int submid, const char *fname) {
+			const char *destdir, parseJob_t *job) {
 	int syskey = -1, rterid = -1;
 	int rc = -1;
 	xmlDoc *repxml = NULL;
 	char *destfname;
 
-	repxml = xmlParseFile(fname);
+	repxml = xmlParseFile(job->filename);
 	if( !repxml ) {
-		fprintf(stderr, "** ERROR **  Could not parse XML file: %s\n", fname);
+		fprintf(stderr, "** ERROR **  Could not parse XML file: %s\n", job->filename);
 	        return STAT_XMLFAIL;
 	}
 
 	pthread_mutex_lock(mtx_sysreg);
 	syskey = db_register_system(dbc, xslt, repxml);
 	if( syskey < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to register system (XML file: %s)\n", fname);
+		fprintf(stderr, "** ERROR **  Failed to register system (XML file: %s)\n", job->filename);
 		rc = STAT_SYSREG;
 		goto exit;
 
@@ -197,7 +178,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	rterid = db_get_new_rterid(dbc);
 	if( rterid < 0 ) {
 		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file: %s)\n",
-			fname);
+			job->filename);
 		rc = STAT_RTERIDREG;
 		goto exit;
 	}
@@ -209,10 +190,18 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	}
 
 	// Create a new filename of where to save the report
-	destfname = get_destination_path(destdir, fname, rterid);
+	destfname = get_destination_path(destdir, job, rterid);
+	if( !destfname ) {
+		fprintf(stderr, "** ERROR **  Failed to generate local report filename for (%i) %s\n",
+			job->submid, job->filename);
+		db_rollback(dbc);
+		rc = STAT_UNKNFAIL;
+		goto exit;
+	}
+
 	if( db_register_rtevalrun(dbc, xslt, repxml, syskey, rterid, destfname) < 0 ) {
 		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file: %s)\n",
-			fname);
+			job->filename);
 		db_rollback(dbc);
 		rc = STAT_RTEVRUNS;
 		goto exit;
@@ -220,7 +209,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 
 	if( db_register_cyclictest(dbc, xslt, repxml, rterid) != 1 ) {
 		fprintf(stderr, "** ERROR **  Failed to register cyclictest data (XML file: %s)\n",
-			fname);
+			job->filename);
 		db_rollback(dbc);
 		rc = STAT_CYCLIC;
 		goto exit;
@@ -233,14 +222,15 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 		goto exit;
 	}
 
-	if( rename(fname, destfname) < 0 ) { // Move the file
+	if( rename(job->filename, destfname) < 0 ) { // Move the file
 		fprintf(stderr, "** ERROR **  Failed to move report file from %s to %s\n"
 			"** ERROR ** %s\n",
-			fname, destfname, strerror(errno));
+			job->filename, destfname, strerror(errno));
 		db_rollback(dbc);
 		rc = STAT_REPMOVE;
 		goto exit;
 	}
+	free_nullsafe(destfname);
 
 	rc = STAT_SUCCESS;
 	db_commit(dbc);
@@ -289,8 +279,7 @@ void *parsethread(void *thrargs) {
 			// Mark the job as "in progress", if successful update, continue parsing it
 			if( db_update_submissionqueue(args->dbc, jobinfo.submid, STAT_INPROG) ) {
 				res = parse_report(args->dbc, args->xslt, args->mtx_sysreg,
-						   args->destdir,
-						   jobinfo.submid, jobinfo.filename);
+						   args->destdir, &jobinfo);
 				// Set the status for the submission
 				db_update_submissionqueue(args->dbc, jobinfo.submid, res);
 			} else {

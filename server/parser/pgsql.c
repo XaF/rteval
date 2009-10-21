@@ -400,7 +400,7 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 	// Get the first available submission
 	memset(&sql, 0, 4098);
 	snprintf(sql, 4096,
-		 "SELECT submid, filename"
+		 "SELECT submid, filename, clientid"
 		 "  FROM submissionqueue"
 		 " WHERE status = %i"
 		 " ORDER BY submid"
@@ -420,7 +420,8 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 	if( PQntuples(res) == 1 ) {
 		job->status = jbAVAIL;
 		job->submid = atoi_nullsafe(PQgetvalue(res, 0, 0));
-		snprintf(job->filename, 4090, "%.4090s", PQgetvalue(res, 0, 1));
+		snprintf(job->filename, 4095, "%.4094s", PQgetvalue(res, 0, 1));
+		snprintf(job->clientid,  255, "%.254s", PQgetvalue(res, 0, 2));
 
 		// Update the submission queue status
 		if( db_update_submissionqueue(dbc, job->submid, STAT_ASSIGNED) < 1 ) {

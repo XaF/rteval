@@ -25,9 +25,10 @@ typedef enum { jbNONE, jbAVAIL } jobStatus;
  * This struct is used for sending a parse job to a worker thread via POSIX MQ
  */
 typedef struct {
-	jobStatus status;                  /**< Info about if job information*/
+        jobStatus status;                  /**< Info about if job information*/
         unsigned int submid;               /**< Work info: Numeric ID of the job being parsed */
-        char filename[4092];               /**< Work info: Full filename of the report to be parsed*/
+        char clientid[256];                /**< Work info: Should contain senders hostname */
+        char filename[4096];               /**< Work info: Full filename of the report to be parsed */
 } parseJob_t;
 
 
