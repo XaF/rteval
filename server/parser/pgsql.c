@@ -41,6 +41,7 @@
 #include <configparser.h>
 #include <xmlparser.h>
 #include <pgsql.h>
+#include <statuses.h>
 
 /**
  * Connect to a database, based on the given configuration

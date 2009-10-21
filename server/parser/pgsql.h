@@ -31,18 +31,6 @@
 #include <eurephia_values.h>
 #include <parsethread.h>
 
-#define STAT_NEW       0         /**< New, unparsed report in the submission queue */
-#define STAT_ASSIGNED  1         /**< Submission is assigned to a parser */
-#define STAT_INPROG    2         /**< Parsing has started */
-#define STAT_SUCCESS   3         /**< Report parsed successfully */
-#define STAT_UNKNFAIL  4         /**< Unkown failure */
-#define STAT_XMLFAIL   5         /**< Failed to parse the report XML file */
-#define STAT_SYSREG    6         /**< System registration failed */
-#define STAT_RTERIDREG 7         /**< Failed to get a new rterid value for the rteval run */
-#define STAT_GENDB     8         /**< General database error */
-#define STAT_RTEVRUNS  9         /**< Registering rteval run information failed */
-#define STAT_CYCLIC    10        /**< Registering cyclictest results failed */
-#define STAT_REPMOVE   11        /**< Failed to move the report file */
 typedef PGconn dbconn;           /**< Wrapper definition, for a more generic DB API */
 
 /* Generic database function */

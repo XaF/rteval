@@ -35,6 +35,7 @@
 #include <parsethread.h>
 #include <pgsql.h>
 #include <threadinfo.h>
+#include <statuses.h>
 
 
 /**
