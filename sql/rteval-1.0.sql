@@ -9,6 +9,26 @@ CREATE DATABASE rteval ENCODING 'utf-8';
 
 \c rteval
 
+-- Enable plpgsql.  It is expected that this PL/pgSQL is available.
+CREATE LANGUAGE 'plpgsql';
+
+-- FUNCTION: trgfnc_submqueue_notify
+-- Trigger function which is called on INSERT queries to the submissionqueue table.
+-- It will send a NOTIFY rteval_submq on INSERTs.
+--
+    CREATE FUNCTION trgfnc_submqueue_notify() RETURNS TRIGGER
+    AS $BODY$
+      DECLARE
+      BEGIN
+        NOTIFY rteval_submq;
+        RETURN NEW;
+      END
+    $BODY$ LANGUAGE 'plpgsql';
+
+    -- The user(s) which are allowed to do INSERT on the submissionqueue
+    -- must also be allowed to call this trigger function.
+    GRANT EXECUTE ON FUNCTION trgfnc_submqueue_notify() TO rtevxmlrpc;
+
 -- TABLE: submissionqueue
 -- All XML-RPC clients registers their submissions into this table.  Another parser thread
 -- will pickup the records where parsestart IS NULL.
@@ -24,6 +44,10 @@ CREATE DATABASE rteval ENCODING 'utf-8';
            PRIMARY KEY(submid)
     ) WITH OIDS;
     CREATE INDEX submissionq_status ON submissionqueue(status);
+
+    CREATE TRIGGER trg_submissionqueue AFTER INSERT
+           ON submissionqueue FOR EACH STATEMENT
+	   EXECUTE PROCEDURE trgfnc_submqueue_notify();
 
     GRANT SELECT, INSERT ON submissionqueue TO rtevxmlrpc;
     GRANT USAGE ON submissionqueue_submid_seq TO rtevxmlrpc;
