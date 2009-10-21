@@ -282,8 +282,10 @@ void *parsethread(void *thrargs) {
 		// If we have a message, then process the parse job
 		if( (errno != EAGAIN) && (len > 0) ) {
 			int res = 0;
+
 			fprintf(stderr, "** Thread %i: Job recieved, submid: %i\n",
 				args->id, jobinfo.submid);
+
 			// Mark the job as "in progress", if successful update, continue parsing it
 			if( db_update_submissionqueue(args->dbc, jobinfo.submid, STAT_INPROG) ) {
 				res = parse_report(args->dbc, args->xslt, args->mtx_sysreg,
@@ -291,6 +293,9 @@ void *parsethread(void *thrargs) {
 						   jobinfo.submid, jobinfo.filename);
 				// Set the status for the submission
 				db_update_submissionqueue(args->dbc, jobinfo.submid, res);
+			} else {
+				fprintf(stderr, "** ERROR **  Failed to mark submid %i as STAT_INPROG\n",
+					jobinfo.submid);
 			}
 		} else {
 			// If no message was retrieved, sleep for a little while
