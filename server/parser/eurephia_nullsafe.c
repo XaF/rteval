@@ -37,6 +37,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <log.h>
+
 #if __GNUC__ >= 3
 #define __malloc__ __attribute__((malloc))
 #else /* If not GCC 3 or newer, disable optimisations */
@@ -52,13 +54,13 @@
  *
  * @return Returns a void pointer to the memory region on success, otherwise NULL
  */
-__malloc__ void *malloc_nullsafe(size_t sz) {
+__malloc__ void *malloc_nullsafe(LogContext *log, size_t sz) {
         void *buf = NULL;
 
         buf = calloc(1, sz);    /* Using calloc, also gives a zero'd memory region */
         if( !buf ) {
-		fprintf(stderr, "** FATAL ERROR ** "
-			"Could not allocate memory region for %ld bytes\n", sz);
+		writelog(log, LOG_EMERG, "** FATAL ERROR ** "
+			 "Could not allocate memory region for %ld bytes\n", sz);
 		exit(9);
         }
         return buf;

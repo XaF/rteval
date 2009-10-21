@@ -117,14 +117,12 @@ char *eGet_value(eurephiaVALUES *vls, const char *key)
  *
  * @return Returns an empty eurephiaVALUES struct on success, otherwise NULL.
  */
-eurephiaVALUES *eCreate_value_space(int evgid)
+eurephiaVALUES *eCreate_value_space(LogContext *log, int evgid)
 {
         eurephiaVALUES *ptr = NULL;
 
-        ptr = (eurephiaVALUES *) malloc_nullsafe(sizeof(eurephiaVALUES) + 2);
-        if( ptr == NULL ) {
-                return NULL;
-        }
+        ptr = (eurephiaVALUES *) malloc_nullsafe(log, sizeof(eurephiaVALUES) + 2);
+	ptr->log = log;
         ptr->evgid = evgid;
         return ptr;
 }
@@ -178,9 +176,9 @@ void eAdd_value(eurephiaVALUES *vls, const char *key, const char *val)
         assert(vls != NULL);
 
         // Allocate buffer and save values
-        ptr = eCreate_value_space(vls->evid);
+        ptr = eCreate_value_space(vls->log, vls->evid);
         if( ptr == NULL ) {
-		fprintf(stderr, "**ERROR** Failed to add value to the value chain\n");
+		writelog(vls->log, LOG_EMERG, "**ERROR**  Failed to add value to the value chain\n");
 		exit(9);
         }
         ptr->key = strdup_nullsafe(key);

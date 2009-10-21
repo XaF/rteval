@@ -41,6 +41,7 @@
 #include <configparser.h>
 #include <xmlparser.h>
 #include <pgsql.h>
+#include <log.h>
 #include <statuses.h>
 
 /**
@@ -48,12 +49,15 @@
  *
  * @param cfg eurephiaVALUES containing the configuration
  *
- * @return Returns a database handler
+ * @return Returns a database connection context
  */
-void *db_connect(eurephiaVALUES *cfg) {
-	PGconn *dbc = NULL;
+dbconn *db_connect(eurephiaVALUES *cfg, LogContext *log) {
+	dbconn *ret = NULL;
 
-	dbc = PQsetdbLogin(eGet_value(cfg, "db_server"),
+	ret = (dbconn *) malloc_nullsafe(log, sizeof(dbconn)+2);
+	ret->log = log;
+
+	ret->db = PQsetdbLogin(eGet_value(cfg, "db_server"),
 			   eGet_value(cfg, "db_port"),
 			   NULL, /* pgopt */
 			   NULL, /* pgtty */
@@ -61,17 +65,20 @@ void *db_connect(eurephiaVALUES *cfg) {
 			   eGet_value(cfg, "db_username"),
 			   eGet_value(cfg, "db_password"));
 
-	if( !dbc ) {
-		fprintf(stderr, "** ERROR ** Could not connect to the database (unknown reason)\n");
-		exit(2);
+	if( !ret->db ) {
+		writelog(log, LOG_EMERG,
+			 "** ERROR ** Could not connect to the database (unknown reason)\n");
+		free_nullsafe(ret);
+		return NULL;
 	}
 
-	if( PQstatus(dbc) != CONNECTION_OK ) {
-		fprintf(stderr, "** ERROR ** Failed to connect to the database\n%s\n",
-			PQerrorMessage(dbc));
-		exit(2);
+	if( PQstatus(ret->db) != CONNECTION_OK ) {
+		writelog(log, LOG_EMERG, "** ERROR ** Failed to connect to the database\n%s\n",
+			 PQerrorMessage(ret->db));
+		free_nullsafe(ret);
+		return NULL;
 	}
-	return dbc;
+	return ret;
 }
 
 
@@ -81,7 +88,10 @@ void *db_connect(eurephiaVALUES *cfg) {
  * @param dbc Pointer to the database handle to be disconnected.
  */
 void db_disconnect(dbconn *dbc) {
-	PQfinish((PGconn *) dbc);
+	if( dbc && dbc->db ) {
+		PQfinish(dbc->db);
+		dbc->db = NULL;
+	}
 }
 
 
@@ -144,7 +154,7 @@ void db_disconnect(dbconn *dbc) {
  *         the defined field name will be returned.  If one of the INSERT queries fails, it will abort
  *         further processing and the function will return NULL.
  */
-eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
+eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	xmlNode *root_n = NULL, *fields_n = NULL, *recs_n = NULL, *ptr_n = NULL, *val_n = NULL;
 	char **field_ar = NULL, *fields = NULL, **value_ar = NULL, *values = NULL, *table = NULL, 
 		tmp[20], *sql = NULL, *key = NULL;
@@ -152,17 +162,19 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	PGresult *dbres = NULL;
 	eurephiaVALUES *res = NULL;
 
-	assert( sqldoc != NULL );
+	assert( (dbc != NULL) && (sqldoc != NULL) );
 
 	root_n = xmlDocGetRootElement(sqldoc);
 	if( !root_n || (xmlStrcmp(root_n->name, (xmlChar *) "sqldata") != 0) ) {
-		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR ** Input XML document is not a valid sqldata document\n");
 		return NULL;
 	}
 
 	table = xmlGetAttrValue(root_n->properties, "table");
 	if( !table ) {
-		fprintf(stderr, "** ERROR ** Input XML document is missing table reference\n");
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR ** Input XML document is missing table reference\n");
 		return NULL;
 	}
 
@@ -171,8 +183,8 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	fields_n = xmlFindNode(root_n, "fields");
 	recs_n = xmlFindNode(root_n, "records");
 	if( !fields_n || !recs_n ) {
-		fprintf(stderr,
-			"** ERROR ** Input XML document is missing either <fields/> or <records/>\n");
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR ** Input XML document is missing either <fields/> or <records/>\n");
 		return NULL;
 	}
 
@@ -198,8 +210,8 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 
 	// Generate strings with field names and value place holders
 	// for a prepared SQL statement
-	fields = malloc_nullsafe(3);
-	values = malloc_nullsafe(6*(fieldcnt+1));
+	fields = malloc_nullsafe(dbc->log, 3);
+	values = malloc_nullsafe(dbc->log, 6*(fieldcnt+1));
 	strcpy(fields, "(");
 	strcpy(values, "(");
 	int len = 3;
@@ -222,12 +234,13 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	strcat(values, ")");
 
 	// Build up the SQL query
-	sql = malloc_nullsafe( strlen_nullsafe(fields)
-			       + strlen_nullsafe(values)
-			       + strlen_nullsafe(table)
-			       + strlen_nullsafe(key)
-			       + 34 /* INSERT INTO  VALUES RETURNING*/
-			       );
+	sql = malloc_nullsafe(dbc->log,
+			      strlen_nullsafe(fields)
+			      + strlen_nullsafe(values)
+			      + strlen_nullsafe(table)
+			      + strlen_nullsafe(key)
+			      + 34 /* INSERT INTO  VALUES RETURNING*/
+			      );
 	sprintf(sql, "INSERT INTO %s %s VALUES %s", table, fields, values);
 	if( key ) {
 		strcat(sql, " RETURNING ");
@@ -235,17 +248,18 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 	}
 
 	// Create a prepared SQL query
-	dbres = PQprepare(dbc, "", sql, fieldcnt, NULL);
+	dbres = PQprepare(dbc->db, "", sql, fieldcnt, NULL);
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		fprintf(stderr, "** ERROR **  Failed to prepare SQL query\n%s\n",
-			PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  Failed to prepare SQL query\n%s\n",
+			 PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		goto exit;
 	}
 	PQclear(dbres);
 
 	// Loop through all records and generate SQL statements
-	res = eCreate_value_space(1);
+	res = eCreate_value_space(dbc->log, 1);
 	foreach_xmlnode(recs_n->children, ptr_n) {
 		if( ptr_n->type != XML_ELEMENT_NODE ) {
 			continue;
@@ -271,15 +285,15 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 			if( (fid_s == NULL) || (fid < 0) ) {
 				continue;
 			}
-			value_ar[field_idx[i]] = sqldataExtractContent(val_n);
+			value_ar[field_idx[i]] = sqldataExtractContent(dbc->log, val_n);
 			i++;
 		}
 
 		// Insert the record into the database
-		// fprintf(stderr, ".");
-		dbres = PQexecPrepared(dbc, "", fieldcnt, (const char * const *)value_ar, NULL, NULL, 0);
+		dbres = PQexecPrepared(dbc->db, "", fieldcnt,
+				       (const char * const *)value_ar, NULL, NULL, 0);
 		if( PQresultStatus(dbres) != (key ? PGRES_TUPLES_OK : PGRES_COMMAND_OK) ) {
-			fprintf(stderr, "** ERROR **  Failed to do SQL INSERT query\n%s\n",
+			writelog(dbc->log, LOG_ALERT, "** ERROR **  Failed to do SQL INSERT query\n%s\n",
 				PQresultErrorMessage(dbres));
 			PQclear(dbres);
 			eFree_values(res);
@@ -329,10 +343,11 @@ eurephiaVALUES *pgsql_INSERT(PGconn *dbc, xmlDoc *sqldoc) {
 int db_begin(dbconn *dbc) {
 	PGresult *dbres = NULL;
 
-	dbres = PQexec((PGconn *) dbc, "BEGIN");
+	dbres = PQexec(dbc->db, "BEGIN");
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		fprintf(stderr, "** ERROR **  Failed to do prepare a transaction (BEGIN)\n%s\n",
-			PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  Failed to do prepare a transaction (BEGIN)\n%s\n",
+			 PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		return -1;
 	}
@@ -351,10 +366,11 @@ int db_begin(dbconn *dbc) {
 int db_commit(dbconn *dbc) {
 	PGresult *dbres = NULL;
 
-	dbres = PQexec((PGconn *) dbc, "COMMIT");
+	dbres = PQexec(dbc->db, "COMMIT");
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		fprintf(stderr, "** ERROR **  Failed to do commit a database transaction (COMMIT)\n%s\n",
-			PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  Failed to do commit a database transaction (COMMIT)\n%s\n",
+			 PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		return -1;
 	}
@@ -373,10 +389,11 @@ int db_commit(dbconn *dbc) {
 int db_rollback(dbconn *dbc) {
 	PGresult *dbres = NULL;
 
-	dbres = PQexec((PGconn *) dbc, "ROLLBACK");
+	dbres = PQexec(dbc->db, "ROLLBACK");
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		fprintf(stderr, "** ERROR **  Failed to do abort/rollback a transaction (ROLLBACK)\n%s\n",
-			PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_CRIT,
+			 "** ERROR **  Failed to do abort/rollback a transaction (ROLLBACK)\n%s\n",
+			 PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		return -1;
 	}
@@ -401,14 +418,15 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 	fd_set input_mask;
 	char *sql = NULL;
 
-	sql = malloc_nullsafe(strlen_nullsafe(listenfor) + 12);
+	sql = malloc_nullsafe(dbc->log, strlen_nullsafe(listenfor) + 12);
 	assert( sql != NULL );
 
 	// Initiate listening
 	sprintf(sql, "LISTEN %s\n", listenfor);
-	dbres = PQexec((PGconn *) dbc, sql);
+	dbres = PQexec(dbc->db, sql);
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		fprintf(stderr, "** ERROR ** SQL %s\n", PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR ** SQL %s\n", PQresultErrorMessage(dbres));
 		free_nullsafe(sql);
 		PQclear(dbres);
 		return -1;
@@ -417,7 +435,7 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 
 	// Start listening and waiting
 	while( ret == 0 ) {
-		sock = PQsocket((PGconn *) dbc);
+		sock = PQsocket(dbc->db);
 		if (sock < 0) {
 			// shouldn't happen
 			ret = -1;
@@ -432,7 +450,8 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 			// report errors if we're not shutting down, or else exit normally with
 			// successful waiting.
 			if( *shutdown == 0 ) {
-				fprintf(stderr, "** ERROR **  select() failed: %s\n", strerror(errno));
+				writelog(dbc->log, LOG_CRIT,
+					 "** ERROR **  select() failed: %s\n", strerror(errno));
 				ret = -1;
 			} else {
 				ret = 1;
@@ -441,11 +460,12 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 		}
 
 		// Process the event
-		PQconsumeInput((PGconn *) dbc);
-		while ((notify = PQnotifies((PGconn *) dbc)) != NULL) {
+		PQconsumeInput(dbc->db);
+		while ((notify = PQnotifies(dbc->db)) != NULL) {
 			// If a notification was received, inform and exit with success.
-			fprintf(stderr, "** INFO ** Received notfication from pid %d\n",
-				notify->be_pid);
+			writelog(dbc->log, LOG_DEBUG,
+				 "** INFO ** Received notfication from pid %d\n",
+				 notify->be_pid);
 			PQfreemem(notify);
 			ret = 1;
 			break;
@@ -454,9 +474,9 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 
 	// Stop listening when we exit
 	sprintf(sql, "UNLISTEN %s\n", listenfor);
-	dbres = PQexec((PGconn *) dbc, sql);
+	dbres = PQexec(dbc->db, sql);
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		fprintf(stderr, "** ERROR ** SQL %s\n", PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT, "** ERROR ** SQL %s\n", PQresultErrorMessage(dbres));
 		free_nullsafe(sql);
 		ret = -1;
 	}
@@ -481,11 +501,7 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 	PGresult *res = NULL;
 	char sql[4098];
 
-	job = (parseJob_t *) malloc_nullsafe(sizeof(parseJob_t));
-	if( !job ) {
-		fprintf(stderr, "** ERROR **  Failed to allocate memory for a new parsing job\n");
-		return NULL;
-	}
+	job = (parseJob_t *) malloc_nullsafe(dbc->log, sizeof(parseJob_t));
 
 	// Get the first available submission
 	memset(&sql, 0, 4098);
@@ -496,12 +512,14 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 		 " ORDER BY submid"
 		 " LIMIT 1",
 		 STAT_NEW);
+
 	pthread_mutex_lock(mtx);
-	res = PQexec((PGconn *) dbc, sql);
+	res = PQexec(dbc->db, sql);
 	if( PQresultStatus(res) != PGRES_TUPLES_OK ) {
 		pthread_mutex_unlock(mtx);
-		fprintf(stderr, "** ERROR **  Failed to query submission queue (SELECT)\n%s\n",
-			PQresultErrorMessage(res));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  Failed to query submission queue (SELECT)\n%s\n",
+			 PQresultErrorMessage(res));
 		PQclear(res);
 		free_nullsafe(job);
 		return NULL;
@@ -516,8 +534,8 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 		// Update the submission queue status
 		if( db_update_submissionqueue(dbc, job->submid, STAT_ASSIGNED) < 1 ) {
 			pthread_mutex_unlock(mtx);
-			fprintf(stderr,
-				"** ERROR **  Failed to update submission queue statis to STAT_ASSIGNED\n");
+			writelog(dbc->log, LOG_ALERT,
+				 "** ERROR **  Failed to update submission queue statis to STAT_ASSIGNED\n");
 			free_nullsafe(job);
 			return NULL;
 		}
@@ -573,20 +591,22 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 
 	default:
 	case STAT_NEW:
-		fprintf(stderr, "** ERROR **  Invalid status (%i) attempted to set on submid %i\n",
-			status, submid);
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Invalid status (%i) attempted to set on submid %i\n",
+			 status, submid);
 		return 0;
 	}
 
-	res = PQexec(dbc, sql);
+	res = PQexec(dbc->db, sql);
 	if( !res ) {
-		fprintf(stderr, "** ERROR **  Unkown error when updating submid %i to status %i\n",
-			submid, status);
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  Unkown error when updating submid %i to status %i\n",
+			 submid, status);
 		return -1;
 	} else if( PQresultStatus(res) != PGRES_COMMAND_OK ) {
-		fprintf(stderr,
-			"** ERROR **  Failed to UPDATE submissionqueue (submid: %i, status: %i)\n%s\n",
-			submid, status, PQresultErrorMessage(res));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  Failed to UPDATE submissionqueue (submid: %i, status: %i)\n%s\n",
+			 submid, status, PQresultErrorMessage(res));
 		PQclear(res);
 		return -1;
 	}
@@ -619,15 +639,16 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 
 	memset(&prms, 0, sizeof(parseParams));
 	prms.table = "systems";
-	sysinfo_d = parseToSQLdata(xslt, summaryxml, &prms);
+	sysinfo_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 	if( !sysinfo_d ) {
-		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
+		writelog(dbc->log, LOG_ERR, "** ERROR **  Could not parse the input XML data\n");
 		syskey= -1;
 		goto exit;
 	}
-	sysid = sqldataGetValue(sysinfo_d, "sysid", 0);
+	sysid = sqldataGetValue(dbc->log, sysinfo_d, "sysid", 0);
 	if( !sysid ) {
-		fprintf(stderr, "** ERROR **  Could not retrieve the sysid field from the input XML\n");
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Could not retrieve the sysid field from the input XML\n");
 		syskey= -1;
 		goto exit;
 	}
@@ -635,10 +656,11 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	memset(&sqlq, 0, 4098);
 	snprintf(sqlq, 4096, "SELECT syskey FROM systems WHERE sysid = '%.256s'", sysid);
 	free_nullsafe(sysid);
-	dbres = PQexec((PGconn *) dbc, sqlq);
+	dbres = PQexec(dbc->db, sqlq);
 	if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
-		fprintf(stderr, "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
-			sqlq, PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
+			 sqlq, PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		syskey= -1;
 		goto exit;
@@ -647,32 +669,32 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	if( PQntuples(dbres) == 0 ) {  // No record found, need to register this system
 		PQclear(dbres);
 
-		dbdata = pgsql_INSERT((PGconn *) dbc, sysinfo_d);
+		dbdata = pgsql_INSERT(dbc, sysinfo_d);
 		if( !dbdata ) {
 			syskey= -1;
 			goto exit;
 		}
 		if( (eCount(dbdata) != 1) || !dbdata->val ) { // Only one record should be registered
-			fprintf(stderr, "** ERRORR **  Failed to register the system\n");
+			writelog(dbc->log, LOG_ALERT, "** ERROR **  Failed to register the system\n");
 			eFree_values(dbdata);
 			syskey= -1;
 			goto exit;
 		}
 		syskey = atoi_nullsafe(dbdata->val);
-		hostinfo_d = sqldataGetHostInfo(xslt, summaryxml, syskey, &hostname, &ipaddr);
+		hostinfo_d = sqldataGetHostInfo(dbc->log, xslt, summaryxml, syskey, &hostname, &ipaddr);
 		if( !hostinfo_d ) {
 			syskey = -1;
 			goto exit;
 		}
 		eFree_values(dbdata);
 
-		dbdata = pgsql_INSERT((PGconn *) dbc, hostinfo_d);
+		dbdata = pgsql_INSERT(dbc, hostinfo_d);
 		syskey = (dbdata ? syskey : -1);
 		eFree_values(dbdata);
 
 	} else if( PQntuples(dbres) == 1 ) { // System found - check if the host IP is known or not
 		syskey = atoi_nullsafe(PQgetvalue(dbres, 0, 0));
-		hostinfo_d = sqldataGetHostInfo(xslt, summaryxml, syskey, &hostname, &ipaddr);
+		hostinfo_d = sqldataGetHostInfo(dbc->log, xslt, summaryxml, syskey, &hostname, &ipaddr);
 		if( !hostinfo_d ) {
 			syskey = -1;
 			goto exit;
@@ -684,25 +706,26 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			 "SELECT syskey FROM systems_hostname"
 			 " WHERE hostname='%.256s' AND ipaddr='%.64s'",
 			 hostname, ipaddr);
-
-		dbres = PQexec((PGconn *) dbc, sqlq);
+		dbres = PQexec(dbc->db, sqlq);
 		if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
-			fprintf(stderr, "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
-				sqlq, PQresultErrorMessage(dbres));
+			writelog(dbc->log, LOG_ALERT,
+				 "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
+				 sqlq, PQresultErrorMessage(dbres));
 			PQclear(dbres);
 			syskey= -1;
 			goto exit;
 		}
 
 		if( PQntuples(dbres) == 0 ) { // Not registered, then register it
-			dbdata = pgsql_INSERT((PGconn *) dbc, hostinfo_d);
+			dbdata = pgsql_INSERT(dbc, hostinfo_d);
 			syskey = (dbdata ? syskey : -1);
 			eFree_values(dbdata);
 		}
 		PQclear(dbres);
 	} else {
 		// Critical -- system IDs should not be registered more than once
-		fprintf(stderr, "** CRITICAL ERROR **  Multiple systems registered (%s)", sqlq);
+		writelog(dbc->log, LOG_CRIT,
+			 "** CRITICAL ERROR **  Multiple systems registered (%s)", sqlq);
 		syskey= -1;
 	}
 
@@ -730,7 +753,7 @@ int db_get_new_rterid(dbconn *dbc) {
 	PGresult *dbres = NULL;
 	int rterid = 0;
 
-	dbres = PQexec((PGconn *)dbc, "SELECT nextval('rtevalruns_rterid_seq')");
+	dbres = PQexec(dbc->db, "SELECT nextval('rtevalruns_rterid_seq')");
 	if( (PQresultStatus(dbres) != PGRES_TUPLES_OK) || (PQntuples(dbres) != 1) ) {
 		rterid = -1;
 	} else {
@@ -738,10 +761,11 @@ int db_get_new_rterid(dbconn *dbc) {
 	}
 
 	if( rterid < 1 ) {
-		fprintf(stderr, "** ERROR **  Failed to retrieve a new rterid value\n");
+		writelog(dbc->log, LOG_CRIT,
+			 "** ERROR **  Failed to retrieve a new rterid value\n");
 	}
 	if( rterid < 0 ) {
-		fprintf(stderr, "SQL %s\n", PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT, "SQL %s\n", PQresultErrorMessage(dbres));
 	}
 	PQclear(dbres);
 	return rterid;
@@ -776,22 +800,22 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	prms.rterid = rterid;
 	prms.submid = submid;
 	prms.report_filename = report_fname;
-	rtevalrun_d = parseToSQLdata(xslt, summaryxml, &prms);
+	rtevalrun_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 	if( !rtevalrun_d ) {
-		fprintf(stderr, "** ERROR **  Could not parse the input XML data\n");
+		writelog(dbc->log, LOG_ERR, "** ERROR **  Could not parse the input XML data\n");
 		ret = -1;
 		goto exit;
 	}
 
 	// Register the rteval run information
-	dbdata = pgsql_INSERT((PGconn *) dbc, rtevalrun_d);
+	dbdata = pgsql_INSERT(dbc, rtevalrun_d);
 	if( !dbdata ) {
 		ret = -1;
 		goto exit;
 	}
 
 	if( eCount(dbdata) != 1 ) {
-		fprintf(stderr, "** ERROR ** Failed to register the rteval run\n");
+		writelog(dbc->log, LOG_ALERT, "** ERROR ** Failed to register the rteval run\n");
 		ret = -1;
 		eFree_values(dbdata);
 		goto exit;
@@ -802,15 +826,16 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	memset(&prms, 0, sizeof(parseParams));
 	prms.table = "rtevalruns_details";
 	prms.rterid = rterid;
-	rtevalrundets_d = parseToSQLdata(xslt, summaryxml, &prms);
+	rtevalrundets_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 	if( !rtevalrundets_d ) {
-		fprintf(stderr, "** ERROR **  Could not parse the input XML data (rtevalruns_details)\n");
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Could not parse the input XML data (rtevalruns_details)\n");
 		ret = -1;
 		goto exit;
 	}
 
 	// Register the rteval_details information
-	dbdata = pgsql_INSERT((PGconn *) dbc, rtevalrundets_d);
+	dbdata = pgsql_INSERT(dbc, rtevalrundets_d);
 	if( !dbdata ) {
 		ret = -1;
 		goto exit;
@@ -818,7 +843,7 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 
 	// Check that only one record was inserted
 	if( eCount(dbdata) != 1 ) {
-		fprintf(stderr, "** ERROR ** Failed to register the rteval run\n");
+		writelog(dbc->log, LOG_ALERT, "** ERROR ** Failed to register the rteval run details\n");
 		ret = -1;
 	}
 	eFree_values(dbdata);
@@ -859,10 +884,10 @@ int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 	// Register the cyclictest data
 	for( i = 0; cyclictables[i]; i++ ) {
 		prms.table = cyclictables[i];
-		cyclic_d = parseToSQLdata(xslt, summaryxml, &prms);
+		cyclic_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 		if( cyclic_d && cyclic_d->children ) {
 			// Insert SQL data which was found and generated
-			dbdata = pgsql_INSERT((PGconn *) dbc, cyclic_d);
+			dbdata = pgsql_INSERT(dbc, cyclic_d);
 			if( !dbdata ) {
 				result = -1;
 				xmlFreeDoc(cyclic_d);
@@ -882,7 +907,8 @@ int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 
 	// Report error if not enough cyclictest data is registered.
 	if( cyclicdata > 1 ) {
-		fprintf(stderr, "** ERROR **  No cyclictest raw data or histogram data registered\n");
+		writelog(dbc->log, LOG_ALERT,
+			 "** ERROR **  No cyclictest raw data or histogram data registered\n");
 		result = -1;
 	} else {
 		result = 1;

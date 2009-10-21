@@ -28,13 +28,20 @@
 #include <libxml/parser.h>
 #include <libxslt/transform.h>
 
+#include <log.h>
 #include <eurephia_values.h>
 #include <parsethread.h>
 
-typedef PGconn dbconn;           /**< Wrapper definition, for a more generic DB API */
+/**
+ *  A unified database abstraction layer, providing log support
+ */
+typedef struct {
+	LogContext *log;  /**< Initialised log context */
+	PGconn *db;       /**< Database connection handler */
+} dbconn;
 
 /* Generic database function */
-void *db_connect(eurephiaVALUES *cfg);
+dbconn *db_connect(eurephiaVALUES *cfg, LogContext *log);
 void db_disconnect(dbconn *dbc);
 int db_begin(dbconn *dbc);
 int db_commit(dbconn *dbc);

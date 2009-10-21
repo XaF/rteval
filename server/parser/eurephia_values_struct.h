@@ -31,6 +31,8 @@
 #ifndef   	EUREPHIA_VALUES_STRUCT_H_
 # define   	EUREPHIA_VALUES_STRUCT_H_
 
+#include <log.h>
+
 /**
  * eurephiaVALUES is a pointer chain with key/value pairs.  If having several
  * such pointer chains, they can be given different group IDs to separate them,
@@ -38,6 +40,7 @@
  *
  */
 typedef struct __eurephiaVALUES {
+	LogContext *log;        /**< Pointer to an established log context, used for logging */
         unsigned int evgid;	/**< Group ID, all elements in the same chain should have the same value */
         unsigned int evid;	/**< Unique ID per element in a pointer chain */
         char *key;		/**< The key name of a value */

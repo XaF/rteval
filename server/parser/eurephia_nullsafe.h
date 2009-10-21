@@ -37,6 +37,8 @@
 #ifndef   	EUREPHIA_NULLSAFE_H_
 #define    	EUREPHIA_NULLSAFE_H_
 
+#include <log.h>
+
 /**
  * atoi() wrapper.  Converts any string into a integer
  *
@@ -79,7 +81,7 @@
 #define strlen_nullsafe(str) (str != NULL ? strlen(str) : 0)
 
 
-void *malloc_nullsafe(size_t);
+void *malloc_nullsafe(LogContext *, size_t);
 
 /**
  * Null safe free().  It will not attempt to free a pointer which is NULL.

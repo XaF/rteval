@@ -34,6 +34,7 @@
 #include <eurephia_nullsafe.h>
 #include <parsethread.h>
 #include <pgsql.h>
+#include <log.h>
 #include <threadinfo.h>
 #include <statuses.h>
 
@@ -46,7 +47,7 @@
  *
  * @return Returns 1 on success, otherwise -1
  */
-static int make_report_dir(const char *fname) {
+static int make_report_dir(LogContext *log, const char *fname) {
 	char *fname_cp = NULL, *dname = NULL, *chkdir = NULL;
 	char *tok = NULL, *saveptr = NULL;
 	int ret = 0;
@@ -59,8 +60,7 @@ static int make_report_dir(const char *fname) {
 	fname_cp = strdup(fname);
 	assert( fname_cp != NULL );
 	dname = dirname(fname_cp);
-	chkdir = malloc_nullsafe(strlen(dname)+8);
-	assert( chkdir != NULL );
+	chkdir = malloc_nullsafe(log, strlen(dname)+8);
 
 	if( dname[0] == '/' ) {
 		chkdir[0] = '/';
@@ -79,17 +79,17 @@ static int make_report_dir(const char *fname) {
 			case ENOENT: // If the directory do not exist, create it
 				if( mkdir(chkdir, 0755) < 0 ) {
 					// If creating dir failed, report error
-					fprintf(stderr,
-						"** ERROR **  Could not create directory: %s\n"
-						"** ERROR **  %s\n", chkdir, strerror(errno));
+					writelog(log, LOG_ALERT,
+						 "** ERROR **  Could not create directory: %s\n"
+						 "** ERROR **  %s\n", chkdir, strerror(errno));
 					ret = -1;
 					goto exit;
 				}
 				break;
 			default: // If other failure, report that and exit
-				fprintf(stderr,
-					"** ERROR **  Could not access directory: %s\n"
-					"** ERROR **  %s\n", chkdir, strerror(errno));
+				writelog(log, LOG_ALERT,
+					 "** ERROR **  Could not access directory: %s\n"
+					 "** ERROR **  %s\n", chkdir, strerror(errno));
 				ret = -1;
 				goto exit;
 			}
@@ -115,7 +115,9 @@ static int make_report_dir(const char *fname) {
  *
  * @return Returns a pointer to a string with the new full path filename on success, otherwise NULL.
  */
-static char *get_destination_path(const char *destdir, parseJob_t *job, const int rterid) {
+static char *get_destination_path(LogContext *log, const char *destdir,
+				  parseJob_t *job, const int rterid)
+{
         char *newfname = NULL;
         int retlen = 0;
 
@@ -124,8 +126,7 @@ static char *get_destination_path(const char *destdir, parseJob_t *job, const in
         }
 
         retlen = strlen_nullsafe(job->clientid) + strlen(destdir) + 24;
-        newfname = malloc_nullsafe(retlen+2);
-        assert( newfname != NULL );
+        newfname = malloc_nullsafe(log, retlen+2);
 
         snprintf(newfname, retlen, "%s/%s/report-%i.xml", destdir, job->clientid, rterid);
 
@@ -165,21 +166,24 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 
 	repxml = xmlParseFile(job->filename);
 	if( !repxml ) {
-		fprintf(stderr, "** ERROR **  Could not parse XML file: %s\n", job->filename);
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Could not parse XML file: %s\n", job->filename);
 	        return STAT_XMLFAIL;
 	}
 
 	pthread_mutex_lock(mtx_sysreg);
 	syskey = db_register_system(dbc, xslt, repxml);
 	if( syskey < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to register system (XML file: %s)\n", job->filename);
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Failed to register system (XML file: %s)\n", job->filename);
 		rc = STAT_SYSREG;
 		goto exit;
 
 	}
 	rterid = db_get_new_rterid(dbc);
 	if( rterid < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file: %s)\n",
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Failed to register rteval run (XML file: %s)\n",
 			job->filename);
 		rc = STAT_RTERIDREG;
 		goto exit;
@@ -192,9 +196,10 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	}
 
 	// Create a new filename of where to save the report
-	destfname = get_destination_path(destdir, job, rterid);
+	destfname = get_destination_path(dbc->log, destdir, job, rterid);
 	if( !destfname ) {
-		fprintf(stderr, "** ERROR **  Failed to generate local report filename for (%i) %s\n",
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Failed to generate local report filename for (%i) %s\n",
 			job->submid, job->filename);
 		db_rollback(dbc);
 		rc = STAT_UNKNFAIL;
@@ -202,32 +207,35 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	}
 
 	if( db_register_rtevalrun(dbc, xslt, repxml, job->submid, syskey, rterid, destfname) < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to register rteval run (XML file: %s)\n",
-			job->filename);
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Failed to register rteval run (XML file: %s)\n",
+			 job->filename);
 		db_rollback(dbc);
 		rc = STAT_RTEVRUNS;
 		goto exit;
 	}
 
 	if( db_register_cyclictest(dbc, xslt, repxml, rterid) != 1 ) {
-		fprintf(stderr, "** ERROR **  Failed to register cyclictest data (XML file: %s)\n",
-			job->filename);
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Failed to register cyclictest data (XML file: %s)\n",
+			 job->filename);
 		db_rollback(dbc);
 		rc = STAT_CYCLIC;
 		goto exit;
 	}
 
 	// When all database registrations are done, move the file to it's right place
-	if( make_report_dir(destfname) < 1 ) { // Make sure report directory exists
+	if( make_report_dir(dbc->log, destfname) < 1 ) { // Make sure report directory exists
 		db_rollback(dbc);
 		rc = STAT_REPMOVE;
 		goto exit;
 	}
 
 	if( rename(job->filename, destfname) < 0 ) { // Move the file
-		fprintf(stderr, "** ERROR **  Failed to move report file from %s to %s\n"
-			"** ERROR ** %s\n",
-			job->filename, destfname, strerror(errno));
+		writelog(dbc->log, LOG_ERR,
+			 "** ERROR **  Failed to move report file from %s to %s\n"
+			 "** ERROR ** %s\n",
+			 job->filename, destfname, strerror(errno));
 		db_rollback(dbc);
 		rc = STAT_REPMOVE;
 		goto exit;
@@ -256,7 +264,7 @@ void *parsethread(void *thrargs) {
 	threadData_t *args = (threadData_t *) thrargs;
 	parseJob_t jobinfo;
 
-	fprintf(stderr, "** Starting thread %i\n", args->id);
+	writelog(args->dbc->log, LOG_DEBUG, "** Starting thread %i\n", args->id);
 	while( !*(args->shutdown) ) {
 		int len = 0;
 		unsigned int prio = 0;
@@ -266,8 +274,9 @@ void *parsethread(void *thrargs) {
 		errno = 0;
 		len = mq_receive(args->msgq, (char *)&jobinfo, sizeof(parseJob_t), &prio);
 		if( (len < 0) && errno != EAGAIN ) {
-			fprintf(stderr, "** ERROR ** Could not receive the message from queue: %s\n",
-				strerror(errno));
+			writelog(args->dbc->log, LOG_CRIT,
+				 "** ERROR ** Could not receive the message from queue: %s\n",
+				 strerror(errno));
 			pthread_exit((void *) 1);
 		}
 
@@ -275,8 +284,9 @@ void *parsethread(void *thrargs) {
 		if( (errno != EAGAIN) && (len > 0) ) {
 			int res = 0;
 
-			fprintf(stderr, "** Thread %i: Job recieved, submid: %i\n",
-				args->id, jobinfo.submid);
+			writelog(args->dbc->log, LOG_DEBUG,
+				 "** Thread %i: Job recieved, submid: %i\n",
+				 args->id, jobinfo.submid);
 
 			// Mark the job as "in progress", if successful update, continue parsing it
 			if( db_update_submissionqueue(args->dbc, jobinfo.submid, STAT_INPROG) ) {
@@ -285,14 +295,15 @@ void *parsethread(void *thrargs) {
 				// Set the status for the submission
 				db_update_submissionqueue(args->dbc, jobinfo.submid, res);
 			} else {
-				fprintf(stderr, "** ERROR **  Failed to mark submid %i as STAT_INPROG\n",
-					jobinfo.submid);
+				writelog(args->dbc->log, LOG_CRIT,
+					 "** ERROR **  Failed to mark submid %i as STAT_INPROG\n",
+					 jobinfo.submid);
 			}
 		} else {
 			// If no message was retrieved, sleep for a little while
 			sleep(5);
 		}
 	}
-	fprintf(stderr, "** Thread %i shut down\n", args->id);
+	writelog(args->dbc->log, LOG_DEBUG, "** Thread %i shut down\n", args->id);
 	pthread_exit((void *) 0);
 }

@@ -38,6 +38,8 @@
 
 #include <eurephia_nullsafe.h>
 #include <eurephia_values.h>
+#include <configparser.h>
+#include <log.h>
 
 /**
  * Parse one single configuration line into a eurephiaVALUES key/value pair.  It will also ignore
@@ -49,7 +51,7 @@
  * @return eurephiaVALUES pointer containing the parsed result.  On error or if no valid config
  * line was found, NULL is returned.
  */
-static inline eurephiaVALUES *parse_config_line(const char *line) {
+static inline eurephiaVALUES *parse_config_line(LogContext *log, const char *line) {
         char *cp = NULL, *key = NULL, *val = NULL, *ptr = NULL;;
         eurephiaVALUES *ret = NULL;
 
@@ -95,7 +97,7 @@ static inline eurephiaVALUES *parse_config_line(const char *line) {
         *ptr = '\0';
 
         // Put key/value into a eurephiaVALUES struct and return it
-        ret = eCreate_value_space(20);
+        ret = eCreate_value_space(log, 20);
         ret->key = strdup(key);
         ret->val = strdup(val);
 
@@ -104,10 +106,10 @@ static inline eurephiaVALUES *parse_config_line(const char *line) {
 }
 
 
-static inline eurephiaVALUES *default_cfg_values() {
+static inline eurephiaVALUES *default_cfg_values(LogContext *log) {
 	eurephiaVALUES *cfg = NULL;
 
-	cfg = eCreate_value_space(20);
+	cfg = eCreate_value_space(log, 20);
 	eAdd_value(cfg, "datadir", "/var/lib/rteval");
 	eAdd_value(cfg, "xsltpath", "/usr/share/rteval");
 	eAdd_value(cfg, "db_server", "localhost");
@@ -129,7 +131,7 @@ static inline eurephiaVALUES *default_cfg_values() {
  * @return Returns a pointer to an eurephiaVALUES stack containing the configuration on success,
  *         otherwise NULL.
  */
-eurephiaVALUES *read_config(const char *cfgname, const char *section) {
+eurephiaVALUES *read_config(LogContext *log, const char *cfgname, const char *section) {
         FILE *fp = NULL;
         char  *buf = NULL, *sectmatch = NULL;
 	int sectfound = 0;
@@ -137,20 +139,20 @@ eurephiaVALUES *read_config(const char *cfgname, const char *section) {
         struct stat fi;
 
         if( stat(cfgname, &fi) == -1 ) {
-                fprintf(stderr, "Could not open the config file: %s\n", cfgname);
+		writelog(log, LOG_EMERG, "Could not open the config file: %s\n", cfgname);
                 return NULL;
         }
 
         if( (fp = fopen(cfgname, "r")) == NULL ) {
-                fprintf(stderr, "Could not open the config file: %s\n", cfgname);
+                writelog(log, LOG_EMERG, "Could not open the config file: %s\n", cfgname);
                 return NULL;
         }
 
-        buf = (char *) malloc_nullsafe(fi.st_size+2);
-	sectmatch = (char *) malloc_nullsafe(strlen_nullsafe(section)+4);
+        buf = (char *) malloc_nullsafe(log, fi.st_size+2);
+	sectmatch = (char *) malloc_nullsafe(log, strlen_nullsafe(section)+4);
 	sprintf(sectmatch, "[%s]", section);
 
-        cfg = default_cfg_values();
+        cfg = default_cfg_values(log);
         while( fgets(buf, fi.st_size, fp) != NULL ) {
 		if( strncmp(buf, "[", 1) == 0 ) {
 			sectfound = (!sectfound && (strncmp(buf, sectmatch, strlen(sectmatch)) == 0));
@@ -158,7 +160,7 @@ eurephiaVALUES *read_config(const char *cfgname, const char *section) {
 		}
 
 		if( sectfound ) {
-			eurephiaVALUES *prm = parse_config_line(buf);
+			eurephiaVALUES *prm = parse_config_line(log, buf);
 			if( prm != NULL ) {
 				cfg = eUpdate_valuestruct(cfg, prm, 1);
 			}

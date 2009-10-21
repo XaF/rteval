@@ -51,6 +51,6 @@ xmlNode *xmlFindNode(xmlNode *node, const char *key);
 
 inline char *xmlExtractContent(xmlNode *n);
 inline char *xmlGetNodeContent(xmlNode *node, const char *key);
-char *xmlNodeToString(xmlNode *node);
+char *xmlNodeToString(LogContext *log, xmlNode *node);
 
 #endif 	    /* !EUREPHIA_XML_H_ */

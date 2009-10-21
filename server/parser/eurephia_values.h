@@ -39,7 +39,7 @@
 eurephiaVALUES *eGet_valuestruct(eurephiaVALUES *vls, const char *key);
 char *eGet_value(eurephiaVALUES *vls, const char *key);
 
-eurephiaVALUES *eCreate_value_space(int evid);
+eurephiaVALUES *eCreate_value_space(LogContext *log, int evid);
 
 void eAdd_valuestruct(eurephiaVALUES *vls, eurephiaVALUES *newval);
 void eAdd_value(eurephiaVALUES *vls, const char *key, const char *val);

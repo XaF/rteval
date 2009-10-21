@@ -40,7 +40,7 @@
 #include <eurephia_xml.h>
 #include <xmlparser.h>
 #include <sha1.h>
-
+#include <log.h>
 
 /**
  * Simple strdup() function which encapsulates the string in single quotes,
@@ -93,14 +93,14 @@ static char *encapsInt(const unsigned int val) {
  *
  * @return Returns a well formed sqldata XML document on success, otherwise NULL is returned.
  */
-xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params) {
+xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params) {
         xmlDoc *result_d = NULL;
         char *xsltparams[10];
         unsigned int idx = 0, idx_table = 0, idx_submid = 0,
 		idx_syskey = 0, idx_rterid = 0, idx_repfname = 0;
 
         if( params->table == NULL ) {
-                fprintf(stderr, "Table is not defined\n");
+                writelog(log, LOG_ERR, "Table is not defined\n");
                 return NULL;
         }
 
@@ -137,7 +137,7 @@ xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *para
         // Apply the XSLT template to the input XML data
         result_d = xsltApplyStylesheet(xslt, indata_d, (const char **)xsltparams);
         if( result_d == NULL ) {
-                fprintf(stderr, "Failed applying XSLT template to input XML\n");
+                writelog(log, LOG_CRIT, "Failed applying XSLT template to input XML\n");
         }
 
         // Free memory we allocated via encapsString()/encapsInt()
@@ -169,7 +169,7 @@ xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *para
  * @return Returns a pointer to a new buffer containing the value on success, otherwise NULL.
  *         This memory buffer must be free'd after usage.
  */
-static inline char *sqldataValueHash(xmlNode *sql_n) {
+static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 	const char *hash = NULL;
 	SHA1Context shactx;
 	uint8_t shahash[SHA1_HASH_SIZE];
@@ -193,7 +193,7 @@ static inline char *sqldataValueHash(xmlNode *sql_n) {
 		SHA1Final(&shactx, shahash);
 
 		// "Convert" to a readable format
-		ret = malloc_nullsafe((SHA1_HASH_SIZE * 2) + 3);
+		ret = malloc_nullsafe(log, (SHA1_HASH_SIZE * 2) + 3);
 		ptr = ret;
 		for( i = 0; i < SHA1_HASH_SIZE; i++ ) {
 			sprintf(ptr, "%02x", shahash[i]);
@@ -216,7 +216,7 @@ static inline char *sqldataValueHash(xmlNode *sql_n) {
  * @return Returns a pointer to a new memory buffer containing the value as a string.
  *         On errors, NULL is returned.  This memory buffer must be free'd after usage.
  */
-char *sqldataExtractContent(xmlNode *sql_n) {
+char *sqldataExtractContent(LogContext *log, xmlNode *sql_n) {
 	const char *valtype = xmlGetAttrValue(sql_n->properties, "type");
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
@@ -231,9 +231,9 @@ char *sqldataExtractContent(xmlNode *sql_n) {
 		while( chld_n && chld_n->type != XML_ELEMENT_NODE ){
 			chld_n = chld_n->next;
 		}
-		return xmlNodeToString(chld_n);
+		return xmlNodeToString(log, chld_n);
 	} else {
-		return sqldataValueHash(sql_n);
+		return sqldataValueHash(log, sql_n);
 	}
 }
 
@@ -248,17 +248,19 @@ char *sqldataExtractContent(xmlNode *sql_n) {
  *         a value < 0 is returned.  -1 if the field is not found or -2 if there are some problems
  *         with the XML document.
  */
-int sqldataGetFid(xmlNode *sql_n, const char *fname) {
+int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 	xmlNode *f_n = NULL;
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "sqldata") != 0) ) {
-		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		writelog(log, LOG_ERR,
+			 "** ERROR ** Input XML document is not a valid sqldata document\n");
 		return -2;
 	}
 
 	f_n = xmlFindNode(sql_n, "fields");
 	if( !f_n || !f_n->children ) {
-		fprintf(stderr, "** ERROR ** Input XML document does not contain a fields section\n");
+		writelog(log, LOG_ERR,
+			 "** ERROR ** Input XML document does not contain a fields section\n");
 		return -2;
 	}
 
@@ -272,7 +274,8 @@ int sqldataGetFid(xmlNode *sql_n, const char *fname) {
 		if( strcmp(xmlExtractContent(f_n), fname) == 0 ) {
 			char *fid = xmlGetAttrValue(f_n->properties, "fid");
 			if( !fid ) {
-				fprintf(stderr, "** ERROR ** Field node is missing 'fid' attribute\n");
+				writelog(log, LOG_ERR,
+					 "** ERROR ** Field node is missing 'fid' attribute\n");
 				return -2;
 			}
 			return atoi_nullsafe(fid);
@@ -293,29 +296,30 @@ int sqldataGetFid(xmlNode *sql_n, const char *fname) {
  * @return Returns a pointer to a new memory buffer containing the extracted value.  On errors or if
  *         recid is higher than available records, NULL is returned.
  */
-char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
+char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int recid ) {
 	xmlNode *r_n = NULL;
 	int fid = -3, rc = 0;
 
 	if( recid < 0 ) {
-		fprintf(stderr, "** ERROR ** sqldataGetValue() :: Invalid recid\n");
+		writelog(log, LOG_ERR, "** ERROR ** sqldataGetValue() :: Invalid recid\n");
 		return NULL;
 	}
 
 	r_n = xmlDocGetRootElement(sqld);
 	if( !r_n || (xmlStrcmp(r_n->name, (xmlChar *) "sqldata") != 0) ) {
-		fprintf(stderr, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		writelog(log, LOG_ERR, "** ERROR ** Input XML document is not a valid sqldata document\n");
 		return NULL;
 	}
 
-	fid = sqldataGetFid(r_n, fname);
+	fid = sqldataGetFid(log, r_n, fname);
 	if( fid < 0 ) {
 		return NULL;
 	}
 
 	r_n = xmlFindNode(r_n, "records");
 	if( !r_n || !r_n->children ) {
-		fprintf(stderr, "** ERROR ** Input XML document does not contain a records section\n");
+		writelog(log, LOG_ERR,
+			 "** ERROR ** Input XML document does not contain a records section\n");
 		return NULL;
 	}
 
@@ -337,7 +341,7 @@ char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
 				}
 				fid_s = xmlGetAttrValue(v_n->properties, "fid");
 				if( fid_s && (fid == atoi_nullsafe(fid_s)) ) {
-					return sqldataExtractContent(v_n);
+					return sqldataExtractContent(log, v_n);
 				}
 			}
 		}
@@ -362,7 +366,7 @@ char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid ) {
  *         On errors the function will return NULL and hostname and ipaddr will not have been touched
  *         at all.
  */
-xmlDoc *sqldataGetHostInfo(xsltStylesheet *xslt, xmlDoc *summaryxml,
+xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			   int syskey, char **hostname, char **ipaddr)
 {
 	xmlDoc *hostinfo_d = NULL;
@@ -372,26 +376,27 @@ xmlDoc *sqldataGetHostInfo(xsltStylesheet *xslt, xmlDoc *summaryxml,
 	prms.table = "systems_hostname";
 	prms.syskey = syskey;
 
-	hostinfo_d = parseToSQLdata(xslt, summaryxml, &prms);
+	hostinfo_d = parseToSQLdata(log, xslt, summaryxml, &prms);
 	if( !hostinfo_d ) {
-		fprintf(stderr, "** ERROR **  Could not parse input XML data (hostinfo)\n");
+		writelog(log, LOG_ERR,
+			 "** ERROR **  Could not parse input XML data (hostinfo)\n");
 		xmlFreeDoc(hostinfo_d);
 		goto exit;
 	}
 
 	// Grab hostname from input XML
-	*hostname = sqldataGetValue(hostinfo_d, "hostname", 0);
+	*hostname = sqldataGetValue(log, hostinfo_d, "hostname", 0);
 	if( !hostname ) {
-		fprintf(stderr,
+		writelog(log, LOG_ERR,
 			"** ERROR **  Could not retrieve the hostname field from the input XML\n");
 		xmlFreeDoc(hostinfo_d);
 		goto exit;
 	}
 
 	// Grab ipaddr from input XML
-	*ipaddr = sqldataGetValue(hostinfo_d, "ipaddr", 0);
+	*ipaddr = sqldataGetValue(log, hostinfo_d, "ipaddr", 0);
 	if( !ipaddr ) {
-		fprintf(stderr,
+		writelog(log, LOG_ERR,
 			"** ERROR **  Could not retrieve the IP address field from the input XML\n");
 		free_nullsafe(hostname);
 		xmlFreeDoc(hostinfo_d);

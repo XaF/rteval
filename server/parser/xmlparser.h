@@ -39,10 +39,10 @@ typedef struct {
         unsigned int rterid;          /**< References rtevalruns.rterid */
 } parseParams;
 
-xmlDoc *parseToSQLdata(xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params);
-char *sqldataExtractContent(xmlNode *sql_n);
-int sqldataGetFid(xmlNode *sqld, const char *fname);
-char *sqldataGetValue(xmlDoc *sqld, const char *fname, int recid);
-xmlDoc *sqldataGetHostInfo(xsltStylesheet *xslt, xmlDoc *summaryxml,
+xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params);
+char *sqldataExtractContent(LogContext *log, xmlNode *sql_n);
+int sqldataGetFid(LogContext *log, xmlNode *sqld, const char *fname);
+char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int recid);
+xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			   int syskey, char **hostname, char **ipaddr);
 #endif

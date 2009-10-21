@@ -131,13 +131,13 @@ inline char *xmlGetNodeContent(xmlNode *node, const char *key) {
  * @return Returns a pointer to a new buffer containing the serialised data.  This buffer must be freed
  *         after usage
  */
-char *xmlNodeToString(xmlNode *node) {
+char *xmlNodeToString(LogContext *log, xmlNode *node) {
 	xmlBuffer *buf = NULL;
 	xmlSaveCtxt *serctx = NULL;
 	char *ret = NULL;
 
 	if( node == NULL ) {
-		fprintf(stderr, "** ERROR **  Input data is NULL\n");
+		writelog(log, LOG_ALERT, "** ERROR **  Input data is NULL\n");
 		return NULL;
 	}
 
@@ -148,7 +148,7 @@ char *xmlNodeToString(xmlNode *node) {
 	assert( serctx != NULL );
 
 	if( xmlSaveTree(serctx, node) < 0 ) {
-		fprintf(stderr, "** ERROR **  Failed to serialise xmlNode\n");
+		writelog(log, LOG_ALERT, "** ERROR **  Failed to serialise xmlNode\n");
 		return NULL;
 	}
 	xmlSaveClose(serctx);
