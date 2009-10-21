@@ -16,6 +16,16 @@
  * General Public License for more details.
  */
 
+/**
+ * @file   xmlparser.c
+ * @author David Sommerseth <davids@redhat.com>
+ * @date   Wed Oct 21 10:58:53 2009
+ *
+ * @brief Parses summary.xml reports from rteval into a standardised XML format
+ *        which is useful when putting data into a database.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

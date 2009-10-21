@@ -38,8 +38,8 @@
 #include <threadinfo.h>
 #include <parsethread.h>
 
-#define DEFAULT_MSG_MAX 5
-#define XMLPARSER_XSL "xmlparser.xsl"
+#define DEFAULT_MSG_MAX 5             /**< Default size of the message queue */
+#define XMLPARSER_XSL "xmlparser.xsl" /**< rteval report parser XSLT, parses XML into database friendly data*/
 
 static int shutdown = 0; /**<  Global variable indicating if the program should shutdown */
 

@@ -1,11 +1,6 @@
 /*
  * Copyright (C) 2009 Red Hat Inc.
  *
- * David Sommerseth <davids@redhat.com>
- *
- * Takes a standardised XML document (from parseToSQLdata()) and does
- * the database operations based on that input
- *
  * This application is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
  * Software Foundation; version 2.
@@ -14,6 +9,16 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
+ */
+
+/**
+ * @file   pgsql.c
+ * @author David Sommerseth <davids@redhat.com>
+ * @date   Wed Oct 13 17:44:35 2009
+ *
+ * @brief  Database API for the PostgreSQL database.
+ *
+ *
  */
 
 #include <stdio.h>
@@ -383,6 +388,7 @@ int db_rollback(dbconn *dbc) {
  * This function blocks until a notification is received from the database
  *
  * @param dbc        Database connection
+ * @param shutdown   Pointer to the shutdown flag.  Used to avoid reporting false errors.
  * @param listenfor  Name to be used when calling LISTEN
  *
  * @return Returns 1 on successful waiting, otherwise -1
@@ -747,6 +753,7 @@ int db_get_new_rterid(dbconn *dbc) {
  * @param dbc           Database handler where to perform the SQL queries
  * @param xslt          A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml    The XML report from rteval
+ * @param submid        Submission ID, referencing the record in the submissionqueue table.
  * @param syskey        A positive integer containing the return value from db_register_system()
  * @param rterid        A positive integer containing the return value from db_get_new_rterid()
  * @param report_fname  A string containing the filename of the report.

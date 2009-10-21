@@ -1,11 +1,6 @@
 /*
  * Copyright (C) 2009 Red Hat Inc.
  *
- * David Sommerseth <davids@redhat.com>
- *
- * Takes a standardised XML document (from parseToSQLdata()) and does
- * the database operations based on that input
- *
  * This application is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
  * Software Foundation; version 2.
@@ -16,9 +11,22 @@
  * General Public License for more details.
  */
 
+/**
+ * @file   parsethread.h
+ * @author David Sommerseth <davids@redhat.com>
+ * @date   Thu Oct 15 11:52:10 2009
+ *
+ * @brief  Contains the "main" function which a parser threads runs
+ *
+ */
+
 #ifndef _PARSETHREAD_H
 #define _PARSETHREAD_H
 
+/**
+ * jbNONE means no job available,
+ * jbAVAIL indicates that parseJob_t contains a job
+*/
 typedef enum { jbNONE, jbAVAIL } jobStatus;
 
 /**

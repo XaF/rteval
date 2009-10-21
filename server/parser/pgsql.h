@@ -1,11 +1,6 @@
 /*
  * Copyright (C) 2009 Red Hat Inc.
  *
- * David Sommerseth <davids@redhat.com>
- *
- * Takes a standardised XML document (from parseToSQLdata()) and does
- * the database operations based on that input
- *
  * This application is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
  * Software Foundation; version 2.
@@ -14,6 +9,16 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
+ */
+
+/**
+ * @file   pgsql.h
+ * @author David Sommerseth <davids@redhat.com>
+ * @date   Wed Oct 13 17:44:35 2009
+ *
+ * @brief  Database API for the PostgreSQL database.
+ *
+ *
  */
 
 #ifndef _RTEVAL_PGSQL_H

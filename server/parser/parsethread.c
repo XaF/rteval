@@ -141,10 +141,10 @@ static char *get_destination_path(const char *destdir, parseJob_t *job, const in
  * @param mtx_sysreg  Mutex locking to avoid simultaneous registration of systems, as they cannot
  *                    be in an SQL transaction (due to SHA1 sysid must be registered and visible ASAP)
  * @param destdir     Destination directory for the report file, when moved from the queue.
- * @param submid      Submission ID, reference to the submissionqueue record
- * @param fname       Full path to the report XML file to be parsed
+ * @param job         Pointer to a parseJob_t structure containing the job information
  *
  * @return Return values:
+ * @code
  *          STAT_SUCCESS  : Successfully registered report
  *          STAT_XMLFAIL  : Could not parse the XML report file
  *          STAT_SYSREG   : Failed to register the system into the systems or systems_hostname tables
@@ -153,6 +153,7 @@ static char *get_destination_path(const char *destdir, parseJob_t *job, const in
  *          STAT_RTEVRUNS : Failed to register the rteval run into rtevalruns or rtevalruns_details
  *          STAT_CYCLIC   : Failed to register the data into cyclic_statistics or cyclic_rawdata tables
  *          STAT_REPMOVE  : Failed to move the report file
+ * @endcode
  */
 inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_sysreg,
 			const char *destdir, parseJob_t *job) {
