@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
         pthread_t **threads = NULL;
         pthread_attr_t **thread_attrs = NULL;
 	pthread_mutex_t mtx_sysreg = PTHREAD_MUTEX_INITIALIZER;
-	threadData_t **thrdata;
+	threadData_t **thrdata = NULL;
 	struct mq_attr msgq_attr;
 	mqd_t msgq;
 	int i,rc, max_threads = 5;
