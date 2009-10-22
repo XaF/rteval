@@ -139,12 +139,12 @@ eurephiaVALUES *read_config(LogContext *log, const char *cfgname, const char *se
         struct stat fi;
 
         if( stat(cfgname, &fi) == -1 ) {
-		writelog(log, LOG_EMERG, "Could not open the config file: %s\n", cfgname);
+		writelog(log, LOG_EMERG, "Could not open the config file: %s", cfgname);
                 return NULL;
         }
 
         if( (fp = fopen(cfgname, "r")) == NULL ) {
-                writelog(log, LOG_EMERG, "Could not open the config file: %s\n", cfgname);
+                writelog(log, LOG_EMERG, "Could not open the config file: %s", cfgname);
                 return NULL;
         }
 
@@ -153,6 +153,7 @@ eurephiaVALUES *read_config(LogContext *log, const char *cfgname, const char *se
 	sprintf(sectmatch, "[%s]", section);
 
         cfg = default_cfg_values(log);
+	writelog(log, LOG_DEBUG, "Reading config file: %s", cfgname);
         while( fgets(buf, fi.st_size, fp) != NULL ) {
 		if( strncmp(buf, "[", 1) == 0 ) {
 			sectfound = (!sectfound && (strncmp(buf, sectmatch, strlen(sectmatch)) == 0));

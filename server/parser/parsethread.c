@@ -80,16 +80,16 @@ static int make_report_dir(LogContext *log, const char *fname) {
 				if( mkdir(chkdir, 0755) < 0 ) {
 					// If creating dir failed, report error
 					writelog(log, LOG_ALERT,
-						 "** ERROR **  Could not create directory: %s\n"
-						 "** ERROR **  %s\n", chkdir, strerror(errno));
+						 "Could not create directory: %s (%s)",
+						 chkdir, strerror(errno));
 					ret = -1;
 					goto exit;
 				}
 				break;
 			default: // If other failure, report that and exit
 				writelog(log, LOG_ALERT,
-					 "** ERROR **  Could not access directory: %s\n"
-					 "** ERROR **  %s\n", chkdir, strerror(errno));
+					 "Could not access directory: %s (%s)",
+					 chkdir, strerror(errno));
 				ret = -1;
 				goto exit;
 			}
@@ -167,7 +167,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	repxml = xmlParseFile(job->filename);
 	if( !repxml ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Could not parse XML file: %s\n", job->filename);
+			 "Could not parse XML file: %s", job->filename);
 	        return STAT_XMLFAIL;
 	}
 
@@ -175,7 +175,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	syskey = db_register_system(dbc, xslt, repxml);
 	if( syskey < 0 ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Failed to register system (XML file: %s)\n", job->filename);
+			 "Failed to register system (XML file: %s)", job->filename);
 		rc = STAT_SYSREG;
 		goto exit;
 
@@ -183,8 +183,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	rterid = db_get_new_rterid(dbc);
 	if( rterid < 0 ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Failed to register rteval run (XML file: %s)\n",
-			job->filename);
+			 "Failed to register rteval run (XML file: %s)", job->filename);
 		rc = STAT_RTERIDREG;
 		goto exit;
 	}
@@ -199,7 +198,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 	destfname = get_destination_path(dbc->log, destdir, job, rterid);
 	if( !destfname ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Failed to generate local report filename for (%i) %s\n",
+			 "Failed to generate local report filename for (%i) %s",
 			job->submid, job->filename);
 		db_rollback(dbc);
 		rc = STAT_UNKNFAIL;
@@ -208,7 +207,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 
 	if( db_register_rtevalrun(dbc, xslt, repxml, job->submid, syskey, rterid, destfname) < 0 ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Failed to register rteval run (XML file: %s)\n",
+			 "Failed to register rteval run (XML file: %s)",
 			 job->filename);
 		db_rollback(dbc);
 		rc = STAT_RTEVRUNS;
@@ -217,7 +216,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 
 	if( db_register_cyclictest(dbc, xslt, repxml, rterid) != 1 ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Failed to register cyclictest data (XML file: %s)\n",
+			 "Failed to register cyclictest data (XML file: %s)",
 			 job->filename);
 		db_rollback(dbc);
 		rc = STAT_CYCLIC;
@@ -233,8 +232,7 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 
 	if( rename(job->filename, destfname) < 0 ) { // Move the file
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Failed to move report file from %s to %s\n"
-			 "** ERROR ** %s\n",
+			 "Failed to move report file from %s to %s (%s)",
 			 job->filename, destfname, strerror(errno));
 		db_rollback(dbc);
 		rc = STAT_REPMOVE;
@@ -264,7 +262,7 @@ void *parsethread(void *thrargs) {
 	threadData_t *args = (threadData_t *) thrargs;
 	parseJob_t jobinfo;
 
-	writelog(args->dbc->log, LOG_DEBUG, "** Starting thread %i\n", args->id);
+	writelog(args->dbc->log, LOG_DEBUG, "[Thread %i] Starting", args->id);
 	while( !*(args->shutdown) ) {
 		int len = 0;
 		unsigned int prio = 0;
@@ -275,7 +273,7 @@ void *parsethread(void *thrargs) {
 		len = mq_receive(args->msgq, (char *)&jobinfo, sizeof(parseJob_t), &prio);
 		if( (len < 0) && errno != EAGAIN ) {
 			writelog(args->dbc->log, LOG_CRIT,
-				 "** ERROR ** Could not receive the message from queue: %s\n",
+				 "Could not receive the message from queue: %s",
 				 strerror(errno));
 			pthread_exit((void *) 1);
 		}
@@ -285,7 +283,7 @@ void *parsethread(void *thrargs) {
 			int res = 0;
 
 			writelog(args->dbc->log, LOG_DEBUG,
-				 "** Thread %i: Job recieved, submid: %i\n",
+				 "** Thread %i: Job recieved, submid: %i",
 				 args->id, jobinfo.submid);
 
 			// Mark the job as "in progress", if successful update, continue parsing it
@@ -296,7 +294,7 @@ void *parsethread(void *thrargs) {
 				db_update_submissionqueue(args->dbc, jobinfo.submid, res);
 			} else {
 				writelog(args->dbc->log, LOG_CRIT,
-					 "** ERROR **  Failed to mark submid %i as STAT_INPROG\n",
+					 "Failed to mark submid %i as STAT_INPROG",
 					 jobinfo.submid);
 			}
 		} else {
@@ -304,6 +302,6 @@ void *parsethread(void *thrargs) {
 			sleep(5);
 		}
 	}
-	writelog(args->dbc->log, LOG_DEBUG, "** Thread %i shut down\n", args->id);
+	writelog(args->dbc->log, LOG_DEBUG, "[Thread %i] Shut down", args->id);
 	pthread_exit((void *) 0);
 }

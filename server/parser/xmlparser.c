@@ -100,7 +100,7 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
 		idx_syskey = 0, idx_rterid = 0, idx_repfname = 0;
 
         if( params->table == NULL ) {
-                writelog(log, LOG_ERR, "Table is not defined\n");
+                writelog(log, LOG_ERR, "Table is not defined");
                 return NULL;
         }
 
@@ -137,7 +137,7 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
         // Apply the XSLT template to the input XML data
         result_d = xsltApplyStylesheet(xslt, indata_d, (const char **)xsltparams);
         if( result_d == NULL ) {
-                writelog(log, LOG_CRIT, "Failed applying XSLT template to input XML\n");
+                writelog(log, LOG_CRIT, "Failed applying XSLT template to input XML");
         }
 
         // Free memory we allocated via encapsString()/encapsInt()
@@ -253,14 +253,14 @@ int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "sqldata") != 0) ) {
 		writelog(log, LOG_ERR,
-			 "** ERROR ** Input XML document is not a valid sqldata document\n");
+			 "sqldataGetFid: Input XML document is not a valid sqldata document");
 		return -2;
 	}
 
 	f_n = xmlFindNode(sql_n, "fields");
 	if( !f_n || !f_n->children ) {
 		writelog(log, LOG_ERR,
-			 "** ERROR ** Input XML document does not contain a fields section\n");
+			 "sqldataGetFid: Input XML document does not contain a fields section");
 		return -2;
 	}
 
@@ -275,7 +275,8 @@ int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 			char *fid = xmlGetAttrValue(f_n->properties, "fid");
 			if( !fid ) {
 				writelog(log, LOG_ERR,
-					 "** ERROR ** Field node is missing 'fid' attribute\n");
+					 "sqldataGetFid: Field node is missing 'fid' attribute (field: %s)",
+					 fname);
 				return -2;
 			}
 			return atoi_nullsafe(fid);
@@ -301,13 +302,14 @@ char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int reci
 	int fid = -3, rc = 0;
 
 	if( recid < 0 ) {
-		writelog(log, LOG_ERR, "** ERROR ** sqldataGetValue() :: Invalid recid\n");
+		writelog(log, LOG_ERR, "sqldataGetValue: Invalid recid");
 		return NULL;
 	}
 
 	r_n = xmlDocGetRootElement(sqld);
 	if( !r_n || (xmlStrcmp(r_n->name, (xmlChar *) "sqldata") != 0) ) {
-		writelog(log, LOG_ERR, "** ERROR ** Input XML document is not a valid sqldata document\n");
+		writelog(log, LOG_ERR,
+			 "sqldataGetValue: Input XML document is not a valid sqldata document");
 		return NULL;
 	}
 
@@ -319,7 +321,7 @@ char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int reci
 	r_n = xmlFindNode(r_n, "records");
 	if( !r_n || !r_n->children ) {
 		writelog(log, LOG_ERR,
-			 "** ERROR ** Input XML document does not contain a records section\n");
+			 "sqldataGetValue: Input XML document does not contain a records section");
 		return NULL;
 	}
 
@@ -379,7 +381,7 @@ xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summar
 	hostinfo_d = parseToSQLdata(log, xslt, summaryxml, &prms);
 	if( !hostinfo_d ) {
 		writelog(log, LOG_ERR,
-			 "** ERROR **  Could not parse input XML data (hostinfo)\n");
+			 "sqldatGetHostInfo: Could not parse input XML data");
 		xmlFreeDoc(hostinfo_d);
 		goto exit;
 	}
@@ -388,7 +390,7 @@ xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summar
 	*hostname = sqldataGetValue(log, hostinfo_d, "hostname", 0);
 	if( !hostname ) {
 		writelog(log, LOG_ERR,
-			"** ERROR **  Could not retrieve the hostname field from the input XML\n");
+			"sqldatGetHostInfo: Could not retrieve the hostname field from the input XML");
 		xmlFreeDoc(hostinfo_d);
 		goto exit;
 	}
@@ -397,7 +399,7 @@ xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summar
 	*ipaddr = sqldataGetValue(log, hostinfo_d, "ipaddr", 0);
 	if( !ipaddr ) {
 		writelog(log, LOG_ERR,
-			"** ERROR **  Could not retrieve the IP address field from the input XML\n");
+			"sqldatGetHostInfo: Could not retrieve the IP address field from the input XML");
 		free_nullsafe(hostname);
 		xmlFreeDoc(hostinfo_d);
 		goto exit;

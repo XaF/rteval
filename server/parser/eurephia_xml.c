@@ -137,7 +137,7 @@ char *xmlNodeToString(LogContext *log, xmlNode *node) {
 	char *ret = NULL;
 
 	if( node == NULL ) {
-		writelog(log, LOG_ALERT, "** ERROR **  Input data is NULL\n");
+		writelog(log, LOG_ALERT, "xmlNodeToString: Input data is NULL");
 		return NULL;
 	}
 
@@ -148,7 +148,7 @@ char *xmlNodeToString(LogContext *log, xmlNode *node) {
 	assert( serctx != NULL );
 
 	if( xmlSaveTree(serctx, node) < 0 ) {
-		writelog(log, LOG_ALERT, "** ERROR **  Failed to serialise xmlNode\n");
+		writelog(log, LOG_ALERT, "xmlNodeToString: Failed to serialise xmlNode");
 		return NULL;
 	}
 	xmlSaveClose(serctx);

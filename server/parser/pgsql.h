@@ -36,12 +36,13 @@
  *  A unified database abstraction layer, providing log support
  */
 typedef struct {
+	unsigned int id;  /**< Unique connection ID, used for debugging */
 	LogContext *log;  /**< Initialised log context */
 	PGconn *db;       /**< Database connection handler */
 } dbconn;
 
 /* Generic database function */
-dbconn *db_connect(eurephiaVALUES *cfg, LogContext *log);
+dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log);
 void db_disconnect(dbconn *dbc);
 int db_begin(dbconn *dbc);
 int db_commit(dbconn *dbc);

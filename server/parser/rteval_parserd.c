@@ -54,9 +54,9 @@ static LogContext *logctx = NULL;     /**<  Initialsed log context, to be used b
 void sigcatch(int sig) {
 	if( shutdown == 0 ) {
 		shutdown = 1;
-		writelog(logctx, LOG_INFO, "** SIGNAL ** Starting shutting down\n");
+		writelog(logctx, LOG_INFO, "[SIGNAL] Starting shutting down");
 	} else {
-		writelog(logctx, LOG_INFO, "** SIGNAL ** Shutdown in progress ... please be patient ...\n");
+		writelog(logctx, LOG_INFO, "[SIGNAL] Shutdown in progress ... please be patient ...");
 	}
 
 	// re-enable signals, to avoid brute force exits.
@@ -79,26 +79,26 @@ unsigned int get_mqueue_msg_max(LogContext *log) {
 
 	fp = fopen("/proc/sys/fs/mqueue/msg_max", "r");
 	if( !fp ) {
-		writelog(log, LOG_NOTICE,
-			"** ERROR **  Could not open /proc/sys/fs/mqueue/msg_max, defaulting to %i\n",
+		writelog(log, LOG_WARNING,
+			"Could not open /proc/sys/fs/mqueue/msg_max, defaulting to %i",
 			msg_max);
-		writelog(log, LOG_DEBUG, "** ERROR **  %s\n", strerror(errno));
+		writelog(log, LOG_INFO, "%s", strerror(errno));
 		return msg_max;
 	}
 
 	memset(&buf, 0, 130);
 	if( fread(&buf, 1, 128, fp) < 1 ) {
-		writelog(log, LOG_NOTICE,
-			"** ERROR **  Could not read /proc/sys/fs/mqueue/msg_max, defaulting to %i\n",
+		writelog(log, LOG_WARNING,
+			"Could not read /proc/sys/fs/mqueue/msg_max, defaulting to %i",
 			msg_max);
-		writelog(log, LOG_DEBUG, "** ERROR **  %s\n", strerror(errno));
+		writelog(log, LOG_INFO, "%s", strerror(errno));
 	} else {
 		msg_max = atoi_nullsafe(buf);
 		if( msg_max < 1 ) {
 			msg_max = DEFAULT_MSG_MAX;
-			writelog(log, LOG_NOTICE,
-				"** ERROR **  Failed to parse /proc/sys/fs/mqueue/msg_max,"
-				"defaulting to %i\n", msg_max);
+			writelog(log, LOG_WARNING,
+				"Failed to parse /proc/sys/fs/mqueue/msg_max,"
+				"defaulting to %i", msg_max);
 		}
 	}
 	fclose(fp);
@@ -125,7 +125,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 		job = db_get_submissionqueue_job(dbc, &mtx_submq);
 		if( !job ) {
 			writelog(dbc->log, LOG_EMERG,
-				 "** ERROR **  Failed to get submission queue job - shutting down\n");
+				 "Failed to get submission queue job - shutting down");
 			shutdown = 1;
 			rc = 1;
 			goto exit;
@@ -134,7 +134,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 			free_nullsafe(job);
 			if( db_wait_notification(dbc, &shutdown, "rteval_submq") < 1 ) {
 				writelog(dbc->log, LOG_EMERG,
-					 "** ERROR **  Failed to wait for DB notification - shutting down\n");
+					 "Failed to wait for DB notification - shutting down");
 				shutdown = 1;
 				rc = 1;
 				goto exit;
@@ -143,7 +143,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 		}
 
 		// Send the job to the queue
-		writelog(dbc->log, LOG_NOTICE, "** New job: submid %i, %s\n", job->submid, job->filename);
+		writelog(dbc->log, LOG_INFO, "** New job: submid %i, %s", job->submid, job->filename);
 		do {
 			int res;
 
@@ -151,15 +151,15 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 			res = mq_send(msgq, (char *) job, sizeof(parseJob_t), 1);
 			if( (res < 0) && (errno != EAGAIN) ) {
 				writelog(dbc->log, LOG_EMERG,
-					 "** ERROR **  Could not send parse job to the queue "
-					 "- shutting down\n");
+					 "Could not send parse job to the queue "
+					 "- shutting down");
 				shutdown = 1;
 				rc = 2;
 				goto exit;
 			} else if( errno == EAGAIN ) {
 				writelog(dbc->log, LOG_WARNING,
-					"** WARNING **  Message queue filled up.  "
-					"Will not add new messages to queue for the next 60 seconds\n");
+					"Message queue filled up.  "
+					"Will not add new messages to queue for the next 60 seconds");
 				sleep(60);
 			}
 		} while( (errno == EAGAIN) );
@@ -208,14 +208,16 @@ int main(int argc, char **argv) {
 
 	// Parse XSLT template
 	snprintf(xsltfile, 512, "%s/%s", eGet_value(config, "xsltpath"), XMLPARSER_XSL);
+	writelog(logctx, LOG_DEBUG, "Parsing XSLT file: %s", xsltfile);
         xslt = xsltParseStylesheetFile((xmlChar *) xsltfile);
 	if( !xslt ) {
-		writelog(logctx, LOG_EMERG, "** ERROR **  Could not parse XSLT template: %s\n", xsltfile);
+		writelog(logctx, LOG_EMERG, "Could not parse XSLT template: %s", xsltfile);
 		rc = 2;
 		goto exit;
 	}
 
 	// Open a POSIX MQ
+	writelog(logctx, LOG_DEBUG, "Preparing POSIX MQ queue: /rteval_parsequeue");
 	memset(&msgq, 0, sizeof(mqd_t));
 	msgq_attr.mq_maxmsg = get_mqueue_msg_max(logctx);
 	msgq_attr.mq_msgsize = sizeof(parseJob_t);
@@ -223,13 +225,13 @@ int main(int argc, char **argv) {
 	msgq = mq_open("/rteval_parsequeue", O_RDWR | O_CREAT | O_NONBLOCK, 0600, &msgq_attr);
 	if( msgq < 0 ) {
 		writelog(logctx, LOG_EMERG,
-			 "** ERROR **  Could not open message queue: %s\n", strerror(errno));
+			 "Could not open message queue: %s", strerror(errno));
 		rc = 2;
 		goto exit;
 	}
 
 	// Get a database connection for the main thread
-        dbc = db_connect(config, logctx);
+        dbc = db_connect(config, max_threads, logctx);
         if( !dbc ) {
 		rc = 2;
 		goto exit;
@@ -242,21 +244,22 @@ int main(int argc, char **argv) {
 	assert( (threads != NULL) && (thread_attrs != NULL) && (thrdata != NULL) );
 
 	reportdir = eGet_value(config, "reportdir");
+	writelog(logctx, LOG_INFO, "Starting %i worker threads", max_threads);
 	for( i = 0; i < max_threads; i++ ) {
 		// Prepare thread specific data
 		thrdata[i] = malloc_nullsafe(logctx, sizeof(threadData_t));
 		if( !thrdata[i] ) {
 			writelog(logctx, LOG_EMERG,
-				 "** ERROR **  Could not allocate memory for thread data\n");
+				 "Could not allocate memory for thread data");
 			rc = 2;
 			goto exit;
 		}
 
 		// Get a database connection for the thread
-		thrdata[i]->dbc = db_connect(config, logctx);
+		thrdata[i]->dbc = db_connect(config, i, logctx);
 		if( !thrdata[i]->dbc ) {
 			writelog(logctx, LOG_EMERG,
-				"** ERROR **  Could not connect to the database for thread %i\n", i);
+				"Could not connect to the database for thread %i", i);
 			rc = 2;
 			shutdown = 1;
 			goto exit;
@@ -272,7 +275,7 @@ int main(int argc, char **argv) {
 		thread_attrs[i] = malloc_nullsafe(logctx, sizeof(pthread_attr_t));
 		if( !thread_attrs[i] ) {
 			writelog(logctx, LOG_EMERG,
-				"** ERROR **  Could not allocate memory for thread attributes\n");
+				"Could not allocate memory for thread attributes");
 			rc = 2;
 			goto exit;
 		}
@@ -282,7 +285,7 @@ int main(int argc, char **argv) {
 		threads[i] = malloc_nullsafe(logctx, sizeof(pthread_t));
 		if( !threads[i] ) {
 			writelog(logctx, LOG_EMERG,
-				"** ERROR **  Could not allocate memory for pthread_t\n");
+				"Could not allocate memory for pthread_t");
 			rc = 2;
 			goto exit;
 		}
@@ -309,9 +312,9 @@ int main(int argc, char **argv) {
 	// checks the submission queue and puts unprocessed records on the POSIX MQ
 	// to be parsed by one of the threads
 	//
-	writelog(logctx, LOG_DEBUG, "** Starting submission queue checker\n");
+	writelog(logctx, LOG_DEBUG, "Starting submission queue checker");
 	rc = process_submission_queue(dbc, msgq);
-	writelog(logctx, LOG_DEBUG, "** Submission queue checker shut down\n");
+	writelog(logctx, LOG_DEBUG, "Submission queue checker shut down");
 
  exit:
 	// Clean up all threads
@@ -323,7 +326,7 @@ int main(int argc, char **argv) {
 
 			if( (j_rc = pthread_join(*threads[i], &thread_rc)) != 0 ) {
 				writelog(logctx, LOG_CRIT,
-					 "** ERROR **  Failed to join thread %i: %s\n", 
+					 "Failed to join thread %i: %s",
 					 i, strerror(j_rc));
 			}
 			pthread_attr_destroy(thread_attrs[i]);
@@ -344,12 +347,12 @@ int main(int argc, char **argv) {
 	// Close message queue
 	errno = 0;
 	if( mq_close(msgq) < 0 ) {
-		writelog(logctx, LOG_CRIT, "** ERROR **  Failed to close message queue: %s\n",
+		writelog(logctx, LOG_CRIT, "Failed to close message queue: %s",
 			strerror(errno));
 	}
 	errno = 0;
 	if( mq_unlink("/rteval_parsequeue") < 0 ) {
-		writelog(logctx, LOG_ALERT, "** ERROR **  Failed to remove the message queue: %s\n",
+		writelog(logctx, LOG_ALERT, "Failed to remove the message queue: %s",
 			strerror(errno));
 	}
 

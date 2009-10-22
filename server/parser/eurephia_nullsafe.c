@@ -59,8 +59,7 @@ __malloc__ void *malloc_nullsafe(LogContext *log, size_t sz) {
 
         buf = calloc(1, sz);    /* Using calloc, also gives a zero'd memory region */
         if( !buf ) {
-		writelog(log, LOG_EMERG, "** FATAL ERROR ** "
-			 "Could not allocate memory region for %ld bytes\n", sz);
+		writelog(log, LOG_EMERG, "Could not allocate memory region for %ld bytes", sz);
 		exit(9);
         }
         return buf;

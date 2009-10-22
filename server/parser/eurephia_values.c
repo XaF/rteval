@@ -178,7 +178,7 @@ void eAdd_value(eurephiaVALUES *vls, const char *key, const char *val)
         // Allocate buffer and save values
         ptr = eCreate_value_space(vls->log, vls->evid);
         if( ptr == NULL ) {
-		writelog(vls->log, LOG_EMERG, "**ERROR**  Failed to add value to the value chain\n");
+		writelog(vls->log, LOG_EMERG, "Failed to add value to the value chain");
 		exit(9);
         }
         ptr->key = strdup_nullsafe(key);

@@ -134,7 +134,34 @@ void writelog(LogContext *lctx, unsigned int loglvl, const char *fmt, ... ) {
 		case ltCONSOLE:
 		case ltFILE:
 			pthread_mutex_lock(lctx->mtx_log);
+			switch( loglvl ) {
+			case LOG_EMERG:
+				fprintf(lctx->logfp, "**  EMERG  ERROR  ** ");
+				break;
+			case LOG_ALERT:
+				fprintf(lctx->logfp, "**  ALERT  ERROR  ** ");
+				break;
+			case LOG_CRIT:
+				fprintf(lctx->logfp, "** CRITICAL ERROR ** ");
+				break;
+			case LOG_ERR:
+				fprintf(lctx->logfp, "** ERROR ** ");
+				break;
+			case LOG_WARNING:
+				fprintf(lctx->logfp, "*WARNING* ");
+				break;
+			case LOG_NOTICE:
+				fprintf(lctx->logfp, "[NOTICE] ");
+				break;
+			case LOG_INFO:
+				fprintf(lctx->logfp, "[INFO]   ");
+				break;
+			case LOG_DEBUG:
+				fprintf(lctx->logfp, "[DEBUG]  ");
+				break;
+			}
 			vfprintf(lctx->logfp, fmt, ap);
+			fprintf(lctx->logfp, "\n");
 			pthread_mutex_unlock(lctx->mtx_log);
 			break;
 		}

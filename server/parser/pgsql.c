@@ -51,12 +51,17 @@
  *
  * @return Returns a database connection context
  */
-dbconn *db_connect(eurephiaVALUES *cfg, LogContext *log) {
+dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log) {
 	dbconn *ret = NULL;
 
 	ret = (dbconn *) malloc_nullsafe(log, sizeof(dbconn)+2);
+	ret->id = id;
 	ret->log = log;
 
+	writelog(log, LOG_DEBUG, "[Connection %i] Connecting to database: server=%s:%s, "
+		 "database=%s, user=%s", ret->id,
+		 eGet_value(cfg, "db_server"), eGet_value(cfg, "db_port"),
+		 eGet_value(cfg, "database"), eGet_value(cfg, "db_username"));
 	ret->db = PQsetdbLogin(eGet_value(cfg, "db_server"),
 			   eGet_value(cfg, "db_port"),
 			   NULL, /* pgopt */
@@ -67,14 +72,14 @@ dbconn *db_connect(eurephiaVALUES *cfg, LogContext *log) {
 
 	if( !ret->db ) {
 		writelog(log, LOG_EMERG,
-			 "** ERROR ** Could not connect to the database (unknown reason)\n");
+			 "[Connection %i] Could not connect to the database (unknown reason)", ret->id);
 		free_nullsafe(ret);
 		return NULL;
 	}
 
 	if( PQstatus(ret->db) != CONNECTION_OK ) {
-		writelog(log, LOG_EMERG, "** ERROR ** Failed to connect to the database\n%s\n",
-			 PQerrorMessage(ret->db));
+		writelog(log, LOG_EMERG, "[Connection %i] Failed to connect to the database: %s",
+			 ret->id, PQerrorMessage(ret->db));
 		free_nullsafe(ret);
 		return NULL;
 	}
@@ -89,8 +94,10 @@ dbconn *db_connect(eurephiaVALUES *cfg, LogContext *log) {
  */
 void db_disconnect(dbconn *dbc) {
 	if( dbc && dbc->db ) {
+		writelog(dbc->log, LOG_DEBUG, "[Connection %i] Disconnecting from database", dbc->id);
 		PQfinish(dbc->db);
 		dbc->db = NULL;
+		dbc->log = NULL;
 	}
 }
 
@@ -167,14 +174,14 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	root_n = xmlDocGetRootElement(sqldoc);
 	if( !root_n || (xmlStrcmp(root_n->name, (xmlChar *) "sqldata") != 0) ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR ** Input XML document is not a valid sqldata document\n");
+			 "[Connection %i] Input XML document is not a valid sqldata document", dbc->id);
 		return NULL;
 	}
 
 	table = xmlGetAttrValue(root_n->properties, "table");
 	if( !table ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR ** Input XML document is missing table reference\n");
+			 "[Connection %i] Input XML document is missing table reference", dbc->id);
 		return NULL;
 	}
 
@@ -184,7 +191,8 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	recs_n = xmlFindNode(root_n, "records");
 	if( !fields_n || !recs_n ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR ** Input XML document is missing either <fields/> or <records/>\n");
+			 "[Connection %i] Input XML document is missing either <fields/> or <records/>",
+			 dbc->id);
 		return NULL;
 	}
 
@@ -248,11 +256,14 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	}
 
 	// Create a prepared SQL query
+#ifdef DEBUG_SQL
+	writelog(dbc->log, LOG_DEBUG, "[Connection %i] Preparing SQL statement: %s", dbc->id, sql);
+#endif
 	dbres = PQprepare(dbc->db, "", sql, fieldcnt, NULL);
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  Failed to prepare SQL query\n%s\n",
-			 PQresultErrorMessage(dbres));
+			 "[Connection %i] Failed to prepare SQL query: %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		goto exit;
 	}
@@ -293,8 +304,8 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 		dbres = PQexecPrepared(dbc->db, "", fieldcnt,
 				       (const char * const *)value_ar, NULL, NULL, 0);
 		if( PQresultStatus(dbres) != (key ? PGRES_TUPLES_OK : PGRES_COMMAND_OK) ) {
-			writelog(dbc->log, LOG_ALERT, "** ERROR **  Failed to do SQL INSERT query\n%s\n",
-				PQresultErrorMessage(dbres));
+			writelog(dbc->log, LOG_ALERT, "[Connection %i] Failed to do SQL INSERT query: %s",
+				 dbc->id, PQresultErrorMessage(dbres));
 			PQclear(dbres);
 			eFree_values(res);
 			res = NULL;
@@ -346,8 +357,8 @@ int db_begin(dbconn *dbc) {
 	dbres = PQexec(dbc->db, "BEGIN");
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  Failed to do prepare a transaction (BEGIN)\n%s\n",
-			 PQresultErrorMessage(dbres));
+			 "[Connection %i] Failed to do prepare a transaction (BEGIN): %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		return -1;
 	}
@@ -369,8 +380,8 @@ int db_commit(dbconn *dbc) {
 	dbres = PQexec(dbc->db, "COMMIT");
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  Failed to do commit a database transaction (COMMIT)\n%s\n",
-			 PQresultErrorMessage(dbres));
+			 "[Connection %i] Failed to do commit a database transaction (COMMIT): %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		return -1;
 	}
@@ -392,8 +403,8 @@ int db_rollback(dbconn *dbc) {
 	dbres = PQexec(dbc->db, "ROLLBACK");
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
 		writelog(dbc->log, LOG_CRIT,
-			 "** ERROR **  Failed to do abort/rollback a transaction (ROLLBACK)\n%s\n",
-			 PQresultErrorMessage(dbres));
+			 "[Connection %i] Failed to do abort/rollback a transaction (ROLLBACK): %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 		PQclear(dbres);
 		return -1;
 	}
@@ -422,11 +433,11 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 	assert( sql != NULL );
 
 	// Initiate listening
-	sprintf(sql, "LISTEN %s\n", listenfor);
+	sprintf(sql, "LISTEN %s", listenfor);
 	dbres = PQexec(dbc->db, sql);
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR ** SQL %s\n", PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT, "[Connection %i] SQL %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 		free_nullsafe(sql);
 		PQclear(dbres);
 		return -1;
@@ -450,8 +461,8 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 			// report errors if we're not shutting down, or else exit normally with
 			// successful waiting.
 			if( *shutdown == 0 ) {
-				writelog(dbc->log, LOG_CRIT,
-					 "** ERROR **  select() failed: %s\n", strerror(errno));
+				writelog(dbc->log, LOG_CRIT, "[Connection %i] select() failed: %s",
+					 dbc->id, strerror(errno));
 				ret = -1;
 			} else {
 				ret = 1;
@@ -464,8 +475,8 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 		while ((notify = PQnotifies(dbc->db)) != NULL) {
 			// If a notification was received, inform and exit with success.
 			writelog(dbc->log, LOG_DEBUG,
-				 "** INFO ** Received notfication from pid %d\n",
-				 notify->be_pid);
+				 "[Connection %i] Received notfication from pid %d",
+				 dbc->id, notify->be_pid);
 			PQfreemem(notify);
 			ret = 1;
 			break;
@@ -473,10 +484,11 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 	}
 
 	// Stop listening when we exit
-	sprintf(sql, "UNLISTEN %s\n", listenfor);
+	sprintf(sql, "UNLISTEN %s", listenfor);
 	dbres = PQexec(dbc->db, sql);
 	if( PQresultStatus(dbres) != PGRES_COMMAND_OK ) {
-		writelog(dbc->log, LOG_ALERT, "** ERROR ** SQL %s\n", PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT, "[Connection %i] SQL %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 		free_nullsafe(sql);
 		ret = -1;
 	}
@@ -518,8 +530,8 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 	if( PQresultStatus(res) != PGRES_TUPLES_OK ) {
 		pthread_mutex_unlock(mtx);
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  Failed to query submission queue (SELECT)\n%s\n",
-			 PQresultErrorMessage(res));
+			 "[Connection %i] Failed to query submission queue (SELECT): %s",
+			 dbc->id, PQresultErrorMessage(res));
 		PQclear(res);
 		free_nullsafe(job);
 		return NULL;
@@ -534,8 +546,8 @@ parseJob_t *db_get_submissionqueue_job(dbconn *dbc, pthread_mutex_t *mtx) {
 		// Update the submission queue status
 		if( db_update_submissionqueue(dbc, job->submid, STAT_ASSIGNED) < 1 ) {
 			pthread_mutex_unlock(mtx);
-			writelog(dbc->log, LOG_ALERT,
-				 "** ERROR **  Failed to update submission queue statis to STAT_ASSIGNED\n");
+			writelog(dbc->log, LOG_ALERT, "[Connection %i] Failed to update "
+				 "submission queue statis to STAT_ASSIGNED", dbc->id);
 			free_nullsafe(job);
 			return NULL;
 		}
@@ -592,21 +604,21 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 	default:
 	case STAT_NEW:
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Invalid status (%i) attempted to set on submid %i\n",
-			 status, submid);
+			 "[Connection %i] Invalid status (%i) attempted to set on submid %i",
+			 dbc->id, status, submid);
 		return 0;
 	}
 
 	res = PQexec(dbc->db, sql);
 	if( !res ) {
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  Unkown error when updating submid %i to status %i\n",
-			 submid, status);
+			 "[Connection %i] Unkown error when updating submid %i to status %i",
+			 dbc->id, submid, status);
 		return -1;
 	} else if( PQresultStatus(res) != PGRES_COMMAND_OK ) {
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  Failed to UPDATE submissionqueue (submid: %i, status: %i)\n%s\n",
-			 submid, status, PQresultErrorMessage(res));
+			 "[Connection %i] Failed to UPDATE submissionqueue (submid: %i, status: %i): %s",
+			 dbc->id, submid, status, PQresultErrorMessage(res));
 		PQclear(res);
 		return -1;
 	}
@@ -641,14 +653,14 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	prms.table = "systems";
 	sysinfo_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 	if( !sysinfo_d ) {
-		writelog(dbc->log, LOG_ERR, "** ERROR **  Could not parse the input XML data\n");
+		writelog(dbc->log, LOG_ERR, "[Connection %i] Could not parse the input XML data", dbc->id);
 		syskey= -1;
 		goto exit;
 	}
 	sysid = sqldataGetValue(dbc->log, sysinfo_d, "sysid", 0);
 	if( !sysid ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Could not retrieve the sysid field from the input XML\n");
+			 "[Connection %i] Could not retrieve the sysid field from the input XML", dbc->id);
 		syskey= -1;
 		goto exit;
 	}
@@ -658,9 +670,10 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 	free_nullsafe(sysid);
 	dbres = PQexec(dbc->db, sqlq);
 	if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
-		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
-			 sqlq, PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT, "[Connection %i] SQL %s",
+			 dbc->id, PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_DEBUG, "[Connection %i] Failing SQL query: %s",
+			 dbc->id, sqlq);
 		PQclear(dbres);
 		syskey= -1;
 		goto exit;
@@ -675,7 +688,8 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			goto exit;
 		}
 		if( (eCount(dbdata) != 1) || !dbdata->val ) { // Only one record should be registered
-			writelog(dbc->log, LOG_ALERT, "** ERROR **  Failed to register the system\n");
+			writelog(dbc->log, LOG_ALERT,
+				 "[Connection %i] Failed to register the system", dbc->id);
 			eFree_values(dbdata);
 			syskey= -1;
 			goto exit;
@@ -708,9 +722,10 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			 hostname, ipaddr);
 		dbres = PQexec(dbc->db, sqlq);
 		if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
-			writelog(dbc->log, LOG_ALERT,
-				 "** ERROR **  SQL query failed: %s\n** ERROR **  %s\n",
-				 sqlq, PQresultErrorMessage(dbres));
+			writelog(dbc->log, LOG_ALERT, "[Connection %i] SQL %s",
+				 dbc->id, PQresultErrorMessage(dbres));
+			writelog(dbc->log, LOG_DEBUG, "[Connection %i] Failing SQL query: %s",
+				 dbc->id, sqlq);
 			PQclear(dbres);
 			syskey= -1;
 			goto exit;
@@ -724,8 +739,8 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 		PQclear(dbres);
 	} else {
 		// Critical -- system IDs should not be registered more than once
-		writelog(dbc->log, LOG_CRIT,
-			 "** CRITICAL ERROR **  Multiple systems registered (%s)", sqlq);
+		writelog(dbc->log, LOG_CRIT, "[Connection %i] Multiple systems registered (%s)",
+			 dbc->id, sqlq);
 		syskey= -1;
 	}
 
@@ -762,10 +777,11 @@ int db_get_new_rterid(dbconn *dbc) {
 
 	if( rterid < 1 ) {
 		writelog(dbc->log, LOG_CRIT,
-			 "** ERROR **  Failed to retrieve a new rterid value\n");
+			 "[Connection %i] Failed to retrieve a new rterid value", dbc->id);
 	}
 	if( rterid < 0 ) {
-		writelog(dbc->log, LOG_ALERT, "SQL %s\n", PQresultErrorMessage(dbres));
+		writelog(dbc->log, LOG_ALERT, "[Connection %i] SQL %s",
+			 dbc->id, PQresultErrorMessage(dbres));
 	}
 	PQclear(dbres);
 	return rterid;
@@ -802,7 +818,8 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	prms.report_filename = report_fname;
 	rtevalrun_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 	if( !rtevalrun_d ) {
-		writelog(dbc->log, LOG_ERR, "** ERROR **  Could not parse the input XML data\n");
+		writelog(dbc->log, LOG_ERR,
+			 "[Connection %i] Could not parse the input XML data", dbc->id);
 		ret = -1;
 		goto exit;
 	}
@@ -815,7 +832,8 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	}
 
 	if( eCount(dbdata) != 1 ) {
-		writelog(dbc->log, LOG_ALERT, "** ERROR ** Failed to register the rteval run\n");
+		writelog(dbc->log, LOG_ALERT,
+			 "[Connection %i] Failed to register the rteval run", dbc->id);
 		ret = -1;
 		eFree_values(dbdata);
 		goto exit;
@@ -829,7 +847,8 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 	rtevalrundets_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
 	if( !rtevalrundets_d ) {
 		writelog(dbc->log, LOG_ERR,
-			 "** ERROR **  Could not parse the input XML data (rtevalruns_details)\n");
+			 "[Connection %i] Could not parse the input XML data (rtevalruns_details)",
+			 dbc->id);
 		ret = -1;
 		goto exit;
 	}
@@ -843,7 +862,8 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 
 	// Check that only one record was inserted
 	if( eCount(dbdata) != 1 ) {
-		writelog(dbc->log, LOG_ALERT, "** ERROR ** Failed to register the rteval run details\n");
+		writelog(dbc->log, LOG_ALERT,
+			 "[Connection %i] Failed to register the rteval run details", dbc->id);
 		ret = -1;
 	}
 	eFree_values(dbdata);
@@ -908,7 +928,7 @@ int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml
 	// Report error if not enough cyclictest data is registered.
 	if( cyclicdata > 1 ) {
 		writelog(dbc->log, LOG_ALERT,
-			 "** ERROR **  No cyclictest raw data or histogram data registered\n");
+			 "[Connection %i] No cyclictest raw data or histogram data registered", dbc->id);
 		result = -1;
 	} else {
 		result = 1;
