@@ -99,6 +99,7 @@ void db_disconnect(dbconn *dbc) {
 		dbc->db = NULL;
 		dbc->log = NULL;
 	}
+	free_nullsafe(dbc);
 }
 
 
