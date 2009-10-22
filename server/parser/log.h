@@ -36,7 +36,7 @@ typedef struct {
 } LogContext;
 
 
-LogContext *init_log(const char *fname, unsigned int verblvl);
+LogContext *init_log(const char *fname, const char *loglvl);
 void close_log(LogContext *lctx);
 void writelog(LogContext *lctx, unsigned int loglvl, const char *fmt, ... );
 

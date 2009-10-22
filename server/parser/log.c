@@ -32,14 +32,54 @@
 #include <eurephia_nullsafe.h>
 #include <log.h>
 
-LogContext *init_log(const char *fname, unsigned int verblvl) {
+/**
+ * Maps defined log level strings into syslog
+ * compatible LOG_* integer values
+ */
+static struct {
+	const char *priority_str;
+	const int prio_level;
+} syslog_prio_map[] = {
+	{"emerg",     LOG_EMERG},
+	{"emergency", LOG_EMERG},
+	{"alert",     LOG_ALERT},
+	{"crit",      LOG_CRIT},
+	{"critical",  LOG_CRIT},
+	{"err",       LOG_ERR},
+	{"error",     LOG_ERR},
+	{"warning",   LOG_WARNING},
+	{"warn",      LOG_WARNING},
+	{"notice",    LOG_NOTICE},
+	{"info",      LOG_INFO},
+	{"debug",     LOG_DEBUG},
+	{NULL, 0}
+};
+
+
+LogContext *init_log(const char *fname, const char *loglvl) {
 	LogContext *logctx = NULL;
+	int i;
 
 	logctx = (LogContext *) calloc(1, sizeof(LogContext)+2);
 	assert( logctx != NULL);
 
 	logctx->logfp = NULL;
-	logctx->verbosity = verblvl;
+
+	// Get the int value of the log level string
+	logctx->verbosity = -1;
+	if( loglvl ) {
+		for( i = 0; syslog_prio_map[i].priority_str; i++ ) {
+			if( strcasecmp(loglvl, syslog_prio_map[i].priority_str) == 0 ) {
+				logctx->verbosity = syslog_prio_map[i].prio_level;
+				break;
+			}
+		}
+	}
+
+	// If log level is not set, set LOG_INFo as default
+	if( logctx->verbosity == -1 ) {
+		logctx->verbosity = LOG_INFO;
+	}
 
 	if( fname == NULL ) {
 		logctx->logtype = ltSYSLOG;
