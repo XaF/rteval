@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
 	threadData_t **thrdata = NULL;
 	struct mq_attr msgq_attr;
 	mqd_t msgq;
-	int i,rc, max_threads = 5;
+	int i,rc, max_threads = 0;
 
 	// Initialise XML and XSLT libraries
 	xsltInit();
@@ -238,6 +238,12 @@ int main(int argc, char **argv) {
 			 "Could not open message queue: %s", strerror(errno));
 		rc = 2;
 		goto exit;
+	}
+
+	// Get the number of worker threads
+	max_threads = atoi_nullsafe(eGet_value(config, "threads"));
+	if( max_threads == 0 ) {
+		max_threads = 4;
 	}
 
 	// Get a database connection for the main thread
