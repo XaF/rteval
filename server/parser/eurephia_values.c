@@ -113,6 +113,7 @@ char *eGet_value(eurephiaVALUES *vls, const char *key)
 /**
  * Creates a new eurephiaVALUES stack
  *
+ * @param log   Log context
  * @param evgid  int value, giving the stack an ID number.  Useful when looking through log files later on.
  *
  * @return Returns an empty eurephiaVALUES struct on success, otherwise NULL.

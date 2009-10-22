@@ -48,6 +48,8 @@
  * Connect to a database, based on the given configuration
  *
  * @param cfg eurephiaVALUES containing the configuration
+ * @param id  Database connection ID.  Used to identify which thread is doing what with the database
+ * @param log Log context, where all logging will go
  *
  * @return Returns a database connection context
  */

@@ -50,6 +50,7 @@
  * internally, which results in the memory region being zero'd by the kernel
  * on memory allocation.
  *
+ * @param log   Log context
  * @param sz    size of the memory region being allocated
  *
  * @return Returns a void pointer to the memory region on success, otherwise NULL

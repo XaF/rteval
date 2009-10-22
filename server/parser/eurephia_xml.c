@@ -126,6 +126,7 @@ inline char *xmlGetNodeContent(xmlNode *node, const char *key) {
 /**
  * Serialises an xmlNode to a string
  *
+ * @param log   Log context
  * @param node Input XML node to be serialised
  *
  * @return Returns a pointer to a new buffer containing the serialised data.  This buffer must be freed

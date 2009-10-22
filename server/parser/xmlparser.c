@@ -87,6 +87,7 @@ static char *encapsInt(const unsigned int val) {
  * Parses any XML input document into a sqldata XML format which can be used by pgsql_INSERT().
  * The transformation must be defined in the input XSLT template.
  *
+ * @param log       Log context
  * @param xslt      XSLT template defining the data transformation
  * @param indata_d  Input XML data to transform to a sqldata XML document
  * @param params    Parameters to be sent to the XSLT parser
@@ -211,6 +212,7 @@ static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
  * Extract the content of a '//sqldata/records/record/value' node.  It will consider
  * both the 'hash' and 'type' attributes of the 'value' tag.
  *
+ * @param log    Log context
  * @param sql_n  Pointer to a value node of a sqldata XML document.
  *
  * @return Returns a pointer to a new memory buffer containing the value as a string.
@@ -241,6 +243,7 @@ char *sqldataExtractContent(LogContext *log, xmlNode *sql_n) {
 /**
  * Return the 'fid' value of a given field in an sqldata XML document.
  *
+ * @param log    Log context
  * @param sql_n  Pointer to the root xmlNode element of a sqldata XML document
  * @param fname  String containing the field name to look up
  *
@@ -289,6 +292,7 @@ int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 /**
  * Retrieves the value of a particular field in an sqldata XML document.
  *
+ * @param log    Log context
  * @param sqld   pointer to an sqldata XML document.
  * @param fname  String containing the field name to extract the value of.
  * @param recid  Integer containing the record ID of the record to extract the value.  This starts
@@ -357,6 +361,7 @@ char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int reci
  * Helper function to parse an sqldata XML document for the systems_hostname table.  In addition
  * it will also return two strings containing hostname and ipaddress of the host.
  *
+ * @param log        Log context
  * @param xslt       Pointer to an xmlparser.xml XSLT template
  * @param summaryxml rteval XML report document
  * @param syskey     Integer containing the syskey value corresponding to this host

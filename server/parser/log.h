@@ -26,13 +26,20 @@
 #include <pthread.h>
 #include <syslog.h>
 
+/**
+ * Supported log types
+ */
 typedef enum { ltSYSLOG, ltFILE, ltCONSOLE } LogType;
 
+/**
+ * The log context structure.  Keeps needed information for
+ * a flawless logging experience :-P
+ */
 typedef struct {
-	LogType logtype;
-	FILE *logfp;
-	unsigned int verbosity;
-	pthread_mutex_t *mtx_log;
+	LogType logtype;           /**<  What kind of log "device" will be used */
+	FILE *logfp;               /**<  Only used if logging to stderr, stdout or a file */
+	unsigned int verbosity;    /**<  Defines which log level the user wants to log */
+	pthread_mutex_t *mtx_log;  /**<  Mutex to threads to write to a file based log in parallel */
 } LogContext;
 
 

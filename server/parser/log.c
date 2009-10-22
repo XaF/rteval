@@ -56,7 +56,16 @@ static struct {
 };
 
 
-LogContext *init_log(const char *fname, const char *loglvl) {
+/**
+ * Initialises a log context.  It parses the log destination and log level and
+ * prepares a context which can be used by writelog()
+ *
+ * @param logdest  String containing either syslog:[facility], stderr: or stdout:, or a file name.
+ * @param loglvl   Defines the log level.  Can be one of the values defined in syslog_prio_map.
+ *
+ * @return Returns a pointer to a log context on success, otherwise NULL.
+ */
+LogContext *init_log(const char *logdest, const char *loglvl) {
 	LogContext *logctx = NULL;
 	int i;
 
@@ -81,12 +90,12 @@ LogContext *init_log(const char *fname, const char *loglvl) {
 		logctx->verbosity = LOG_INFO;
 	}
 
-	if( fname == NULL ) {
+	if( logdest == NULL ) {
 		logctx->logtype = ltSYSLOG;
 		openlog("rteval_parserd", LOG_PID, LOG_DAEMON);
 	} else {
-		if( strncmp(fname, "syslog:", 7) == 0 ) {
-			const char *fac = fname+7;
+		if( strncmp(logdest, "syslog:", 7) == 0 ) {
+			const char *fac = logdest+7;
 			int facid = LOG_DAEMON;
 
 			if( strcasecmp(fac, "local0") == 0 ) {
@@ -110,18 +119,18 @@ LogContext *init_log(const char *fname, const char *loglvl) {
 			}
 			logctx->logtype = ltSYSLOG;
 			openlog("rteval_parserd", LOG_PID, facid);
-		} else if( strcmp(fname, "stderr:") == 0 ) {
+		} else if( strcmp(logdest, "stderr:") == 0 ) {
 			logctx->logtype = ltCONSOLE;
 			logctx->logfp = stderr;
-		} else if( strcmp(fname, "stdout:") == 0 ) {
+		} else if( strcmp(logdest, "stdout:") == 0 ) {
 			logctx->logtype = ltCONSOLE;
 			logctx->logfp = stdout;
 		} else {
 			logctx->logtype = ltFILE;
-			logctx->logfp = fopen(fname, "a");
+			logctx->logfp = fopen(logdest, "a");
 			if( logctx->logfp == NULL ) {
 				fprintf(stderr, "** ERROR **  Failed to open log file %s: %s\n",
-					fname, strerror(errno));
+					logdest, strerror(errno));
 				free_nullsafe(logctx);
 				return NULL;
 			}
@@ -136,6 +145,11 @@ LogContext *init_log(const char *fname, const char *loglvl) {
 }
 
 
+/**
+ * Tears down a log context.  Closes log files and releases memory used by the log context.
+ *
+ * @param lctx  Log context to close
+ */
 void close_log(LogContext *lctx) {
 	if( !lctx ) {
 		return;
@@ -157,6 +171,13 @@ void close_log(LogContext *lctx) {
 }
 
 
+/**
+ * Write data to the log.
+ *
+ * @param lctx    Log context, where the data will be logged
+ * @param loglvl  Log level.  See the priorities for syslog(3) for valid values.
+ * @param fmt     Data to be logged (stdarg)
+ */
 void writelog(LogContext *lctx, unsigned int loglvl, const char *fmt, ... ) {
 	if( !lctx || !fmt ) {
 		return;

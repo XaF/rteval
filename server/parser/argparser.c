@@ -27,6 +27,9 @@
 #include <eurephia_nullsafe.h>
 
 
+/**
+ * Print a help screen to stdout
+ */
 void usage() {
 	printf("rteval_parserd:  Parses new reports recieved via XML-RPC\n"
 	       "\n"

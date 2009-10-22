@@ -130,7 +130,8 @@ static inline eurephiaVALUES *default_cfg_values(LogContext *log, eurephiaVALUES
 /**
  * Parses a section of a config file and puts it into an eurephiaVALUES key/value stack
  *
- * @param cfgname File name of the configuration file.
+ * @param log     Initialised log context
+ * @param prgargs Parsed command line arguments (see parse_arguments())
  * @param section Section to read from the config file
  *
  * @return Returns a pointer to an eurephiaVALUES stack containing the configuration on success,
