@@ -203,6 +203,10 @@ void writelog(LogContext *lctx, unsigned int loglvl, const char *fmt, ... ) {
 			vfprintf(lctx->logfp, fmt, ap);
 			fprintf(lctx->logfp, "\n");
 			pthread_mutex_unlock(lctx->mtx_log);
+
+			if( lctx->logtype == ltFILE ) {
+				fflush(lctx->logfp);
+			}
 			break;
 		}
 		va_end(ap);
