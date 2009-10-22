@@ -106,8 +106,8 @@ static inline eurephiaVALUES *parse_config_line(LogContext *log, const char *lin
 }
 
 
-static inline eurephiaVALUES *default_cfg_values(LogContext *log) {
-	eurephiaVALUES *cfg = NULL;
+static inline eurephiaVALUES *default_cfg_values(LogContext *log, eurephiaVALUES *prgargs) {
+	eurephiaVALUES *cfg = NULL, *ptr = NULL;
 
 	cfg = eCreate_value_space(log, 20);
 	eAdd_value(cfg, "datadir", "/var/lib/rteval");
@@ -118,6 +118,11 @@ static inline eurephiaVALUES *default_cfg_values(LogContext *log) {
 	eAdd_value(cfg, "db_username", "rtevparser");
 	eAdd_value(cfg, "db_password", "rtevaldb_parser");
 	eAdd_value(cfg, "reportdir", "/var/lib/rteval/reports");
+
+	// Copy over the arguments to the config, update existing settings
+	for( ptr = prgargs; ptr; ptr = ptr->next ) {
+		eUpdate_value(cfg, ptr->key, ptr->val, 1);
+	}
 
 	return cfg;
 }
@@ -131,13 +136,14 @@ static inline eurephiaVALUES *default_cfg_values(LogContext *log) {
  * @return Returns a pointer to an eurephiaVALUES stack containing the configuration on success,
  *         otherwise NULL.
  */
-eurephiaVALUES *read_config(LogContext *log, const char *cfgname, const char *section) {
+eurephiaVALUES *read_config(LogContext *log, eurephiaVALUES *prgargs, const char *section) {
         FILE *fp = NULL;
-        char  *buf = NULL, *sectmatch = NULL;
+        char  *buf = NULL, *sectmatch = NULL, *cfgname = NULL;
 	int sectfound = 0;
         eurephiaVALUES *cfg = NULL;
         struct stat fi;
 
+	cfgname = eGet_value(prgargs, "configfile");
         if( stat(cfgname, &fi) == -1 ) {
 		writelog(log, LOG_EMERG, "Could not open the config file: %s", cfgname);
                 return NULL;
@@ -152,7 +158,7 @@ eurephiaVALUES *read_config(LogContext *log, const char *cfgname, const char *se
 	sectmatch = (char *) malloc_nullsafe(log, strlen_nullsafe(section)+4);
 	sprintf(sectmatch, "[%s]", section);
 
-        cfg = default_cfg_values(log);
+        cfg = default_cfg_values(log, prgargs);
 	writelog(log, LOG_DEBUG, "Reading config file: %s", cfgname);
         while( fgets(buf, fi.st_size, fp) != NULL ) {
 		if( strncmp(buf, "[", 1) == 0 ) {

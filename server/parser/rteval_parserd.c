@@ -37,6 +37,7 @@
 #include <pgsql.h>
 #include <threadinfo.h>
 #include <parsethread.h>
+#include <argparser.h>
 
 #define DEFAULT_MSG_MAX 5             /**< Default size of the message queue */
 #define XMLPARSER_XSL "xmlparser.xsl" /**< rteval report parser XSLT, parses XML into database friendly data*/
@@ -179,7 +180,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
  * @return Returns the result of the process_submission_queue() function.
  */
 int main(int argc, char **argv) {
-        eurephiaVALUES *config = NULL;
+        eurephiaVALUES *config = NULL, *prgargs = NULL;
         char xsltfile[2050], *reportdir = NULL;
 	xsltStylesheet *xslt = NULL;
 	dbconn *dbc = NULL;
@@ -195,16 +196,25 @@ int main(int argc, char **argv) {
 	xsltInit();
 	xmlInitParser();
 
+	prgargs = parse_arguments(argc, argv);
+	if( prgargs == NULL ) {
+		fprintf(stderr, "** ERROR **  Failed to parse program arguments\n");
+		rc = 2;
+		goto exit;
+	}
+
 	// Setup a log context
-	logctx = init_log(NULL, LOG_NOTICE);
+	logctx = init_log(eGet_value(prgargs, "log"), eGet_value(prgargs, "loglevel"));
 	if( !logctx ) {
 		fprintf(stderr, "** ERROR **  Could not setup a log context\n");
+		eFree_values(prgargs);
 		rc = 2;
 		goto exit;
 	}
 
 	// Fetch configuration
-        config = read_config(logctx, "/etc/rteval.conf", "xmlrpc_parser");
+        config = read_config(logctx, prgargs, "xmlrpc_parser");
+	eFree_values(prgargs); // read_config() copies prgargs into config, we don't need prgargs anymore
 
 	// Parse XSLT template
 	snprintf(xsltfile, 512, "%s/%s", eGet_value(config, "xsltpath"), XMLPARSER_XSL);

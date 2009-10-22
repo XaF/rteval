@@ -33,6 +33,6 @@
 #ifndef _CONFIGPARSER_H
 #define _CONFIGPARSER_H
 
-eurephiaVALUES *read_config(LogContext *log, const char *cfgname, const char *section);
+eurephiaVALUES *read_config(LogContext *log, eurephiaVALUES *prgargs, const char *section);
 
 #endif
