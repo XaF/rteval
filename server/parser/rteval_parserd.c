@@ -54,7 +54,7 @@ static LogContext *logctx = NULL;     /**<  Initialsed log context, to be used b
 void sigcatch(int sig) {
 	if( shutdown == 0 ) {
 		shutdown = 1;
-		writelog(logctx, LOG_INFO, "[SIGNAL] Starting shutting down");
+		writelog(logctx, LOG_INFO, "[SIGNAL] Shutting down");
 	} else {
 		writelog(logctx, LOG_INFO, "[SIGNAL] Shutdown in progress ... please be patient ...");
 	}
@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
 	xmlInitParser();
 
 	// Setup a log context
-	logctx = init_log("stderr:", LOG_DEBUG);
+	logctx = init_log(NULL, LOG_NOTICE);
 	if( !logctx ) {
 		fprintf(stderr, "** ERROR **  Could not setup a log context\n");
 		rc = 2;
