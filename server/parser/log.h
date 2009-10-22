@@ -23,6 +23,7 @@
 #ifndef _RTEVAL_LOG_H
 #define _RTEVAL_LOG_H
 
+#include <pthread.h>
 #include <syslog.h>
 
 typedef enum { ltSYSLOG, ltFILE, ltCONSOLE } LogType;
