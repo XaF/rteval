@@ -28,6 +28,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -172,6 +174,58 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 
 
 /**
+ * Prepares the program to be daemonised
+ *
+ * @param log   Initialised log context, where log info of the process is reported
+ *
+ * @return Returns 1 on success, otherwise -1
+ */
+int daemonise(LogContext *log) {
+	pid_t pid, sid;
+	int i = 0;
+
+	if( (log->logtype == ltCONSOLE) ) {
+		writelog(log, LOG_EMERG,
+			 "Cannot daemonise when logging to a console (stdout: or stderr:)");
+		return -1;
+	}
+
+	pid = fork();
+	if (pid < 0) {
+		writelog(log, LOG_EMERG, "Failed to daemonise the process (fork)");
+		return -1;
+	} else if (pid > 0) {
+		writelog(log, LOG_INFO, "Daemon pid: %ld", pid);
+		exit(EXIT_SUCCESS);
+	}
+
+	umask(0);
+
+	sid = setsid();
+	if (sid < 0) {
+		writelog(log, LOG_EMERG, "Failed to daemonise the process (setsid)");
+		return -1;
+	}
+
+	if ((chdir("/")) < 0) {
+		writelog(log, LOG_EMERG, "Failed to daemonise the process (fork)");
+		return -1;
+	}
+
+	// Prepare stdin, stdout and stderr for daemon mode
+	close(2);
+	close(1);
+	close(0);
+	i = open("/dev/null", O_RDWR); /* open stdin */
+	dup(i); /* stdout */
+	dup(i); /* stderr */
+
+	writelog(log, LOG_INFO, "Daemonised successfully");
+	return 1;
+}
+
+
+/**
  * rtevald_parser main function.
  *
  * @param argc
@@ -189,8 +243,8 @@ int main(int argc, char **argv) {
 	pthread_mutex_t mtx_sysreg = PTHREAD_MUTEX_INITIALIZER;
 	threadData_t **thrdata = NULL;
 	struct mq_attr msgq_attr;
-	mqd_t msgq;
-	int i,rc, max_threads = 0;
+	mqd_t msgq = 0;
+	int i,rc, mq_init = 0, max_threads = 0;
 
 	// Initialise XML and XSLT libraries
 	xsltInit();
@@ -216,6 +270,15 @@ int main(int argc, char **argv) {
         config = read_config(logctx, prgargs, "xmlrpc_parser");
 	eFree_values(prgargs); // read_config() copies prgargs into config, we don't need prgargs anymore
 
+	// Daemonise process if requested
+	if( atoi_nullsafe(eGet_value(config, "daemon")) == 1 ) {
+		if( daemonise(logctx) < 1 ) {
+			rc = 3;
+			goto exit;
+		}
+	}
+
+
 	// Parse XSLT template
 	snprintf(xsltfile, 512, "%s/%s", eGet_value(config, "xsltpath"), XMLPARSER_XSL);
 	writelog(logctx, LOG_DEBUG, "Parsing XSLT file: %s", xsltfile);
@@ -239,6 +302,7 @@ int main(int argc, char **argv) {
 		rc = 2;
 		goto exit;
 	}
+	mq_init = 1;
 
 	// Get the number of worker threads
 	max_threads = atoi_nullsafe(eGet_value(config, "threads"));
@@ -249,7 +313,7 @@ int main(int argc, char **argv) {
 	// Get a database connection for the main thread
         dbc = db_connect(config, max_threads, logctx);
         if( !dbc ) {
-		rc = 2;
+		rc = 4;
 		goto exit;
         }
 
@@ -361,15 +425,17 @@ int main(int argc, char **argv) {
 	free_nullsafe(thread_attrs);
 
 	// Close message queue
-	errno = 0;
-	if( mq_close(msgq) < 0 ) {
-		writelog(logctx, LOG_CRIT, "Failed to close message queue: %s",
-			strerror(errno));
-	}
-	errno = 0;
-	if( mq_unlink("/rteval_parsequeue") < 0 ) {
-		writelog(logctx, LOG_ALERT, "Failed to remove the message queue: %s",
-			strerror(errno));
+	if( mq_init == 1 ) {
+		errno = 0;
+		if( mq_close(msgq) < 0 ) {
+			writelog(logctx, LOG_CRIT, "Failed to close message queue: %s",
+				 strerror(errno));
+		}
+		errno = 0;
+		if( mq_unlink("/rteval_parsequeue") < 0 ) {
+			writelog(logctx, LOG_ALERT, "Failed to remove the message queue: %s",
+				 strerror(errno));
+		}
 	}
 
 	// Disconnect from database, main thread connection
@@ -381,6 +447,8 @@ int main(int argc, char **argv) {
 	xmlCleanupParser();
 	xsltCleanupGlobals();
 
+	writelog(logctx, LOG_EMERG, "rteval_parserd is stopped");
+	close_log(logctx);
 	return rc;
 }
 
