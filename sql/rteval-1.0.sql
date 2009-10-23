@@ -126,11 +126,11 @@ CREATE LANGUAGE 'plpgsql';
         rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
         coreid        INTEGER, -- NULL=system
         priority      INTEGER, -- NULL=system
-        num_samples   INTEGER NOT NULL,
+        num_samples   BIGINT NOT NULL,
         lat_min       REAL NOT NULL,
         lat_max       REAL NOT NULL,
         lat_mean      REAL NOT NULL,
-        mode          INTEGER NOT NULL,
+        mode          REAL NOT NULL,
         range         REAL NOT NULL,
         median        REAL NOT NULL,
         stddev        REAL NOT NULL,
@@ -150,7 +150,7 @@ CREATE LANGUAGE 'plpgsql';
         rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
         core          INTEGER, -- NULL=system
         index         INTEGER NOT NULL,
-        value         INTEGER NOT NULL
+        value         BIGINT NOT NULL
     ) WITHOUT OIDS;
     CREATE INDEX cyclic_histogram_rterid ON cyclic_histogram(rterid);
 
