@@ -207,7 +207,7 @@
           <value fid="0"><xsl:value-of select="$rterid"/></value>
           <value fid="1" type="xmlblob">
             <rteval_details>
-              <xsl:copy-of select="clocksource|network_config|loads|cyclictest/command_line"/>
+              <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
             </rteval_details>
           </value>
         </record>
