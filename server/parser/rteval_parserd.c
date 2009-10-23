@@ -228,6 +228,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 			}
 		} while( (errno == EAGAIN) );
 	}
+	free_nullsafe(job);
 	return rc;
 }
 
