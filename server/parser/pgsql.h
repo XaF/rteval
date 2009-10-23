@@ -43,6 +43,7 @@ typedef struct {
 
 /* Generic database function */
 dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log);
+int db_ping(dbconn *dbc);
 void db_disconnect(dbconn *dbc);
 int db_begin(dbconn *dbc);
 int db_commit(dbconn *dbc);

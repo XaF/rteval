@@ -90,6 +90,37 @@ dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log) {
 
 
 /**
+ * Pings the database connection to check if it is alive
+ *
+ * @param dbc  Database connection to ping
+ *
+ * @return Returns 1 if the connection is alive, otherwise 0
+ */
+int db_ping(dbconn *dbc) {
+	PGresult *res = NULL;
+
+	// Send ping
+	res = PQexec(dbc->db, "");
+	PQclear(res);
+
+	// Check status
+	if( PQstatus(dbc->db) != CONNECTION_OK ) {
+		PQreset(dbc->db);
+		if( PQstatus(dbc->db) != CONNECTION_OK ) {
+			writelog(dbc->log, LOG_EMERG,
+				 "[Connection %i] Database error - Lost connection: %s",
+				 dbc->id, PQerrorMessage(dbc->db));
+			return 0;
+		} else {
+			writelog(dbc->log, LOG_CRIT,
+				 "[Conncetion %i] Database connection restored", dbc->id);
+		}
+	}
+	return 1;
+}
+
+
+/**
  * Disconnect from the database
  *
  * @param dbc Pointer to the database handle to be disconnected.
@@ -467,6 +498,7 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 				writelog(dbc->log, LOG_CRIT, "[Connection %i] select() failed: %s",
 					 dbc->id, strerror(errno));
 				ret = -1;
+				goto exit;
 			} else {
 				ret = 1;
 			}
@@ -475,6 +507,21 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 
 		// Process the event
 		PQconsumeInput(dbc->db);
+
+		// Check if connection still is valid
+		if( PQstatus(dbc->db) != CONNECTION_OK ) {
+			PQreset(dbc->db);
+			if( PQstatus(dbc->db) != CONNECTION_OK ) {
+				writelog(dbc->log, LOG_EMERG,
+					 "[Connection %i] Database connection died: %s",
+					 dbc->id, PQerrorMessage(dbc->db));
+				ret = -1;
+				goto exit;
+			}
+			writelog(dbc->log, LOG_CRIT,
+				 "[Connection %i] Database connection restored", dbc->id);
+		}
+
 		while ((notify = PQnotifies(dbc->db)) != NULL) {
 			// If a notification was received, inform and exit with success.
 			writelog(dbc->log, LOG_DEBUG,
@@ -498,6 +545,7 @@ int db_wait_notification(dbconn *dbc, const int *shutdown, const char *listenfor
 	free_nullsafe(sql);
 	PQclear(dbres);
 
+ exit:
 	return ret;
 }
 
