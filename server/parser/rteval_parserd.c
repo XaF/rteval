@@ -134,7 +134,7 @@ unsigned int get_mqueue_msg_max(LogContext *log) {
 int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 	pthread_mutex_t mtx_submq = PTHREAD_MUTEX_INITIALIZER;
 	parseJob_t *job = NULL;
-	int rc = 0;
+	int rc = 0, i, actthr_cp = 0;
 
 	while( shutdown == 0 ) {
 		// Check status if the worker threads
@@ -199,7 +199,35 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 		} while( (errno == EAGAIN) );
 		free_nullsafe(job);
 	}
+
  exit:
+	// Send empty messages to the threads, to make them have a look at the shutdown flag
+	job = (parseJob_t *) malloc_nullsafe(dbc->log, sizeof(parseJob_t));
+	errno = 0;
+	// Need to make a copy, as *activethreads will change when threads completes shutdown
+	actthr_cp = *activethreads;
+	for( i = 0; i < actthr_cp; i++ ) {
+		do {
+			int res;
+
+			writelog(dbc->log, LOG_DEBUG, "%s shutdown message %i of %i",
+				 (errno == EAGAIN ? "Resending" : "Sending"), i+1, *activethreads);
+			errno = 0;
+			res = mq_send(msgq, (char *) job, sizeof(parseJob_t), 1);
+			if( (res < 0) && (errno != EAGAIN) ) {
+				writelog(dbc->log, LOG_EMERG,
+					 "Could not send parse job to the queue.  "
+					 "Shutting down!");
+				shutdown = 1;
+				return rc;
+			} else if( errno == EAGAIN ) {
+				writelog(dbc->log, LOG_WARNING,
+					"Message queue filled up.  "
+					"Will not add new messages to queue for the next 10 seconds");
+				sleep(10);
+			}
+		} while( (errno == EAGAIN) );
+	}
 	return rc;
 }
 
@@ -276,7 +304,7 @@ int main(int argc, char **argv) {
 	threadData_t **thrdata = NULL;
 	struct mq_attr msgq_attr;
 	mqd_t msgq = 0;
-	int i,rc, mq_init = 0, max_threads = 0, activethreads = 0;
+	int i,rc, mq_init = 0, max_threads = 0, started_threads = 0, activethreads = 0;
 
 	// Initialise XML and XSLT libraries
 	xsltInit();
@@ -327,7 +355,7 @@ int main(int argc, char **argv) {
 	msgq_attr.mq_maxmsg = get_mqueue_msg_max(logctx);
 	msgq_attr.mq_msgsize = sizeof(parseJob_t);
 	msgq_attr.mq_flags = O_NONBLOCK;
-	msgq = mq_open("/rteval_parsequeue", O_RDWR | O_CREAT | O_NONBLOCK, 0600, &msgq_attr);
+	msgq = mq_open("/rteval_parsequeue", O_RDWR | O_CREAT, 0600, &msgq_attr);
 	if( msgq < 0 ) {
 		writelog(logctx, LOG_EMERG,
 			 "Could not open message queue: %s", strerror(errno));
@@ -406,7 +434,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Setup signal catching
-	signal(SIGINT, sigcatch);
+	signal(SIGINT,  sigcatch);
 	signal(SIGTERM, sigcatch);
 	signal(SIGHUP,  SIG_IGN);
 	signal(SIGUSR1, sigcatch);
@@ -422,6 +450,7 @@ int main(int argc, char **argv) {
 			rc = 3;
 			goto exit;
 		}
+		started_threads++;
 	}
 
 	// Main routine
@@ -437,7 +466,7 @@ int main(int argc, char **argv) {
 	// Clean up all threads
 	for( i = 0; i < max_threads; i++ ) {
 		// Wait for all threads to exit
-		if( threads && threads[i] ) {
+		if( (i < started_threads) && threads && threads[i] ) {
 			void *thread_rc;
 			int j_rc;
 
@@ -447,9 +476,9 @@ int main(int argc, char **argv) {
 					 i, strerror(j_rc));
 			}
 			pthread_attr_destroy(thread_attrs[i]);
-			free_nullsafe(threads[i]);
-			free_nullsafe(thread_attrs[i]);
 		}
+		free_nullsafe(threads[i]);
+		free_nullsafe(thread_attrs[i]);
 
 		// Disconnect threads database connection
 		if( thrdata && thrdata[i] ) {

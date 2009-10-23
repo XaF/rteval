@@ -269,8 +269,6 @@ void *parsethread(void *thrargs) {
 	(*(args->threadcount)) += 1;
 	pthread_mutex_unlock(args->mtx_thrcnt);
 
-	sleep( args->id * 2 );  // Avoids most of the threads to do the polling in parallel
-
 	// Polling loop
 	while( *(args->shutdown) == 0 ) {
 		int len = 0;
@@ -303,6 +301,11 @@ void *parsethread(void *thrargs) {
 			pthread_exit((void *) 1);
 		}
 
+		// Ignore whatever message if the shutdown flag is set.
+		if( *(args->shutdown) != 0 ) {
+			break;
+		}
+
 		// If we have a message, then process the parse job
 		if( (errno != EAGAIN) && (len > 0) ) {
 			int res = 0;
@@ -322,9 +325,6 @@ void *parsethread(void *thrargs) {
 					 "Failed to mark submid %i as STAT_INPROG",
 					 jobinfo.submid);
 			}
-		} else {
-			// If no message was retrieved, sleep for a little while
-			sleep(15);
 		}
 	}
 	writelog(args->dbc->log, LOG_DEBUG, "[Thread %i] Shut down", args->id);
