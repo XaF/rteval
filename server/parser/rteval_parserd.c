@@ -47,6 +47,7 @@
 static int shutdown = 0;              /**<  Variable indicating if the program should shutdown */
 static LogContext *logctx = NULL;     /**<  Initialsed log context, to be used by sigcatch() */
 
+
 /**
  * Simple signal catcher.  Used for SIGINT and SIGTERM signals, and will set the global shutdown
  * shutdown flag.  It's expected that all threads behaves properly and exits as soon as their current
@@ -55,17 +56,29 @@ static LogContext *logctx = NULL;     /**<  Initialsed log context, to be used b
  * @param sig Recieved signal (not used)
  */
 void sigcatch(int sig) {
-	if( shutdown == 0 ) {
+	switch( sig ) {
+	case SIGINT:
+	case SIGTERM:
+		if( shutdown == 0 ) {
+			shutdown = 1;
+			writelog(logctx, LOG_INFO, "[SIGNAL] Shutting down");
+		} else {
+			writelog(logctx, LOG_INFO, "[SIGNAL] Shutdown in progress ... please be patient ...");
+		}
+		break;
+
+	case SIGUSR1:
+		writelog(logctx, LOG_EMERG, "[SIGNAL] Shutdown alarm from a worker thread");
 		shutdown = 1;
-		writelog(logctx, LOG_INFO, "[SIGNAL] Shutting down");
-	} else {
-		writelog(logctx, LOG_INFO, "[SIGNAL] Shutdown in progress ... please be patient ...");
+		break;
+
+	default:
+		break;
 	}
 
 	// re-enable signals, to avoid brute force exits.
 	// If brute force is needed, SIGKILL is available.
-	signal(SIGINT, sigcatch);
-	signal(SIGTERM, sigcatch);
+	signal(sig, sigcatch);
 }
 
 
@@ -118,17 +131,35 @@ unsigned int get_mqueue_msg_max(LogContext *log) {
  *
  * @return Returns 0 on successful run, otherwise > 0 on errors.
  */
-int process_submission_queue(dbconn *dbc, mqd_t msgq) {
+int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 	pthread_mutex_t mtx_submq = PTHREAD_MUTEX_INITIALIZER;
 	parseJob_t *job = NULL;
 	int rc = 0;
 
 	while( shutdown == 0 ) {
+		// Check status if the worker threads
+		// If we don't have any worker threads, shut down immediately
+		writelog(dbc->log, LOG_DEBUG, "Active worker threads: %i", *activethreads);
+		if( *activethreads < 1 ) {
+			writelog(dbc->log, LOG_EMERG,
+				 "All worker threads ceased to exist.  Shutting down!");
+			shutdown = 1;
+			rc = 1;
+			goto exit;
+		}
+
+		if( db_ping(dbc) != 1 ) {
+			writelog(dbc->log, LOG_EMERG, "Lost connection to database.  Shutting down!");
+			shutdown = 1;
+			rc = 1;
+			goto exit;
+		}
+
 		// Fetch an available job
 		job = db_get_submissionqueue_job(dbc, &mtx_submq);
 		if( !job ) {
 			writelog(dbc->log, LOG_EMERG,
-				 "Failed to get submission queue job - shutting down");
+				 "Failed to get submission queue job.  Shutting down!");
 			shutdown = 1;
 			rc = 1;
 			goto exit;
@@ -137,7 +168,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 			free_nullsafe(job);
 			if( db_wait_notification(dbc, &shutdown, "rteval_submq") < 1 ) {
 				writelog(dbc->log, LOG_EMERG,
-					 "Failed to wait for DB notification - shutting down");
+					 "Failed to wait for DB notification.  Shutting down!");
 				shutdown = 1;
 				rc = 1;
 				goto exit;
@@ -154,8 +185,8 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq) {
 			res = mq_send(msgq, (char *) job, sizeof(parseJob_t), 1);
 			if( (res < 0) && (errno != EAGAIN) ) {
 				writelog(dbc->log, LOG_EMERG,
-					 "Could not send parse job to the queue "
-					 "- shutting down");
+					 "Could not send parse job to the queue.  "
+					 "Shutting down!");
 				shutdown = 1;
 				rc = 2;
 				goto exit;
@@ -241,10 +272,11 @@ int main(int argc, char **argv) {
         pthread_t **threads = NULL;
         pthread_attr_t **thread_attrs = NULL;
 	pthread_mutex_t mtx_sysreg = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_t mtx_thrcnt = PTHREAD_MUTEX_INITIALIZER;
 	threadData_t **thrdata = NULL;
 	struct mq_attr msgq_attr;
 	mqd_t msgq = 0;
-	int i,rc, mq_init = 0, max_threads = 0;
+	int i,rc, mq_init = 0, max_threads = 0, activethreads = 0;
 
 	// Initialise XML and XSLT libraries
 	xsltInit();
@@ -346,6 +378,8 @@ int main(int argc, char **argv) {
 		}
 
 		thrdata[i]->shutdown = &shutdown;
+		thrdata[i]->threadcount = &activethreads;
+		thrdata[i]->mtx_thrcnt = &mtx_thrcnt;
 		thrdata[i]->id = i;
 		thrdata[i]->msgq = msgq;
 		thrdata[i]->mtx_sysreg = &mtx_sysreg;
@@ -371,9 +405,12 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	// Setup signal catchers
+	// Setup signal catching
 	signal(SIGINT, sigcatch);
 	signal(SIGTERM, sigcatch);
+	signal(SIGHUP,  SIG_IGN);
+	signal(SIGUSR1, sigcatch);
+	signal(SIGUSR2, SIG_IGN);
 
 	// Start the threads
 	for( i = 0; i < max_threads; i++ ) {
@@ -393,7 +430,7 @@ int main(int argc, char **argv) {
 	// to be parsed by one of the threads
 	//
 	writelog(logctx, LOG_DEBUG, "Starting submission queue checker");
-	rc = process_submission_queue(dbc, msgq);
+	rc = process_submission_queue(dbc, msgq, &activethreads);
 	writelog(logctx, LOG_DEBUG, "Submission queue checker shut down");
 
  exit:

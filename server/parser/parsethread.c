@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <pthread.h>
 #include <libgen.h>
 #include <errno.h>
@@ -261,11 +262,35 @@ inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_
 void *parsethread(void *thrargs) {
 	threadData_t *args = (threadData_t *) thrargs;
 	parseJob_t jobinfo;
+	long exitcode = 0;
 
 	writelog(args->dbc->log, LOG_DEBUG, "[Thread %i] Starting", args->id);
-	while( !*(args->shutdown) ) {
+	pthread_mutex_lock(args->mtx_thrcnt);
+	(*(args->threadcount)) += 1;
+	pthread_mutex_unlock(args->mtx_thrcnt);
+
+	sleep( args->id * 2 );  // Avoids most of the threads to do the polling in parallel
+
+	// Polling loop
+	while( *(args->shutdown) == 0 ) {
 		int len = 0;
 		unsigned int prio = 0;
+
+		// Check if the database connection is alive before pulling any messages
+		if( db_ping(args->dbc) != 1 ) {
+			writelog(args->dbc->log, LOG_EMERG,
+				 "[Thread %i] Lost database conneciting: Shutting down thread.",
+				 args->id);
+
+			if( *(args->threadcount) <= 1 ) {
+				writelog(args->dbc->log, LOG_EMERG,
+					 "No more worker threads available.  "
+					 "Initiating complete shutdown");
+				kill(getpid(), SIGUSR1);
+			}
+			exitcode = 1;
+			goto exit;
+		}
 
 		// Retrieve a parse job from the message queue
 		memset(&jobinfo, 0, sizeof(parseJob_t));
@@ -299,9 +324,14 @@ void *parsethread(void *thrargs) {
 			}
 		} else {
 			// If no message was retrieved, sleep for a little while
-			sleep(5);
+			sleep(15);
 		}
 	}
 	writelog(args->dbc->log, LOG_DEBUG, "[Thread %i] Shut down", args->id);
-	pthread_exit((void *) 0);
+ exit:
+	pthread_mutex_lock(args->mtx_thrcnt);
+	(*(args->threadcount)) -= 1;
+	pthread_mutex_unlock(args->mtx_thrcnt);
+
+	pthread_exit((void *) exitcode);
 }
