@@ -313,7 +313,7 @@ class RtEval(object):
 
         self.xmlreport.openblock('services')
         for s in self.services:
-            self.xmlreport.taggedvalue(s, self.services[s])
+            self.xmlreport.taggedvalue("service", self.services[s], {"name": s})
         self.xmlreport.closeblock()
 
         keys = self.kthreads.keys()
