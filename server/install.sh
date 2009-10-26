@@ -1,12 +1,12 @@
 #!/bin/sh
 
-PYTHON_FILES="rteval_xmlrpc.py xmlrpc_API1.py xmlparser.py rtevaldb.py database.py"
-XSLT_FILES="xmlparser.xsl"
+PYTHON_FILES="rteval_xmlrpc.py xmlrpc_API1.py rtevaldb.py database.py"
+XSLT_FILES="parser/xmlparser.xsl"
 
 XSLTDIR="/usr/share/rteval"
 
 APACHECONF="apache-rteval.conf"
-RTEVALCONF="rteval-xmlrpc.conf"
+
 
 if [ $# != 1 ]; then
     echo "$0 </var/www/html/.... full path to the directory the XML-RPC server will reside>"

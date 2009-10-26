@@ -27,77 +27,9 @@
 
 import os
 from database import Database
-from xmlparser import XMLSQLparser
-
-def register_report(config, xmldata, filename, debug=False, noaction=False):
-    dbc = Database(host=config.db_server, port=config.db_port, database=config.database,
-                   user=config.db_username, password=config.db_password,
-                   debug=debug, noaction=noaction)
-
-    parser = XMLSQLparser(os.path.join(config.xsltpath, "xmlparser.xsl"), xmldata)
-
-    systems = parser.GetSQLdata('systems')
-    sysid = dbc.GetValue(systems, 0, 'sysid')
-
-    # Check if system is already registered
-    chk = dbc.SELECT('systems',['syskey'], where={'sysid': sysid})
-    if dbc.NumTuples(chk) == 0:
-        # This is a new system, register it
-        res = dbc.INSERT(systems)
-        if len(res) != 1:
-            dbc.ROLLBACK()
-            raise Exception, "** register_report():  Failed to register system [1]"
-
-        syskey = res[0]
-        systemhost = parser.GetSQLdata('systems_hostname', syskey=syskey)
-        res = dbc.INSERT(systemhost)
-        if len(res) != 1:
-            dbc.ROLLBACK()
-            raise Exception, "** register_report():  Failed to register system hostname/ipaddr [1]"
-
-    else:
-        # If this is a known system, check that hostname / IP address is the same
-        syskey = dbc.GetValue(chk, 0, 0)
-        systemhost = parser.GetSQLdata('systems_hostname', syskey=syskey)
-        srch = {'hostname': dbc.GetValue(systemhost, 0, 'hostname'),
-                'ipaddr': dbc.GetValue(systemhost, 0, 'ipaddr')}
-        chk = dbc.SELECT('systems_hostname',['hostname','ipaddr'], where=srch)
-        if dbc.NumTuples(chk) == 0:
-            # This is an unknown hostname, register it
-            dbc.INSERT(systemhost)
-
-    # system is now registered, including hostname and IP address, and
-    # we have a reference in the 'syskey' variable.
-
-    # Register rteval run
-    rterun = parser.GetSQLdata('rtevalruns', syskey=syskey, report_filename=filename)
-    res = dbc.INSERT(rterun)
-    if len(res) != 1:
-        dbc.ROLLBACK()
-        raise Exception, "** register_report(): Failed to register rteval run [1]"
-    rterid = res[0]  # RTEval Run ID
-
-    # Register some more details about the run
-    rtedet = parser.GetSQLdata('rtevalruns_details', rterid=rterid)
-    dbc.INSERT(rtedet)
-
-    # Register cyclic statistics data
-    cyclic = parser.GetSQLdata('cyclic_statistics', rterid=rterid)
-    dbc.INSERT(cyclic)
-
-    # Register cyclic raw data
-    cycraw = parser.GetSQLdata('cyclic_rawdata', rterid=rterid)
-    dbc.INSERT(cycraw)
-
-    # Commit this work
-    dbc.COMMIT()
-
-    # We're done
-    return (syskey, rterid)
-
 
 def register_submission(config, clientid, filename, debug=False, noaction=False):
-    "Registers a submission of a rteval report and signalises the rtevalparserd process"
+    "Registers a submission of a rteval report which signalises the rteval_parserd process"
 
     dbc = Database(host=config.db_server, port=config.db_port, database=config.database,
                    user=config.db_username, password=config.db_password,
