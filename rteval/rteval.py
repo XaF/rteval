@@ -113,14 +113,14 @@ class RtEval(object):
             self.mailer = None
 
         self.loads = []
-        self.start = datetime.now()
-        self.numcores = self.get_num_cores()
-        self.memsize = self.get_memory_size()
-        self.get_clocksources()
-        self.get_services()
-        self.get_kthreads()
-        self.xml = ''
-        self.xmlreport = xmlout.XMLOut('rteval', self.version)
+        self.start = None
+        self.numcores = None
+        self.memsize = None
+        self.current_clocksource = None
+        self.available_clocksource = None
+        self.services = None
+        self.kthreads = None
+        self.xml = None
 
         if not self.config.xslt_report.startswith(self.config.installdir):
             self.config.xslt_report = os.path.join(self.config.installdir, "rteval_text.xsl")
@@ -140,6 +140,7 @@ class RtEval(object):
         self.debug("counted %d cores" % numcores)
         return numcores
 
+
     def get_memory_size(self):
         '''find out how much memory is installed'''
         f = open('/proc/meminfo')
@@ -151,46 +152,55 @@ class RtEval(object):
                 return size
         raise RuntimeError, "can't find memtotal in /proc/meminfo!"
 
+
     def get_clocksources(self):
         '''get the available and curent clocksources for this kernel'''
         path = '/sys/devices/system/clocksource/clocksource0'
         if not os.path.exists(path):
             raise RuntimeError, "Can't find clocksource path in /sys"
         f = open (os.path.join (path, "current_clocksource"))
-        self.current_clocksource = f.readline().strip()
+        current_clocksource = f.readline().strip()
         f = open (os.path.join (path, "available_clocksource"))
-        self.available_clocksource = f.readline().strip()
+        available_clocksource = f.readline().strip()
         f.close()
+        return (current_clocksource, available_clocksource)
 
 
     def get_services(self):
         rejects = ('capi', 'firstboot', 'functions', 'halt', 'iptables', 'ip6tables', 
                    'killall', 'lm_sensors', 'microcode_ctl', 'network', 'ntpdate', 
                    'rtctl', 'udev-post')
-        services = filter(lambda x: x not in rejects, os.listdir('/etc/rc.d/init.d'))
-        self.services = {}
+        service_list = filter(lambda x: x not in rejects, os.listdir('/etc/rc.d/init.d'))
+        ret_services = {}
         self.debug("getting services status")
-        for s in services:
+        for s in service_list:
             cmd = ['/sbin/service', s, 'status']
             #self.debug("cmd: %s" % " ".join(cmd))
             c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
             status = c.stdout.read().strip()
-            self.services[s] = status
-
+            ret_services[s] = status
+        return ret_services
             
+
     def get_kthreads(self):
         policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
-        self.kthreads = {}
+        ret_kthreads = {}
         if not os.path.exists('/etc/rc.d/init.d/rtctl'):
-            return
+            return ret_kthreads
         self.debug("getting kthread status")
         cmd = '/sbin/service rtctl status'
-        #self.debug("cmd: %s" % cmd)
+        self.debug("cmd: %s" % cmd)
         c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         for p in c.stdout:
             v = p.strip().split()
-            self.kthreads[v[0]] = {'policy' : policies[v[1]], 
-                                   'priority' : v[2], 'name' : v[3] }
+            try:
+                if int(v[0]) > 0:
+                    ret_kthreads[v[0]] = {'policy' : policies[v[1]], 
+                                          'priority' : v[2], 'name' : v[3] }
+            except ValueError:
+                pass    # Ignore lines which don't have a number in the first row
+        return ret_kthreads
+
 
     def parse_options(self):
         '''parse the command line arguments'''
@@ -283,6 +293,7 @@ class RtEval(object):
         (sys, node, release, ver, machine) = os.uname()
 
         # Start new XML report
+        self.xmlreport = xmlout.XMLOut('rteval', self.version)
         self.xmlreport.NewReport()
 
         self.xmlreport.openblock('run_info', {'days': duration.days,
@@ -313,7 +324,7 @@ class RtEval(object):
 
         self.xmlreport.openblock('services')
         for s in self.services:
-            self.xmlreport.taggedvalue(s, self.services[s])
+            self.xmlreport.taggedvalue("service", self.services[s], {"name": s})
         self.xmlreport.closeblock()
 
         keys = self.kthreads.keys()
@@ -389,11 +400,14 @@ class RtEval(object):
         "Create a screen report, based on a predefined XSLT template"
         self.xmlreport.Write("-", self.config.xslt_report)
 
+
     def summarize(self, xmlfile):
         '''summarize a previously generated xml file'''
         print "loading %s for summarizing" % xmlfile
-        self.xmlreport.LoadReport(xmlfile)
-        self.xmlreport.Write('-', self.config.xslt_report)
+        xmlreport = xmlout.XMLOut('rteval', self.version)
+        xmlreport.LoadReport(xmlfile)
+        xmlreport.Write('-', self.config.xslt_report)
+        del xmlreport
 
     def start_loads(self):
         if len(self.loads) == 0:
@@ -428,6 +442,7 @@ class RtEval(object):
             l.join(2.0)
 
     def make_report_dir(self):
+        self.start = datetime.now()
         t = self.start
         i = 1
         self.reportdir = os.path.join(self.workdir,
@@ -449,6 +464,13 @@ class RtEval(object):
 
 
     def measure(self):
+        # Collect misc system info
+        self.numcores = self.get_num_cores()
+        self.memsize = self.get_memory_size()
+        (self.current_clocksource, self.available_clocksource) = self.get_clocksources()
+        self.services = self.get_services()
+        self.kthreads = self.get_kthreads()
+
         builddir = os.path.join(self.workdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
         self.reportfile = os.path.join(self.reportdir, "summary.rpt")
@@ -547,7 +569,7 @@ class RtEval(object):
                 client = rtevalclient.rtevalclient(url)
                 print "Submitting report to %s" % url
                 rterid = client.SendReport(self.xmlreport.GetXMLdocument())
-                print "Report registered with rterid %i" % rterid
+                print "Report registered with submission id %i" % rterid
                 attempt = 10
                 exitcode = 0 # Success
             except socket.error:

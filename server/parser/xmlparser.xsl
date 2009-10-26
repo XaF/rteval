@@ -47,6 +47,11 @@
             <xsl:text>Invalid 'syskey' parameter value: </xsl:text><xsl:value-of select="syskey"/>
           </xsl:message>
         </xsl:if>
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
         <xsl:if test="$report_filename = ''">
           <xsl:message terminate="yes">
             <xsl:text>The parameter 'report_filename' parameter cannot be empty</xsl:text>
@@ -83,6 +88,29 @@
           </xsl:message>
         </xsl:if>
         <xsl:apply-templates select="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql"/>
+      </xsl:when>
+
+      <!-- TABLE: cyclic_histogram -->
+      <xsl:when test="$table = 'cyclic_histogram'">
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+	<sqldata table="cyclic_histogram">
+	  <fields>
+            <field fid="0">rterid</field>
+            <field fid="1">core</field>
+            <field fid="2">index</field>
+            <field fid="3">value</field>
+	  </fields>
+	  <records>
+            <xsl:apply-templates select="/rteval/cyclictest/system/histogram/bucket"
+				 mode="cyclic_histogram_sql"/>
+            <xsl:apply-templates select="/rteval/cyclictest/core/histogram/bucket"
+				 mode="cyclic_histogram_sql"/>
+	  </records>
+	</sqldata>
       </xsl:when>
 
       <xsl:otherwise>
@@ -130,7 +158,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_sql">
-    <sqldata table="rtevalruns" key="rterid">
+    <sqldata table="rtevalruns">
       <fields>
         <field fid="0">syskey</field>
         <field fid="1">kernel_ver</field>
@@ -141,6 +169,8 @@
         <field fid="6">load_avg</field>
         <field fid="7">version</field>
         <field fid="8">report_filename</field>
+	<field fid="9">rterid</field>
+	<field fid="10">submid</field>
       </fields>
       <records>
         <record>
@@ -159,6 +189,8 @@
           <value fid="6"><xsl:value-of select="loads/@load_average"/></value>
           <value fid="7"><xsl:value-of select="@version"/></value>
           <value fid="8"><xsl:value-of select="$report_filename"/></value>
+          <value fid="9"><xsl:value-of select="$rterid"/></value>
+          <value fid="10"><xsl:value-of select="$submid"/></value>
         </record>
       </records>
     </sqldata>
@@ -175,7 +207,7 @@
           <value fid="0"><xsl:value-of select="$rterid"/></value>
           <value fid="1" type="xmlblob">
             <rteval_details>
-              <xsl:copy-of select="clocksource|network_config|loads|cyclictest/command_line"/>
+              <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
             </rteval_details>
           </value>
         </record>
@@ -243,5 +275,15 @@
         </xsl:for-each>
       </records>
     </sqldata>
+  </xsl:template>
+
+  <xsl:template match="/rteval/cyclictest/system/histogram/bucket|/rteval/cyclictest/core/histogram/bucket"
+		mode="cyclic_histogram_sql">
+      <record>
+	<value fid="0"><xsl:value-of select="$rterid"/></value>
+	<value fid="1"><xsl:value-of select="../../@id"/></value>
+	<value fid="2"><xsl:value-of select="@index"/></value>
+	<value fid="3"><xsl:value-of select="@value"/></value>
+      </record>
   </xsl:template>
 </xsl:stylesheet>

@@ -35,11 +35,10 @@ from rteval.rtevalConfig import rtevalConfig
 def Dispatch(req, method, args):
     # Default configuration
     defcfg = {'xmlrpc_server': { 'datadir':     '/var/lib/rteval',
-                                 'xsltpath':    '/usr/share/rteval',
                                  'db_server':   'localhost',
                                  'db_port':     5432,
                                  'database':    'rteval',
-                                 'db_username': 'xmlrpc',
+                                 'db_username': 'rtevxmlrpc',
                                  'db_password': 'rtevaldb'
                                  }
               }

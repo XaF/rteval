@@ -19,6 +19,20 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 
 CONFSRC	:=	rteval/rteval.conf
 
+# XML-RPC related files
+XMLRPCSRC  :=	server/database.py	\
+		server/rtevaldb.py	\
+		server/rteval_xmlrpc.py	\
+		server/xmlrpc_API1.py
+
+APACHECONF :=	server/apache-rteval.conf.tpl	\
+		server/gen_config.sh
+
+XMLRPCDOC  :=	server/README.xmlrpc
+
+SQLSRC	   :=	sql/rteval-1.0.sql
+
+
 runit:
 	[ -d ./run ] || mkdir run
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval rteval
@@ -36,12 +50,16 @@ install:
 	python setup.py --dry-run install
 
 tarfile:
-	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)/rteval
+	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)/rteval tarball/rteval-$(VERSION)/server tarball/rteval-$(VERSION)/sql
 	cp $(PYSRC) tarball/rteval-$(VERSION)/rteval
 	cp $(XSLSRC) tarball/rteval-$(VERSION)/rteval
 	cp $(CONFSRC) tarball/rteval-$(VERSION)/rteval
 	cp -r doc/ tarball/rteval-$(VERSION)
 	cp Makefile setup.py rteval.spec COPYING tarball/rteval-$(VERSION)
+	cp $(XMLRPCSRC) tarball/rteval-$(VERSION)/server
+	cp $(APACHECONF) tarball/rteval-$(VERSION)/server
+	cp $(XMLRPCDOC) tarball/rteval-$(VERSION)/server
+	cp $(SQLSRC) tarball/rteval-$(VERSION)/sql
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
 rpm:	tarfile

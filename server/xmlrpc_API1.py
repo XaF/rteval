@@ -36,7 +36,7 @@ import rtevaldb
 class XMLRPC_API1():
     def __init__(self, config=None, debug=False, nodbaction=False):
         # Some defaults
-        self.fnametrans = string.maketrans("/\\", "::") # replace path delimiters in filenames
+        self.fnametrans = string.maketrans("/\\.", "::_") # replace path delimiters in filenames
         self.debug = debug
         self.nodbaction = nodbaction
         self.config = config
@@ -53,12 +53,12 @@ class XMLRPC_API1():
         os.chdir(startdir)
 
 
-    def __getfilename(self, dir, fname, comp):
+    def __getfilename(self, dir, fname, ext, comp):
         idx = 0
         if comp:
-            filename = "%s/%s/%s.bz2" % (self.config.datadir, dir, fname.translate(self.fnametrans))
+            filename = "%s/%s/%s%s.bz2" % (self.config.datadir, dir, fname.translate(self.fnametrans), ext)
         else:
-            filename = "%s/%s/%s" % (self.config.datadir, dir, fname.translate(self.fnametrans))
+            filename = "%s/%s/%s%s" % (self.config.datadir, dir, fname.translate(self.fnametrans), ext)
 
         while 1:
             if not os.path.exists(filename):
@@ -90,14 +90,14 @@ class XMLRPC_API1():
 
         # Save a copy of the report on the file system
         # Make sure we have a directory to write files into
-        self.__mkdatadir(self.config.datadir + '/reports/' + clientid)
-        fname = self.__getfilename('reports/' + clientid,'report.xml', False)
+        self.__mkdatadir(self.config.datadir + '/queue/')
+        fname = self.__getfilename('queue/', ('%s' % clientid), '.xml', False)
         xmldoc.saveFormatFileEnc(fname,'UTF-8',1)
         if self.debug:
             print "Copy of report: %s" % fname
 
-        # Register the report into a database and return the rteval run id
-        (syskey, rterid) = rtevaldb.register_report(self.config, xmldoc, fname,
+        # Register the submission and put it in a parse queue
+        rterid = rtevaldb.register_submission(self.config, clientid, fname,
                                                         debug=self.debug, noaction=self.nodbaction)
         if self.nodbaction:
             rterid = 999999999 # Fake ID when no database registration is done
@@ -116,7 +116,7 @@ class XMLRPC_API1():
         self.__mkdatadir(self.datadir + '/uploads/' + clientid)
 
         # Get a unique filename, as close as possible to the input filename
-        fname = self.__getfilename('uploads/' + clientid, filename, not decompdata)
+        fname = self.__getfilename(('uploads/%s/%s' % clientid), filename, None, not decompdata)
 
         # Save and return filename used server side
         f = open(fname, "w")

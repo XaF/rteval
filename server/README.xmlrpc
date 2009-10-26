@@ -3,12 +3,18 @@
 **
 
 The XML-RPC server has the purpose of collecting information from
-several rteval clients.  Each client will get a unique system ID which
-then can be used to track how each system changes behavior on
-different kernels.  All of the data in the summary.xml produced by the
-rteval script is sent over to the XML-RPC server and a copy is saved,
-default location is /var/lib/rteval.  This XML file is then parsed and
-the data is stored in a database for further analysis.
+several rteval clients.  All the data in the summary.xml produced by the
+rteval script is sent over to the XML-RPC server and registered in a
+submission queue.  The XML-RPC server will then send back a submission
+ID to the client.
+
+A parser daemon needs to run as well.  This daemon is connected to the
+same database as the XML-RPC service and it will wait for new reports in
+the submission queue to be parsed.  Look into the rteval/server/parser
+directory for more information on setting up the rteval_parserd process.
+
+Each parsed report will get a unique system ID which then can be used to
+track how each system changes behavior on different kernels.
 
 
 **
@@ -53,7 +59,7 @@ server.
 pg_hba.conf entry example:
 
 # TYPE  DATABASE    USER        CIDR-ADDRESS          METHOD
-hostssl rteval	    xmlrpc	127.0.0.1/32	      md5
+hostssl rteval	    rtevxmlrpc	127.0.0.1/32	      md5
 
 The XML-RPC database connector will always try to connect via SSL.  To
 modify the default password, connect to the database with psql and
@@ -95,7 +101,6 @@ or parameters is not set.
 
      # Paths
      datadir:     /var/lib/rteval
-     xsltpath:    /usr/share/rteval
 
      # Database parameters
      db_server:   localhost

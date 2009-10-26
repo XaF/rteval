@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.8
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -30,10 +30,18 @@ the cyclictest program is run to measure event response time. After
 the run time completes, a statistical analysis of the event response
 times is done and printed to the screen.
 
+%package xmlrpc
+Summary: XML-RPC server based on mod_python for receving reports from rteval
+Requires: postgresql httpd mod_python
+
+%description xmlrpc
+This package requires Apache, mod_python and a PostgreSQL server.  It will
+enable an XML-RPC interface for the rteval program to submit the reports to
+a central server.
+
 
 %prep
 %setup -q
-
 
 # version sanity check (make sure specfile and rteval.py match)
 srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
@@ -64,7 +72,7 @@ Release:	1%{?dist}
 Summary:	hackbench synthectic load for rteval
 Group:		Development/Tools
 License:	GPLv2
-Requires: 	rteval >= 1.8
+Requires:	rteval >= 1.8
 Obsoletes:	rteval <= 1.7
 
 %description hackbench
@@ -88,6 +96,17 @@ install -m 644 doc/rteval.8 ${RPM_BUILD_ROOT}/%{_mandir}/man8/
 chmod 755 ${RPM_BUILD_ROOT}/%{python_sitelib}/rteval/rteval.py
 ln -fs %{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/%{_bindir}/rteval
 
+# XML-RPC server install
+cd server
+mkdir -p ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 rteval_xmlrpc.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 xmlrpc_API1.py  ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 rtevaldb.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 database.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
+./gen_config.sh %{_localstatedir}/www/html/rteval/API1
+install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
+cd ..
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -111,6 +130,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/rteval
 
 
+%files xmlrpc
+%defattr(-,root,root,-)
+%doc COPYING server/README.xmlrpc sql/rteval-1.0.sql
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
+%{_localstatedir}/www/html/rteval/
+
+
 %files kcompile
 %{_datadir}/%{name}/loadsource/linux*.tar.bz2
 %{python_sitelib}/rteval/kcompile.py
@@ -122,6 +148,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Oct 26 2009 David Sommerseth <davids@redhat.com> - 1.8-2
+- Added xmlrpc package, containing the XML-RPC mod_python modules
+
 * Wed Oct 14 2009 Clark Williams <williams@redhat.com> - 1.8-1
 - split kcompile and hackbench into sub-packages
 
