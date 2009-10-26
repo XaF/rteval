@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.7
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -29,10 +29,18 @@ the cyclictest program is run to measure event response time. After
 the run time completes, a statistical analysis of the event response
 times is done and printed to the screen.
 
+%package xmlrpc
+Summary: XML-RPC server based on mod_python for receving reports from rteval
+Requires: postgresql httpd mod_python
+
+%description xmlrpc
+This package requires Apache, mod_python and a PostgreSQL server.  It will
+enable an XML-RPC interface for the rteval program to submit the reports to
+a central server.
+
 
 %prep
 %setup -q
-
 
 # version sanity check (make sure specfile and rteval.py match)
 srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
@@ -63,6 +71,17 @@ install -m 644 doc/rteval.8 ${RPM_BUILD_ROOT}/%{_mandir}/man8/
 chmod 755 ${RPM_BUILD_ROOT}/%{python_sitelib}/rteval/rteval.py
 ln -fs %{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/%{_bindir}/rteval
 
+# XML-RPC server install
+cd server
+mkdir -p ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 rteval_xmlrpc.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 xmlrpc_API1.py  ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 rtevaldb.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+install -m 644 database.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
+mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
+./gen_config.sh %{_localstatedir}/www/html/rteval/API1
+install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
+cd ..
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -85,8 +104,17 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/rteval/
 %{_bindir}/rteval
 
+%files xmlrpc
+%defattr(-,root,root,-)
+%doc README.xmlrpc
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
+%{_localstatedir}/www/html/rteval/
+
 
 %changelog
+* Mon Oct 26 2009 David Sommerseth <davids@redhat.com> - 1.7-2
+- Added xmlrpc package, containing the XML-RPC mod_python modules
+
 * Tue Oct 13 2009 Clark Williams <williams@redhat.com> - 1.7-1
 - added kthread status to xml file
 - merged davids changes for option processing and additions

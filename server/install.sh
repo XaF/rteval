@@ -5,9 +5,6 @@ XSLT_FILES="parser/xmlparser.xsl"
 
 XSLTDIR="/usr/share/rteval"
 
-APACHECONF="apache-rteval.conf"
-
-
 if [ $# != 1 ]; then
     echo "$0 </var/www/html/.... full path to the directory the XML-RPC server will reside>"
     exit
@@ -23,11 +20,4 @@ echo "Installing XSLT templates to ${XSLTDIR}"
 cp -v ${XSLT_FILES} ${XSLTDIR}
 echo
 
-echo "Creating Apache config file: apache-rteval.conf"
-escinstpath="$(echo ${INSTALLDIR} | sed -e 's/\//\\\\\//g')"
-expr=$(echo "s/{_INSTALLDIR_}/${escinstpath}/")
-eval "sed -e ${expr} ${APACHECONF}.tpl" > ${APACHECONF}
-echo "Copy the apache apache-rteval.conf into your Apache configuration"
-echo "directory and restart your web server"
-echo
-
+./gen_config.sh ${INSTALLDIR}

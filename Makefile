@@ -20,10 +20,13 @@ install:
 	python setup.py --dry-run install
 
 tarfile:
-	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)
+	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION) tarball/rteval-$(VERSION)/server
 	cp -r rteval tarball/rteval-$(VERSION)
 	cp -r doc/ tarball/rteval-$(VERSION)
 	cp Makefile setup.py rteval.spec COPYING tarball/rteval-$(VERSION)
+	cp server/database.py server/rtevaldb.py server/rteval_xmlrpc.py server/xmlrpc_API1.py tarball/rteval-$(VERSION)/server
+	cp server/apache-rteval.conf.tpl server/gen_config.sh tarball/rteval-$(VERSION)/server
+	cp server/README tarball/rteval-$(VERSION)/README.xmlrpc
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
 rpm:	tarfile
