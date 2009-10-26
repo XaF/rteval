@@ -106,7 +106,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files xmlrpc
 %defattr(-,root,root,-)
-%doc COPYING README.xmlrpc
+%doc COPYING README.xmlrpc sql/rteval-1.0.sql
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
 %{_localstatedir}/www/html/rteval/
 
