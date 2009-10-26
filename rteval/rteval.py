@@ -273,14 +273,16 @@ class RtEval(object):
             raise RuntimeError, "Can't find sosreport/sysreport"
 
         self.debug("report tool: %s" % exe)
-        options =  ['-k', 'rpm.rpmvma=off',
+        options =  ['-k', 'rpm.rpmva=off',
                     '--name=rteval', 
-                    '--ticket=1234',
+                    '--batch',
                     '--no-progressbar']
 
         self.info("Generating SOS report")
+        self.info("using command %s" % " ".join([exe]+options))
         subprocess.call([exe] + options)
         for s in glob.glob('/tmp/s?sreport-rteval-*'):
+            self.debug("moving %s to %s" % (s, self.reportdir))
             shutil.move(s, self.reportdir)
     
 
@@ -647,7 +649,13 @@ class RtEval(object):
         if not os.path.isdir(self.workdir):
             raise RuntimeError, "work directory %d does not exist" % self.workdir
 
-        self.make_report_dir()
+        try:
+            self.make_report_dir()
+        except:
+            print "Cannot create the report dir!"
+            print "(is this an NFS filesystem with rootsquash turned on?)"
+            sys.exit(-1)
+
         self.measure()
 
         # if --xmlrpc-submit | -X was given, send our report to this host
