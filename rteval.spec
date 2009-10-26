@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.8
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -20,6 +20,7 @@ Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.29
 Requires:	rteval-kcompile rteval-hackbench
 BuildArch:	noarch
+Obsoletes:	rteval <= 1.7
 
 %description
 The rteval script is a utility for measuring various aspects of 
@@ -29,16 +30,6 @@ loop, running hackbench and compiling a kernel tree. During that loop
 the cyclictest program is run to measure event response time. After
 the run time completes, a statistical analysis of the event response
 times is done and printed to the screen.
-
-%package xmlrpc
-Summary: XML-RPC server based on mod_python for receving reports from rteval
-Requires: postgresql httpd mod_python
-
-%description xmlrpc
-This package requires Apache, mod_python and a PostgreSQL server.  It will
-enable an XML-RPC interface for the rteval program to submit the reports to
-a central server.
-
 
 %prep
 %setup -q
@@ -57,26 +48,37 @@ fi
 %package kcompile
 Version:	1.0
 Release:	1%{?dist}
-Summary:	kernel compile load for rteval
+Summary:	Kernel compile load for rteval
 Group:		Development/Tools
 License:	GPLv2
 Requires:	rteval >= 1.8
-Obsoletes:	rteval <= 1.7
 
 %description kcompile
-The kcompile package provides a load which is a parallel Linux kernel compilation
+The kcompile package provides a load which is a parallel Linux kernel
+compilation
+
 
 %package hackbench
 Version:	1.0
 Release:	1%{?dist}
-Summary:	hackbench synthectic load for rteval
+Summary:	Hackbench synthectic load for rteval
 Group:		Development/Tools
 License:	GPLv2
 Requires:	rteval >= 1.8
-Obsoletes:	rteval <= 1.7
 
 %description hackbench
-the hackbench package provides a synthetic load program named hackbench
+The hackbench package provides a synthetic load program named hackbench
+
+
+%package xmlrpc
+Summary: XML-RPC server based on mod_python for receving reports from rteval
+Requires: postgresql httpd mod_python
+
+%description xmlrpc
+This package requires Apache, mod_python and a PostgreSQL server.  It will
+enable an XML-RPC interface for the rteval program to submit the reports to
+a central server.
+
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
@@ -129,6 +131,17 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/rteval/
 %{_bindir}/rteval
 
+%files kcompile
+%defattr(-,root,root,-)
+%doc COPYING
+%{_datadir}/%{name}/loadsource/linux*.tar.bz2
+%{python_sitelib}/rteval/kcompile.py
+
+%files hackbench
+%defattr(-,root,root,-)
+%doc COPYING
+%{_datadir}/%{name}/loadsource/hackbench.tar.bz2
+%{python_sitelib}/rteval/hackbench.py
 
 %files xmlrpc
 %defattr(-,root,root,-)
@@ -137,17 +150,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_localstatedir}/www/html/rteval/
 
 
-%files kcompile
-%{_datadir}/%{name}/loadsource/linux*.tar.bz2
-%{python_sitelib}/rteval/kcompile.py
-
-%files hackbench
-%{_datadir}/%{name}/loadsource/hackbench.tar.bz2
-%{python_sitelib}/rteval/hackbench.py
-
-
-
 %changelog
+* Mon Oct 26 2009 David Sommerseth <davids@redhat.com> - 1.8-3
+- Fixed rpmlint complaints
+
 * Mon Oct 26 2009 David Sommerseth <davids@redhat.com> - 1.8-2
 - Added xmlrpc package, containing the XML-RPC mod_python modules
 
