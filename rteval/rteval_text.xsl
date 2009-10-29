@@ -56,7 +56,7 @@
       Statistics: <xsl:apply-templates select="system/statistics"/>
       <!-- Add CPU core info and stats-->
       <xsl:apply-templates select="core">
-       <xsl:sort select="@id"/>
+       <xsl:sort select="@id" data-type="number"/>
       </xsl:apply-templates>
   </xsl:template>
 
