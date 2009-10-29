@@ -232,6 +232,9 @@ class RtEval(object):
         parser.add_option("-Z", '--summarize', dest='summarize',
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
+        parser.add_option("-H", '--raw-histogram', dest='rawhistogram',
+                          action='store_true', default=False,
+                          help='Generate raw histogram data for an already existing XML report')
         parser.add_option("-f", "--inifile", dest="inifile",
                           type='string', default=None,
                           help="initialization file for configuring loads and behavior")
@@ -403,12 +406,17 @@ class RtEval(object):
         self.xmlreport.Write("-", self.config.xslt_report)
 
 
-    def summarize(self, xmlfile):
+    def show_report(self, xmlfile, xsltfile):
         '''summarize a previously generated xml file'''
-        print "loading %s for summarizing" % xmlfile
+        print "Loading %s for summarizing" % xmlfile
+
+        xsltfullpath = os.path.join(self.config.installdir, xsltfile)
+        if not os.path.exists(xsltfullpath):
+            raise RuntimeError, "can't find XSL template (%s)!" % xsltfullpath
+
         xmlreport = xmlout.XMLOut('rteval', self.version)
         xmlreport.LoadReport(xmlfile)
-        xmlreport.Write('-', self.config.xslt_report)
+        xmlreport.Write('-', xsltfullpath)
         del xmlreport
 
     def start_loads(self):
@@ -624,11 +632,16 @@ class RtEval(object):
         retval = 0;
 
         # if --summarize was specified then just parse the XML, print it and exit
-        if self.cmd_options.summarize:
+        if self.cmd_options.summarize or self.cmd_options.rawhistogram:
             if len(self.cmd_arguments) < 1:
                 raise RuntimeError, "Must specify at least one XML file with --summarize!"
+
             for x in self.cmd_arguments:
-                self.summarize(x)
+                if self.cmd_options.summarize:
+                    self.show_report(x, 'rteval_text.xsl')
+                elif self.cmd_options.rawhistogram:
+                    self.show_report(x, 'rteval_histogram_raw.xsl')
+
             sys.exit(0)
 
         if os.getuid() != 0:
