@@ -2,8 +2,8 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.8
-Release:	3%{?dist}
+Version:	1.9
+Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -142,6 +142,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Oct 29 2009 Clark Williams <williams@redhat.com> - 1.9-1
+- merged davids updates:
+  	 -H option (raw histogram data)
+	 cleaned up xsl files
+	 fixed cpu sorting
+
 * Mon Oct 26 2009 David Sommerseth <davids@redhat.com> - 1.8-3
 - Fixed rpmlint complaints
 
