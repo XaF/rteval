@@ -146,7 +146,7 @@ class RunData(object):
 class Cyclictest(Thread):
     def __init__(self, duration=None, priority = 95, 
                  outfile = None, threads = None, debugging=False,
-                 keepdata = False):
+                 keepdata = False, params={}):
         Thread.__init__(self)
         self.duration = duration
         self.keepdata = keepdata
@@ -157,6 +157,7 @@ class Cyclictest(Thread):
         self.interval = "-i100"
         self.debugging = debugging
         self.reportfile = 'cyclictest.rpt'
+        self.params = params
         f = open('/proc/cpuinfo')
         self.data = {}
         numcores = 0
@@ -182,7 +183,14 @@ class Cyclictest(Thread):
         if self.debugging: print "cyclictest: %s" % str
 
     def run(self):
-        self.cmd = ['cyclictest', self.interval, '-a', '-qnm', '-d0', '-h 1000',
+        if self.params.has_key('buckets'):
+            buckets = int(self.params.buckets)
+        else:
+            buckets = 2000
+        if self.params.has_key('interval'):
+            self.interval = '-i%d' % int(self.params.interval)
+
+        self.cmd = ['cyclictest', self.interval, '-a', '-qnm', '-d0', '-h %d' % buckets,
                     "-p%d" % self.priority]
         if self.threads:
             self.cmd.append("-t%d" % self.threads)

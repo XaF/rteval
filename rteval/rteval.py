@@ -505,7 +505,8 @@ class RtEval(object):
 
         self.info("setting up cyclictest")
         self.cyclictest = cyclictest.Cyclictest(duration=self.config.duration,
-                                                debugging=self.config.debugging)
+                                                debugging=self.config.debugging,
+                                                params=self.config.GetSection('cyclictest'))
 
         nthreads = 0
         try:
