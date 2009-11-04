@@ -70,8 +70,9 @@ The hackbench package provides a synthetic load program named hackbench
 
 
 %package xmlrpc
-Summary: XML-RPC server based on mod_python for receving reports from rteval
-Requires: postgresql httpd mod_python
+Summary: 	XML-RPC server based on mod_python for receving reports from rteval
+Group:		Applications/System
+Requires: 	postgresql httpd mod_python
 
 %description xmlrpc
 This package requires Apache, mod_python and a PostgreSQL server.  It will
