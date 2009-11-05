@@ -2,9 +2,13 @@
 *.pyo
 *~
 run
-loadsource/linux-*
+rteval-build
+loadsource
 rpm
 tarball
 *.bz2
 *.rpt
 *.xml
+build
+rpm*
+usr
