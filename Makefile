@@ -30,12 +30,15 @@ APACHECONF :=	server/apache-rteval.conf.tpl	\
 
 XMLRPCDOC  :=	server/README.xmlrpc
 
+XMLPARSERDIR := server/parser
+
 SQLSRC	   :=	sql/rteval-1.0.sql
 
 DESTDIR	:=
-DATADIR	:=	$(DESTDIR)/usr/share
+PREFIX  :=      /usr
+DATADIR	:=	$(DESTDIR)/$(PREFIX)/share
 CONFDIR	:=	$(DESTDIR)/etc
-MANDIR	:=	$(DESTDIR)/usr/share/man
+MANDIR	:=	$(DESTDIR)/$(PREFIX)/share/man
 PYLIB	:= 	$(DESTDIR)$(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 LOADDIR	:=	loadsource
 
@@ -50,12 +53,13 @@ sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
-	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 rteval_parserd.tar.gz
 
 realclean: clean
+	make -C $(XMLPARSERDIR)
 	rm -rf run tarball rpm
 
-install: installdirs
+install: rteval_parserd installdirs
 	if [ "$(DESTDIR)" = "" ]; then \
 		python setup.py install; \
 	else \
@@ -67,12 +71,15 @@ install: installdirs
 	install -m 644 rteval/rteval_dmi.xsl $(DATADIR)/rteval
 	install -m 644 rteval/rteval.conf $(CONFDIR)
 	install -m 644 doc/rteval.8 $(MANDIR)/man8/
-	gzip $(MANDIR)/man8/rteval.8
+	gzip -f $(MANDIR)/man8/rteval.8
 	chmod 755 $(PYLIB)/rteval/rteval.py
-	if [ "$(DESTDIR)" = "" ]; then \
-		ln -s $(PYLIB)/rteval/rteval.py /usr/bin/rteval; \
-	fi
+	ln -s $(PYLIB)/rteval/rteval.py $(DESTDIR)/usr/bin/rteval;
 
+	if [ "$(DESTDIR)" = "" ]; then \
+		make -C server/rteval_parserd-* DESTDIR="$(DESTDIR)" install; \
+	else \
+		make -C server/rteval_parserd-* install; \
+	fi
 
 installdirs:
 	[ -d $(DATADIR)/rteval/loadsource ] || mkdir -p $(DATADIR)/rteval/loadsource
@@ -88,8 +95,10 @@ uninstall:
 	rm -rf $(PYLIB)/rteval
 	rm -rf $(DATADIR)/rteval
 
-tarfile:
+tarfile_prep:
 	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)/rteval tarball/rteval-$(VERSION)/server tarball/rteval-$(VERSION)/sql
+
+tarfile: tarfile_prep rteval_parserd_src
 	cp $(PYSRC) tarball/rteval-$(VERSION)/rteval
 	cp $(XSLSRC) tarball/rteval-$(VERSION)/rteval
 	cp $(CONFSRC) tarball/rteval-$(VERSION)/rteval
@@ -100,6 +109,22 @@ tarfile:
 	cp $(XMLRPCDOC) tarball/rteval-$(VERSION)/server
 	cp $(SQLSRC) tarball/rteval-$(VERSION)/sql
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
+
+rteval_parserd.tar.gz :
+	cd $(XMLPARSERDIR) ;             \
+	autoreconf --install ;           \
+	./configure --prefix=$(PREFIX) ; \
+	make distcheck
+	cp $(XMLPARSERDIR)/rteval_parserd-*.tar.gz $(HERE)/$@
+
+rteval_parserd_src : rteval_parserd.tar.gz
+	mkdir -p $(HERE)/tarball/rteval-$(VERSION)/server
+	tar -C $(HERE)/tarball/rteval-$(VERSION)/server -xvf $(HERE)/rteval_parserd.tar.gz
+
+rteval_parserd :
+	cd server/rteval_parserd-* ; \
+	./configure --prefix=$(PREFIX) ;                                      \
+	make
 
 rpm:	tarfile
 	rm -rf rpm
