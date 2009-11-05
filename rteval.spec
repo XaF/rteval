@@ -10,15 +10,13 @@ Group:		Development/Tools
 License:	GPLv2
 URL:		http://git.kernel.org/?p=linux/kernel/git/clrkwllms/rteval.git
 Source0:	rteval-%{version}.tar.bz2
-Source1:	http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.26.1.tar.bz2
-Source2:	hackbench.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires:	python gcc binutils make
-Requires:	python-schedutils python-ethtool libxslt-python
+Requires:	python
+Requires:	python-schedutils python-ethtool libxslt-python >= 1.17
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.29
-Requires:	rteval-kcompile rteval-hackbench
+Requires:	rteval-loads
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
 
@@ -44,35 +42,10 @@ fi
 
 %build
 
-%package kcompile
-Version:	1.0
-Release:	1%{?dist}
-Summary:	Kernel compile load for rteval
-Group:		Development/Tools
-License:	GPLv2
-Requires:	rteval >= 1.8
-
-%description kcompile
-The kcompile package provides a load which is a parallel Linux kernel
-compilation
-
-
-%package hackbench
-Version:	1.0
-Release:	1%{?dist}
-Summary:	Hackbench synthectic load for rteval
-Group:		Development/Tools
-License:	GPLv2
-Requires:	rteval >= 1.8
-
-%description hackbench
-The hackbench package provides a synthetic load program named hackbench
-
-
 %package xmlrpc
-Summary: 	XML-RPC server based on mod_python for receving reports from rteval
+Summary:	XML-RPC server based on mod_python for receving reports from rteval
 Group:		Applications/System
-Requires: 	postgresql httpd mod_python
+Requires:	postgresql httpd mod_python
 
 %description xmlrpc
 This package requires Apache, mod_python and a PostgreSQL server.  It will
@@ -83,7 +56,8 @@ a central server.
 %install
 rm -rf ${RPM_BUILD_ROOT}
 mkdir -p ${RPM_BUILD_ROOT}
-make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=%{_sourcedir} install
+#make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=%{_sourcedir} install_rteval
+make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=${RPM_SOURCE_DIR} install_rteval
 
 # XML-RPC server install
 cd server
@@ -114,7 +88,6 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %dir %{_datadir}/%{name}
-%dir %{_datadir}/%{name}/loadsource
 
 %doc COPYING
 %{_mandir}/man8/rteval.8*
@@ -122,18 +95,6 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/rteval.conf
 %{python_sitelib}/rteval/
 
-
-%files kcompile
-%defattr(-,root,root,-)
-%doc COPYING
-%{_datadir}/%{name}/loadsource/linux*.tar.bz2
-%{python_sitelib}/rteval/kcompile.py
-
-%files hackbench
-%defattr(-,root,root,-)
-%doc COPYING
-%{_datadir}/%{name}/loadsource/hackbench.tar.bz2
-%{python_sitelib}/rteval/hackbench.py
 
 %files xmlrpc
 %defattr(-,root,root,-)
@@ -143,15 +104,16 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Nov  4 2009 Clark Williams <williams@redhat.com> - 1.10-1
+* Thu Nov  5 2009 Clark Williams <williams@redhat.com> - 1.10-1
 - added config file section for cyclictest and two settable
   parameters, buckets and interval
+- created new package rteval-loads for the load source code
 
 * Thu Oct 29 2009 Clark Williams <williams@redhat.com> - 1.9-1
 - merged davids updates:
-  	 -H option (raw histogram data)
-	 cleaned up xsl files
-	 fixed cpu sorting
+	-H option (raw histogram data)
+	cleaned up xsl files
+	fixed cpu sorting
 
 * Mon Oct 26 2009 David Sommerseth <davids@redhat.com> - 1.8-3
 - Fixed rpmlint complaints

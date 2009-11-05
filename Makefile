@@ -41,6 +41,8 @@ LOADDIR	:=	loadsource
 
 KLOAD	:=	$(LOADDIR)/linux-2.6.26.1.tar.bz2
 HLOAD	:=	$(LOADDIR)/hackbench.tar.bz2
+BLOAD	:=	$(LOADDIR)/dbench-4.0.tar.gz
+LOADS	:=	$(KLOAD) $(HLOAD) $(BLOAD)
 
 runit:
 	[ -d ./run ] || mkdir run
@@ -55,14 +57,14 @@ clean:
 realclean: clean
 	rm -rf run tarball rpm
 
-install: installdirs
+install: install_loads install_rteval
+
+install_rteval: installdirs
 	if [ "$(DESTDIR)" = "" ]; then \
 		python setup.py install; \
 	else \
 		python setup.py install --root=$(DESTDIR); \
 	fi
-	install -m 644 $(KLOAD) $(DATADIR)/rteval/loadsource
-	install -m 644 $(HLOAD) $(DATADIR)/rteval/loadsource
 	install -m 644 rteval/rteval_text.xsl $(DATADIR)/rteval
 	install -m 644 rteval/rteval_dmi.xsl $(DATADIR)/rteval
 	install -m 644 rteval/rteval.conf $(CONFDIR)
@@ -73,9 +75,14 @@ install: installdirs
 		ln -s $(PYLIB)/rteval/rteval.py /usr/bin/rteval; \
 	fi
 
+install_loads:	$(LOADS)
+	[ -d $(DATADIR)/rteval/loadsource ] || mkdir -p $(DATADIR)/rteval/loadsource
+	for l in $(LOADS); do \
+		install -m 644 $$l $(DATADIR)/rteval/loadsource; \
+	done
 
 installdirs:
-	[ -d $(DATADIR)/rteval/loadsource ] || mkdir -p $(DATADIR)/rteval/loadsource
+	[ -d $(DATADIR)/rteval ] || mkdir -p $(DATADIR)/rteval
 	[ -d $(CONFDIR) ] || mkdir -p $(CONFDIR)
 	[ -d $(MANDIR)/man8 ]  || mkdir -p $(MANDIR)/man8
 	[ -d $(PYLIB) ]   || mkdir -p $(PYLIB)
@@ -101,13 +108,30 @@ tarfile:
 	cp $(SQLSRC) tarball/rteval-$(VERSION)/sql
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
-rpm:	tarfile
+rpms rpm: rtevalrpm loadrpm
+
+rtevalrpm:	tarfile
 	rm -rf rpm
 	mkdir -p rpm/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
 	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
 	cp rteval.spec rpm/SPECS
 	cp loadsource/* rpm/SOURCES
 	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
+
+loadrpm: 
+	rm -rf rpm-loads
+	mkdir -p rpm-loads/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
+	cp rteval-loads.spec rpm-loads/SPECS
+	cp $(LOADS) rpm-loads/SOURCES
+	rpmbuild -ba --define "_topdir $(HERE)/rpm-loads" rpm-loads/SPECS/rteval-loads.spec
+
+rpmlint: rpms
+	@echo "==============="
+	@echo "running rpmlint"
+	rpmlint -v rpm/SRPMS/rteval*.src.rpm
+	rpmlint -v rpm/RPMS/noarch/rteval*.noarch.rpm
+	rpmlint -v rpm-loads/SRPMS/rteval-loads*.src.rpm
+	rpmlint -v rpm-loads/RPMS/noarch/rteval-loads*.noarch.rpm
 
 help:
 	@echo ""
