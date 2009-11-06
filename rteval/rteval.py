@@ -121,6 +121,7 @@ class RtEval(object):
         self.services = None
         self.kthreads = None
         self.xml = None
+        self.baseos = "unknown"
 
         if not self.config.xslt_report.startswith(self.config.installdir):
             self.config.xslt_report = os.path.join(self.config.installdir, "rteval_text.xsl")
@@ -128,6 +129,19 @@ class RtEval(object):
         if not os.path.exists(self.config.xslt_report):
             raise RuntimeError, "can't find XSL template (%s)!" % self.config.xslt_report
 
+
+    def get_base_os(self):
+        '''record what userspace we're running on'''
+        distro = "unknown"
+        for f in ('redhat-release', 'fedora-release'):
+            p = os.path.join('/etc', f)
+            if os.path.exists(p):
+                f = open(p, 'r')
+                distro = f.readline().strip()
+                f.close()
+                break
+        self.debug("baseos: %s" % distro)
+        return distro
 
     def get_num_cores(self):
         ''' figure out how many processors we have available'''
@@ -315,6 +329,7 @@ class RtEval(object):
             isrt = 0
         self.xmlreport.taggedvalue('kernel', release, {'is_RT':isrt})
         self.xmlreport.taggedvalue('arch', machine)
+        self.xmlreport.taggedvalue('baseos', self.baseos)
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock("clocksource")
@@ -475,6 +490,7 @@ class RtEval(object):
 
     def measure(self):
         # Collect misc system info
+        self.baseos = self.get_base_os()
         self.numcores = self.get_num_cores()
         self.memsize = self.get_memory_size()
         (self.current_clocksource, self.available_clocksource) = self.get_clocksources()
