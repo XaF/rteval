@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.10
+Version:	1.11
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -104,11 +104,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Fri Nov  6 2009 Clark Williams <williams@redhat.com> - 1.10-1
+* Fri Nov  6 2009 Clark Williams <williams@redhat.com> - 1.11-1
+- added base OS info to XML file and XSL report
+- created new package rteval-loads for the load source code
+
+* Wed Nov  4 2009 Clark Williams <williams@redhat.com> - 1.10-1
 - added config file section for cyclictest and two settable
   parameters, buckets and interval
-- created new package rteval-loads for the load source code
-- added base OS info to XML file and XSL report
 
 * Thu Oct 29 2009 Clark Williams <williams@redhat.com> - 1.9-1
 - merged davids updates:
