@@ -104,10 +104,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Nov  5 2009 Clark Williams <williams@redhat.com> - 1.10-1
+* Fri Nov  6 2009 Clark Williams <williams@redhat.com> - 1.10-1
 - added config file section for cyclictest and two settable
   parameters, buckets and interval
 - created new package rteval-loads for the load source code
+- added base OS info to XML file and XSL report
 
 * Thu Oct 29 2009 Clark Williams <williams@redhat.com> - 1.9-1
 - merged davids updates:
