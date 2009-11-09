@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.11
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -71,7 +71,7 @@ mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
 install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
 cd ..
 
-%post
+%posttrans
 ln -fs %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 
 %postun
@@ -104,6 +104,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-3
+- changed symlink generation from %post to %posttrans
+
 * Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-2
 - fixed incorrect dependency for libxslt
 
