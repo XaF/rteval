@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.11
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -13,7 +13,7 @@ Source0:	rteval-%{version}.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	python
-Requires:	python-schedutils python-ethtool libxslt-python >= 1.17
+Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.29
 Requires:	rteval-loads
@@ -104,6 +104,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-2
+- fixed incorrect dependency for libxslt
+
 * Fri Nov  6 2009 Clark Williams <williams@redhat.com> - 1.11-1
 - added base OS info to XML file and XSL report
 - created new package rteval-loads for the load source code
