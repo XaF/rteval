@@ -320,7 +320,7 @@ void *parsethread(void *thrargs) {
 			if( *(args->threadcount) <= 1 ) {
 				writelog(args->dbc->log, LOG_EMERG,
 					 "No more worker threads available.  "
-					 "Initiating complete shutdown");
+					 "Signaling for complete shutdown!");
 				kill(getpid(), SIGUSR1);
 			}
 			exitcode = 1;
