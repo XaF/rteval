@@ -37,12 +37,15 @@
 #include <eurephia_nullsafe.h>
 #include <eurephia_values_struct.h>
 
+
+
 /**
- * Internal function. Makes sure a eurephiaVALUES stack is freed up
+ * Function for freeing up an eurephiaVALUES stack.  This function is normally not called
+ * directly, but usually via the eFree_values(...) macro.
  *
- * @param vls Pointer to a eurephiaVALUES stack.
+ * @param vls  Pointer to a eurephiaVALUES stack to be freed.
  */
-static inline void do_free_vals(eurephiaVALUES *vls) {
+void eFree_values_func(eurephiaVALUES *vls) {
 	eurephiaVALUES *ptr = NULL, *ptr_next = NULL;
 
 	ptr = vls;
@@ -54,20 +57,6 @@ static inline void do_free_vals(eurephiaVALUES *vls) {
 		free_nullsafe(ptr);
 		ptr = ptr_next;
 	}
-}
-
-
-/**
- * Function for freeing up an eurephiaVALUES stack.  This function is normally not called
- * directly, but usually via the eFree_values(...) macro.
- *
- * @param vls  Pointer to a eurephiaVALUES stack to be freed.
- */
-void eFree_values_func(eurephiaVALUES *vls) {
-        if( (vls == NULL) ) {
-                return;
-        }
-        do_free_vals(vls);
 }
 
 
@@ -153,7 +142,7 @@ void eAdd_valuestruct(eurephiaVALUES *vls, eurephiaVALUES *newval) {
                 vls->val  = strdup(newval->val);
                 vls->evid = 0;
                 vls->next = NULL;
-                do_free_vals(newval);
+                eFree_values_func(newval);
         } else {
                 // Add values to the value chain, loop to the end and append it
                 ptr = vls;
