@@ -32,21 +32,30 @@ AC_PROG_CC
 # Simple macro to abort on missing functions in libraries
 AC_DEFUN([AX_msgMISSINGFUNC], AC_MSG_ERROR([Could not find function in library.  Aborting]))
 
+# Save original CPPFLAGS
+save_CPPFLAGS="$CPPFLAGS"
+
 # Check for libxml2
 AC_CHECK_PROGS([XML2CFG], [xml2-config], [:])
 if test "$XML2CFG" = :; then
    AC_MSG_ERROR([This package needs xml2-config from libxml2])
 else
-   AC_SUBST([LIBXSLT_INC], [$(xml2-config --cflags)])
+   AC_SUBST([LIBXML2_INC], [$(xml2-config --cflags)])
+   CPPFLAGS="$CPPFLAGS $LIBXML2_INC"
 fi
 AC_CHECK_HEADERS([libxml/tree.h])
 AC_CHECK_HEADERS([libxml/xmlsave.h])
 AC_CHECK_HEADERS([libxml/xmlstring.h])
 AC_CHECK_HEADERS([libxml/parser.h])
-AC_CHECK_LIB([xml2],[xmlInitParser, xmlCleanupParser, xmlStrcmp, xmlFreeDoc, 
-		     xmlSaveToBuffer, xmlSaveTree, xmlSaveClose, 
-		     xmlBufferFree, xmlParseFile], 
-		    [], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlInitParser], [], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlCleanupParser], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlStrcmp], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlFreeDoc], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlSaveToBuffer], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlSaveTree], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlSaveClose], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlBufferFree], [DUMMY=], AX_msgMISSINGFUNC)
+AC_CHECK_LIB([xml2],[xmlParseFile], [DUMMY=], AX_msgMISSINGFUNC)
 
 # Check for libxslt
 AC_CHECK_PROGS([XSLTCFG], [xslt-config], [:])
@@ -54,13 +63,16 @@ if test "$XSLTCFG" = :; then
    AC_MSG_ERROR([This package needs xslt-config from libxslt])
 else
    AC_SUBST([LIBXSLT_INC], [$(xslt-config --cflags)])
+   CPPFLAGS="$CPPFLAGS $LIBXSLT_INC"
 fi
 AC_CHECK_HEADERS([libxslt/xsltInternals.h])
 AC_CHECK_HEADERS([libxslt/transform.h])
 AC_CHECK_HEADERS([libxslt/xsltutils.h])
-AC_CHECK_LIB([xslt], [xsltInit, xsltCleanupGlobals, xsltParseStylesheetFile,
-		      xsltApplyStylesheet, xsltFreeStylesheet], 
-		     [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([xslt], [xsltInit], [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([xslt], [xsltCleanupGlobals], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([xslt], [xsltParseStylesheetFile], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([xslt], [xsltApplyStylesheet], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([xslt], [xsltFreeStylesheet], [DUMMY=], AX_msgMISSINGFUNC())
 
 # Check for libpq
 AC_CHECK_PROGS([PGSQLCFG], [pg_config], [:])
@@ -68,22 +80,41 @@ if test "$PGSQLCFG" = :; then
    AC_MSG_ERROR([This package needs pg_config from PostgreSQL])
 else
    AC_SUBST([LIBPQ_INC], [-I$(pg_config --includedir)])
+   CPPFLAGS="$CPPFLAGS $LIBPQ_INC"
 fi
 AC_CHECK_HEADERS([libpq-fe.h])
-AC_CHECK_LIB([pq], [PQsetdbLogin, PQstatus, PQexec, PQreset, PQfinish,
-		    PQprepare, PQexecPrepared, PQresultStatus, PQclear,
-		    PQconsumeInput, PQnotifies, PQntuples],
-		   [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQsetdbLogin], [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQstatus], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQexec], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQreset], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQfinish], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQprepare], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQexecPrepared], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQresultStatus], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQclear], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQconsumeInput], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQnotifies], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pq], [PQntuples], [DUMMY=], AX_msgMISSINGFUNC())
+
+# Restore the original CPPFLAGS
+CPPFLAGS="$save_CPPFLAGS"
 
 # Check for POSIX features
 AC_CHECK_HEADERS([mq.h])
-AC_CHECK_LIB([rt], [mq_open, mq_close, mq_unlink, mq_send, mq_receive], [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([rt], [mq_open], [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([rt], [mq_close], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([rt], [mq_unlink], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([rt], [mq_send], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([rt], [mq_receive], [DUMMY=], AX_msgMISSINGFUNC())
 
 AC_CHECK_HEADERS([pthread.h])
-AC_CHECK_LIB([pthread], [pthread_attr_init, pthread_attr_setdetachstate, pthread_attr_destroy,
-			 pthread_create, pthread_join,
-			 pthread_mutex_lock, pthread_mutex_unlock],
-			[], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_attr_init], [], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_attr_setdetachstate], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_attr_destroy], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_create], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_join], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_mutex_lock], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([pthread], [pthread_mutex_unlock], [DUMMY=], AX_msgMISSINGFUNC())
 
 # Back to needed autotools stuff
 AC_CONFIG_SRCDIR([rteval_parserd.c])
