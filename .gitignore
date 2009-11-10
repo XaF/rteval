@@ -8,3 +8,10 @@ tarball
 *.bz2
 *.rpt
 *.xml
+Makefile.in
+aclocal.m4
+config.h.in
+configure
+depcomp
+install-sh
+missing
