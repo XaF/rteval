@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.11
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -12,6 +12,7 @@ URL:		http://git.kernel.org/?p=linux/kernel/git/clrkwllms/rteval.git
 Source0:	rteval-%{version}.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+BuildRequires:	python
 Requires:	python
 Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
@@ -58,6 +59,8 @@ rm -rf ${RPM_BUILD_ROOT}
 mkdir -p ${RPM_BUILD_ROOT}
 #make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=%{_sourcedir} install_rteval
 make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=${RPM_SOURCE_DIR} install_rteval
+mkdir -p ${RPM_BUILD_ROOT}/usr/bin
+ln -s ../../%{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/usr/bin/rteval
 
 # XML-RPC server install
 cd server
@@ -70,13 +73,6 @@ mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
 ./gen_config.sh %{_localstatedir}/www/html/rteval/API1
 install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
 cd ..
-
-%posttrans
-ln -fs %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
-
-%postun
-rm -f /usr/bin/rteval
-
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -94,7 +90,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/%{name}/rteval_*.xsl
 %config(noreplace) %{_sysconfdir}/rteval.conf
 %{python_sitelib}/rteval/
-
+/usr/bin/rteval
 
 %files xmlrpc
 %defattr(-,root,root,-)
@@ -104,6 +100,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Nov 10 2009 Clark Williams <williams@redhat.com> - 1.11-4
+- changed symlink back to install and tracked by %files
+
 * Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-3
 - changed symlink generation from %post to %posttrans
 
