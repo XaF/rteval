@@ -216,9 +216,8 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 			res = mq_send(msgq, (char *) job, sizeof(parseJob_t), 1);
 			if( (res < 0) && (errno != EAGAIN) ) {
 				writelog(dbc->log, LOG_EMERG,
-					 "Could not send parse job to the queue.  "
-					 "Shutting down!");
-				shutdown = 1;
+					 "Could not send shutdown notification to the queue.");
+				free_nullsafe(job);
 				return rc;
 			} else if( errno == EAGAIN ) {
 				writelog(dbc->log, LOG_WARNING,
