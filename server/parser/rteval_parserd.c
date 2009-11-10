@@ -306,6 +306,7 @@ int main(int argc, char **argv) {
 	struct mq_attr msgq_attr;
 	mqd_t msgq = 0;
 	int i,rc, mq_init = 0, max_threads = 0, started_threads = 0, activethreads = 0;
+	unsigned int max_report_size = 0;
 
 	// Initialise XML and XSLT libraries
 	xsltInit();
@@ -386,6 +387,7 @@ int main(int argc, char **argv) {
 
 	reportdir = eGet_value(config, "reportdir");
 	writelog(logctx, LOG_INFO, "Starting %i worker threads", max_threads);
+	max_report_size = defaultIntValue(atoi_nullsafe(eGet_value(config, "max_report_size")), 1024*1024);
 	for( i = 0; i < max_threads; i++ ) {
 		// Prepare thread specific data
 		thrdata[i] = malloc_nullsafe(logctx, sizeof(threadData_t));
@@ -414,6 +416,7 @@ int main(int argc, char **argv) {
 		thrdata[i]->mtx_sysreg = &mtx_sysreg;
 		thrdata[i]->xslt = xslt;
 		thrdata[i]->destdir = reportdir;
+		thrdata[i]->max_report_size = max_report_size;
 
 		thread_attrs[i] = malloc_nullsafe(logctx, sizeof(pthread_attr_t));
 		if( !thread_attrs[i] ) {
@@ -478,8 +481,12 @@ int main(int argc, char **argv) {
 			}
 			pthread_attr_destroy(thread_attrs[i]);
 		}
-		free_nullsafe(threads[i]);
-		free_nullsafe(thread_attrs[i]);
+		if( threads ) {
+			free_nullsafe(threads[i]);
+		}
+		if( thread_attrs ) {
+			free_nullsafe(thread_attrs[i]);
+		}
 
 		// Disconnect threads database connection
 		if( thrdata && thrdata[i] ) {

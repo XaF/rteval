@@ -118,6 +118,7 @@ static inline eurephiaVALUES *default_cfg_values(LogContext *log, eurephiaVALUES
 	eAdd_value(cfg, "db_username", "rtevparser");
 	eAdd_value(cfg, "db_password", "rtevaldb_parser");
 	eAdd_value(cfg, "reportdir", "/var/lib/rteval/reports");
+	eAdd_value(cfg, "max_report_size", "2097152"); // 2MB
 
 	// Copy over the arguments to the config, update existing settings
 	for( ptr = prgargs; ptr; ptr = ptr->next ) {

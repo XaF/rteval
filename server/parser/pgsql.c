@@ -630,6 +630,8 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 	case STAT_ASSIGNED:
 	case STAT_RTERIDREG:
 	case STAT_REPMOVE:
+	case STAT_XMLFAIL:
+	case STAT_FTOOBIG:
 		snprintf(sql, 4096,
 			 "UPDATE submissionqueue SET status = %i"
 			 " WHERE submid = %i", status, submid);
@@ -643,7 +645,6 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 
 	case STAT_SUCCESS:
 	case STAT_UNKNFAIL:
-	case STAT_XMLFAIL:
 	case STAT_SYSREG:
 	case STAT_GENDB:
 	case STAT_RTEVRUNS:

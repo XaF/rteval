@@ -136,10 +136,38 @@ static char *get_destination_path(LogContext *log, const char *destdir,
 
 
 /**
+ * Checks if the file size of the given file is below the given max size value.
+ *
+ * @param log      Log context
+ * @param fname    Filename to the file to check
+ * @param maxsize  Maximum allowed file size
+ *
+ * @return Returns 1 if file is within the limit, otherwise 0.  On errors -1 is returned.
+ */
+inline int check_filesize(LogContext *log, const char *fname, unsigned int maxsize) {
+	struct stat info;
+
+	if( !fname ) {
+		return 0;
+	}
+
+	errno = 0;
+	if( (stat(fname, &info) < 0) ) {
+		writelog(log, LOG_ERR, "Failed to check report file '%s': %s",
+			 fname, strerror(errno));
+		return -1;
+	}
+
+	return (info.st_size <= maxsize);
+}
+
+
+/**
  * The core parse function.  Parses an XML file and stores it in the database according to
  * the xmlparser.xsl template.
  *
  * @param dbc         Database connection
+ * @param max_fsize   Maximum "allowed" file size for reports to be parsed
  * @param xslt        Pointer to a parsed XSLT Stylesheet (xmlparser.xsl)
  * @param mtx_sysreg  Mutex locking to avoid simultaneous registration of systems, as they cannot
  *                    be in an SQL transaction (due to SHA1 sysid must be registered and visible ASAP)
@@ -149,6 +177,7 @@ static char *get_destination_path(LogContext *log, const char *destdir,
  * @return Return values:
  * @code
  *          STAT_SUCCESS  : Successfully registered report
+ *          STAT_FTOOBIG  : XML report file is too big
  *          STAT_XMLFAIL  : Could not parse the XML report file
  *          STAT_SYSREG   : Failed to register the system into the systems or systems_hostname tables
  *          STAT_RTERIDREG: Failed to get a new rterid value
@@ -158,12 +187,20 @@ static char *get_destination_path(LogContext *log, const char *destdir,
  *          STAT_REPMOVE  : Failed to move the report file
  * @endcode
  */
-inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_sysreg,
-			const char *destdir, parseJob_t *job) {
+inline int parse_report(dbconn *dbc, unsigned int max_fsize, xsltStylesheet *xslt,
+			pthread_mutex_t *mtx_sysreg, const char *destdir, parseJob_t *job)
+{
 	int syskey = -1, rterid = -1;
 	int rc = -1;
 	xmlDoc *repxml = NULL;
 	char *destfname;
+
+	// Check file size - and reject too big files
+	if( check_filesize(dbc->log, job->filename, max_fsize) == 0 ) {
+		writelog(dbc->log, LOG_ERR, "Report file '%s' is too big, rejected", job->filename);
+		return STAT_FTOOBIG;
+	}
+
 
 	repxml = xmlParseFile(job->filename);
 	if( !repxml ) {
@@ -316,8 +353,8 @@ void *parsethread(void *thrargs) {
 
 			// Mark the job as "in progress", if successful update, continue parsing it
 			if( db_update_submissionqueue(args->dbc, jobinfo.submid, STAT_INPROG) ) {
-				res = parse_report(args->dbc, args->xslt, args->mtx_sysreg,
-						   args->destdir, &jobinfo);
+				res = parse_report(args->dbc, args->max_report_size, args->xslt,
+						   args->mtx_sysreg, args->destdir, &jobinfo);
 				// Set the status for the submission
 				db_update_submissionqueue(args->dbc, jobinfo.submid, res);
 			} else {
