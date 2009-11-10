@@ -43,12 +43,17 @@
  * @param vls Pointer to a eurephiaVALUES stack.
  */
 static inline void do_free_vals(eurephiaVALUES *vls) {
-        if( vls->next != NULL ) {
-                do_free_vals(vls->next);
-        }
-        free_nullsafe(vls->key);
-        free_nullsafe(vls->val);
-        free_nullsafe(vls);
+	eurephiaVALUES *ptr = NULL, *ptr_next = NULL;
+
+	ptr = vls;
+	while( ptr ) {
+		free_nullsafe(ptr->key);
+		free_nullsafe(ptr->val);
+
+		ptr_next = ptr->next;
+		free_nullsafe(ptr);
+		ptr = ptr_next;
+	}
 }
 
 
