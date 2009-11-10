@@ -2,8 +2,8 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.10
-Release:	1%{?dist}
+Version:	1.11
+Release:	3%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -13,7 +13,7 @@ Source0:	rteval-%{version}.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	python
-Requires:	python-schedutils python-ethtool libxslt-python >= 1.17
+Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.29
 Requires:	rteval-loads
@@ -71,7 +71,7 @@ mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
 install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
 cd ..
 
-%post
+%posttrans
 ln -fs %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 
 %postun
@@ -104,10 +104,19 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Nov  5 2009 Clark Williams <williams@redhat.com> - 1.10-1
+* Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-3
+- changed symlink generation from %post to %posttrans
+
+* Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-2
+- fixed incorrect dependency for libxslt
+
+* Fri Nov  6 2009 Clark Williams <williams@redhat.com> - 1.11-1
+- added base OS info to XML file and XSL report
+- created new package rteval-loads for the load source code
+
+* Wed Nov  4 2009 Clark Williams <williams@redhat.com> - 1.10-1
 - added config file section for cyclictest and two settable
   parameters, buckets and interval
-- created new package rteval-loads for the load source code
 
 * Thu Oct 29 2009 Clark Williams <williams@redhat.com> - 1.9-1
 - merged davids updates:

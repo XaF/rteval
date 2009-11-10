@@ -53,6 +53,10 @@
     <xsl:if test="uname/kernel/@is_RT = '1'">  (RT enabled)</xsl:if>
     <xsl:text>&#10;</xsl:text>
 
+    <xsl:text>   Base OS:      </xsl:text>
+    <xsl:value-of select="uname/baseos"/>
+    <xsl:text>&#10;</xsl:text>
+
     <xsl:text>   Architecture: </xsl:text>
     <xsl:value-of select="uname/arch"/>
     <xsl:text>&#10;</xsl:text>
