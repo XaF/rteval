@@ -2,7 +2,8 @@
 *.pyo
 *~
 run
-loadsource/linux-*
+rteval-build
+loadsource
 rpm
 tarball
 *.bz2
@@ -16,3 +17,6 @@ configure
 depcomp
 install-sh
 missing
+build
+rpm*
+usr
