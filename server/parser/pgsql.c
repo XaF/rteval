@@ -198,7 +198,8 @@ void db_disconnect(dbconn *dbc) {
 eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	xmlNode *root_n = NULL, *fields_n = NULL, *recs_n = NULL, *ptr_n = NULL, *val_n = NULL;
 	char **field_ar = NULL, *fields = NULL, **value_ar = NULL, *values = NULL, *table = NULL, 
-		tmp[20], *sql = NULL, *key = NULL;
+		tmp[20], *sql = NULL, *key = NULL, oid[34];
+
 	unsigned int fieldcnt = 0, *field_idx, i = 0;
 	PGresult *dbres = NULL;
 	eurephiaVALUES *res = NULL;
@@ -305,6 +306,7 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 
 	// Loop through all records and generate SQL statements
 	res = eCreate_value_space(dbc->log, 1);
+	memset(&oid, 0, 34);
 	foreach_xmlnode(recs_n->children, ptr_n) {
 		if( ptr_n->type != XML_ELEMENT_NODE ) {
 			continue;
@@ -355,8 +357,7 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 			// If the /sqldata/@key attribute was set, fetch the returning ID
 			eAdd_value(res, key, PQgetvalue(dbres, 0, 0));
 		} else {
-			static char oid[32];
-			snprintf(oid, 30, "%ld%c", (unsigned long int) PQoidValue(dbres), 0);
+			snprintf(oid, 33, "%ld%c", (unsigned long int) PQoidValue(dbres), 0);
 			eAdd_value(res, "oid", oid);
 		}
 		PQclear(dbres);
