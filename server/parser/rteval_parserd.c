@@ -126,8 +126,10 @@ unsigned int get_mqueue_msg_max(LogContext *log) {
  * Main loop, which polls the submissionqueue table and puts jobs found here into a POSIX MQ queue
  * which the worker threads will pick up.
  *
- * @param dbc    Database connection, where to query the submission queue
- * @param msgq   file descriptor for the message queue
+ * @param dbc           Database connection, where to query the submission queue
+ * @param msgq          file descriptor for the message queue
+ * @param activethreads Pointer to an int value containing active worker threads.  Each thread updates
+ *                      this value directly, and this function should only read it.
  *
  * @return Returns 0 on successful run, otherwise > 0 on errors.
  */
