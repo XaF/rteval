@@ -115,7 +115,6 @@ rtevalrpm:	tarfile
 	mkdir -p rpm/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
 	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
 	cp rteval.spec rpm/SPECS
-	cp loadsource/* rpm/SOURCES
 	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
 
 loadrpm: 

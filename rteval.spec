@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.11
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -57,10 +57,10 @@ a central server.
 %install
 rm -rf ${RPM_BUILD_ROOT}
 mkdir -p ${RPM_BUILD_ROOT}
-#make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=%{_sourcedir} install_rteval
-make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=${RPM_SOURCE_DIR} install_rteval
+make DESTDIR=${RPM_BUILD_ROOT} install_rteval
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
-ln -s ../../%{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/usr/bin/rteval
+# note that python_sitelib has a leading slash...
+ln -s ../..%{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/usr/bin/rteval
 
 # XML-RPC server install
 cd server
@@ -100,6 +100,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Nov 16 2009 Clark Williams <williams@redhat.com> - 1.11-5
+- ensure that no double-slashes ("//") appear in the symlink
+  path for /usr/bin/rteval (problem with rpmdiff)
+
 * Tue Nov 10 2009 Clark Williams <williams@redhat.com> - 1.11-4
 - changed symlink back to install and tracked by %files
 
