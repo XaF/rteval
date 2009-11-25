@@ -2,8 +2,8 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.11
-Release:	5%{?dist}
+Version:	1.12
+Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -100,6 +100,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Nov 25 2009 Clark Williams <williams@redhat.com> - 1.12-1
+- fix incorrect reporting of measurement thread priorities
+
 * Mon Nov 16 2009 Clark Williams <williams@redhat.com> - 1.11-5
 - ensure that no double-slashes ("//") appear in the symlink
   path for /usr/bin/rteval (problem with rpmdiff)
