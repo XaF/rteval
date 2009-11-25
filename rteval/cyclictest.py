@@ -164,7 +164,7 @@ class Cyclictest(Thread):
         for line in f:
             if line.startswith('processor'):
                 core = line.split()[-1]
-                self.data[core] = RunData(core, 'core', self.priority - int(core))
+                self.data[core] = RunData(core, 'core', self.priority)
                 numcores += 1
             if line.startswith('model name'):
                 desc = line.split(': ')[-1][:-1]
