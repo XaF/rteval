@@ -15,7 +15,8 @@ PYSRC	:=	rteval/rteval.py 	\
 		rteval/xmlout.py
 
 XSLSRC	:=	rteval/rteval_dmi.xsl 	\
-		rteval/rteval_text.xsl
+		rteval/rteval_text.xsl  \
+		rteval/rteval_histogram_raw.xsl 
 
 CONFSRC	:=	rteval/rteval.conf
 
@@ -67,6 +68,7 @@ install_rteval: installdirs
 	fi
 	install -m 644 rteval/rteval_text.xsl $(DATADIR)/rteval
 	install -m 644 rteval/rteval_dmi.xsl $(DATADIR)/rteval
+	install -m 644 rteval/rteval_histogram_raw.xsl $(DATADIR)/rteval
 	install -m 644 rteval/rteval.conf $(CONFDIR)
 	install -m 644 doc/rteval.8 $(MANDIR)/man8/
 	gzip $(MANDIR)/man8/rteval.8

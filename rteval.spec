@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.12
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -100,6 +100,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Nov 28 2009 Clark Williams <williams@redhat.com> - 1.12-2
+- fixed Makefile and specfile to include and install the
+  rteval/rteval_histogram_raw.py source file for gaining
+  raw access to histogram data
+
 * Wed Nov 25 2009 Clark Williams <williams@redhat.com> - 1.12-1
 - fix incorrect reporting of measurement thread priorities
 
