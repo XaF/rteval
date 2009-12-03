@@ -25,7 +25,15 @@
 SUBDIRS = parser
 dist_doc_DATA = README.xmlrpc parser/README.parser sql/rteval-1.0.sql
 
+apache-rteval.conf:
+	./gen_config.sh $(XMLRPCROOT)/API1
+
+clean-local:
+	-rm -f apache-rteval.conf *~
+
 if ENAB_XMLRPC
     xmlrpcdir = $(XMLRPCROOT)/API1
+    BUILT_SOURCES = apache-rteval.conf
+    dist_doc_DATA += apache-rteval.conf
     dist_xmlrpc_DATA = rteval_xmlrpc.py xmlrpc_API1.py rtevaldb.py database.py
 endif
