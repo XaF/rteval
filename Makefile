@@ -20,21 +20,8 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 CONFSRC	:=	rteval/rteval.conf
 
 # XML-RPC related files
-XMLRPCSRC  :=	server/database.py	\
-		server/rtevaldb.py	\
-		server/rteval_xmlrpc.py	\
-		server/xmlrpc_API1.py
-
-APACHECONF :=	server/apache-rteval.conf.tpl	\
-		server/gen_config.sh
-
-XMLRPCDOC  :=	server/README.xmlrpc
-
-
-XMLPARSERVER := 1.0
-XMLPARSERDIR := server/parser
-
-SQLSRC	   :=	sql/rteval-1.0.sql
+XMLRPCVER := 1.0
+XMLRPCDIR := server
 
 DESTDIR	:=
 PREFIX  :=      /usr
@@ -49,8 +36,6 @@ HLOAD	:=	$(LOADDIR)/hackbench.tar.bz2
 BLOAD	:=	$(LOADDIR)/dbench-4.0.tar.gz
 LOADS	:=	$(KLOAD) $(HLOAD) $(BLOAD)
 
-.PHONY = rteval_parserd
-
 runit:
 	[ -d ./run ] || mkdir run
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval
@@ -59,10 +44,10 @@ sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
-	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 rteval_parserd.tar.gz
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz
 
 realclean: clean
-	[ -f $(XMLPARSERDIR)/Makefile ] && make -C $(XMLPARSERDIR) maintainer-clean || echo -n
+	[ -f $(XMLRPCDIR)/Makefile ] && make -C $(XMLRPCDIR) maintainer-clean || echo -n
 	rm -rf run tarball rpm
 
 install: install_loads install_rteval
@@ -79,7 +64,7 @@ install_rteval: installdirs
 	install -m 644 doc/rteval.8 $(MANDIR)/man8/
 	gzip -f $(MANDIR)/man8/rteval.8
 	chmod 755 $(PYLIB)/rteval/rteval.py
-	ln -s $(PYLIB)/rteval/rteval.py $(DESTDIR)/usr/bin/rteval;
+#	ln -s $(PYLIB)/rteval/rteval.py $(DESTDIR)/usr/bin/rteval;
 
 install_loads:	$(LOADS)
 	[ -d $(DATADIR)/rteval/loadsource ] || mkdir -p $(DATADIR)/rteval/loadsource
@@ -101,37 +86,38 @@ uninstall:
 	rm -rf $(PYLIB)/rteval
 	rm -rf $(DATADIR)/rteval
 
-tarfile_prep:
+tarfile:
 	rm -rf tarball && mkdir -p tarball/rteval-$(VERSION)/rteval tarball/rteval-$(VERSION)/server tarball/rteval-$(VERSION)/sql
-
-tarfile: tarfile_prep rteval_parserd-$(XMLPARSERVER).tar.gz
 	cp $(PYSRC) tarball/rteval-$(VERSION)/rteval
 	cp $(XSLSRC) tarball/rteval-$(VERSION)/rteval
 	cp $(CONFSRC) tarball/rteval-$(VERSION)/rteval
 	cp -r doc/ tarball/rteval-$(VERSION)
 	cp Makefile setup.py rteval.spec COPYING tarball/rteval-$(VERSION)
-	cp $(XMLRPCSRC) tarball/rteval-$(VERSION)/server
-	cp $(APACHECONF) tarball/rteval-$(VERSION)/server
-	cp $(XMLRPCDOC) tarball/rteval-$(VERSION)/server
-	cp $(SQLSRC) tarball/rteval-$(VERSION)/sql
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
-rteval_parserd-$(XMLPARSERVER).tar.gz :
-	cd $(XMLPARSERDIR) ;             \
+rteval-xmlrpc-$(XMLRPCVER).tar.gz :
+	cd $(XMLRPCDIR) ;             \
 	autoreconf --install ;           \
 	./configure --prefix=$(PREFIX) ; \
 	make distcheck
-	cp $(XMLPARSERDIR)/rteval_parserd-$(XMLPARSERVER).tar.gz $(HERE)/
+	cp $(XMLRPCDIR)/rteval-xmlrpc-$(XMLRPCVER).tar.gz $(HERE)/
 
-rpms rpm: rtevalrpm loadrpm
-
-rtevalrpm: tarfile
+rpm_prep:
 	rm -rf rpm
 	mkdir -p rpm/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
+
+rpms rpm: rpm_prep rtevalrpm loadrpm
+
+rtevalrpm: tarfile
 	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
 	cp rteval.spec rpm/SPECS
 	cp loadsource/* rpm/SOURCES
 	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
+
+xmlrpcrpm: rteval-xmlrpc-$(XMLRPCVER).tar.gz
+	cp rteval-xmlrpc-$(XMLRPCVER).tar.gz rpm/SOURCES/
+	cp server/rteval-xmlrpc.spec rpm/SPECS/
+	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval-xmlrpc.spec
 
 loadrpm: 
 	rm -rf rpm-loads

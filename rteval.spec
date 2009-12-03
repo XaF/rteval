@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.11
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -32,7 +32,6 @@ times is done and printed to the screen.
 %prep
 %setup -q
 
-
 # version sanity check (make sure specfile and rteval.py match)
 srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
 if [ $srcver != %{version} ]; then
@@ -42,16 +41,6 @@ fi
 
 %build
 
-%package xmlrpc
-Summary:	XML-RPC server based on mod_python for receving reports from rteval
-Group:		Applications/System
-Requires:	postgresql httpd mod_python
-
-%description xmlrpc
-This package requires Apache, mod_python and a PostgreSQL server.  It will
-enable an XML-RPC interface for the rteval program to submit the reports to
-a central server.
-
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
@@ -59,20 +48,9 @@ mkdir -p ${RPM_BUILD_ROOT}
 #make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=%{_sourcedir} install_rteval
 make DESTDIR=${RPM_BUILD_ROOT} LOADDIR=${RPM_SOURCE_DIR} install_rteval
 
-# XML-RPC server install
-cd server
-mkdir -p ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 rteval_xmlrpc.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 xmlrpc_API1.py  ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 rtevaldb.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 database.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
-./gen_config.sh %{_localstatedir}/www/html/rteval/API1
-install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
-cd ..
 
 %posttrans
-ln -fs %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
+#ln -fs %{python_sitelib}/rteval/rteval.py /usr/bin/rteval
 
 %postun
 rm -f /usr/bin/rteval
@@ -94,13 +72,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/%{name}/rteval_*.xsl
 %config(noreplace) %{_sysconfdir}/rteval.conf
 %{python_sitelib}/rteval/
-
-
-%files xmlrpc
-%defattr(-,root,root,-)
-%doc COPYING server/README.xmlrpc sql/rteval-1.0.sql
-%config(noreplace) %{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
-%{_localstatedir}/www/html/rteval/
 
 
 %changelog
