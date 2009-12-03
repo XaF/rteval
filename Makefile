@@ -111,7 +111,6 @@ rpms rpm: rpm_prep rtevalrpm loadrpm xmlrpcrpm
 rtevalrpm: tarfile
 	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
 	cp rteval.spec rpm/SPECS
-	cp loadsource/* rpm/SOURCES
 	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
 
 xmlrpcrpm: rteval-xmlrpc-$(XMLRPCVER).tar.gz
