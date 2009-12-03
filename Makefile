@@ -106,7 +106,7 @@ rpm_prep:
 	rm -rf rpm
 	mkdir -p rpm/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
 
-rpms rpm: rpm_prep rtevalrpm loadrpm
+rpms rpm: rpm_prep rtevalrpm loadrpm xmlrpcrpm
 
 rtevalrpm: tarfile
 	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
