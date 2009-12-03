@@ -25,9 +25,17 @@
 #   To create the ./configure script you need to run 'autoreconf --install'
 #
 
-AC_INIT([rteval_parserd], [1.0], [davids@redhat.com])
+AC_INIT([rteval-xmlrpc], [1.0], [davids@redhat.com])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_CC
+
+AC_ARG_WITH([xmlrpc-webroot],
+	[AS_HELP_STRING([--with-xmlrpc-webroot],
+			[Location where to install the XML-RPC mod_python files])],
+	[XMLRPCROOT="$withval"]
+)
+AC_SUBST(XMLRPCROOT)
+AM_CONDITIONAL([ENAB_XMLRPC], [test ! -z $XMLRPCROOT])
 
 # Simple macro to abort on missing functions in libraries
 AC_DEFUN([AX_msgMISSINGFUNC], AC_MSG_ERROR([Could not find function in library.  Aborting]))
@@ -117,8 +125,8 @@ AC_CHECK_LIB([pthread], [pthread_mutex_lock], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CHECK_LIB([pthread], [pthread_mutex_unlock], [DUMMY=], AX_msgMISSINGFUNC())
 
 # Back to needed autotools stuff
-AC_CONFIG_SRCDIR([rteval_parserd.c])
-AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_SRCDIR([parser/rteval_parserd.c])
+AC_CONFIG_HEADERS([parser/config.h])
+AC_CONFIG_FILES([Makefile parser/Makefile])
 
 AC_OUTPUT

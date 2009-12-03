@@ -22,24 +22,10 @@
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
 #
+SUBDIRS = parser
+dist_doc_DATA = README.xmlrpc parser/README.parser sql/rteval-1.0.sql
 
-# Generic include files, found by ./configure
-AM_CPPFLAGS = $(LIBXML2_INC) $(LIBXSLT_INC) $(LIBPQ_INC)
-
-# What is required to build rteval_parserd
-bin_PROGRAMS = rteval_parserd
-rteval_parserd_SOURCES = argparser.c argparser.h 			 \
-	configparser.c configparser.h 					 \
-	eurephia_nullsafe.c eurephia_nullsafe.h eurephia_values_struct.h \
-	eurephia_values.c eurephia_values.h 				 \
-	eurephia_xml.c eurephia_xml.h 					 \
-	log.c log.h  							 \
-	parsethread.c parsethread.h threadinfo.h			 \
-	pgsql.c pgsql.h 						 \
-	sha1.c sha1.h							 \
-	xmlparser.c xmlparser.h	             				 \
-	rteval_parserd.c statuses.h
-
-# Don't build, only install
-xsltdir=$(datadir)/rteval
-dist_xslt_DATA = xmlparser.xsl
+if ENAB_XMLRPC
+    xmlrpcdir = $(XMLRPCROOT)/API1
+    dist_xmlrpc_DATA = rteval_xmlrpc.py xmlrpc_API1.py rtevaldb.py database.py
+endif
