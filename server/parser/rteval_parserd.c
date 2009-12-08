@@ -463,6 +463,7 @@ int main(int argc, char **argv) {
 	// checks the submission queue and puts unprocessed records on the POSIX MQ
 	// to be parsed by one of the threads
 	//
+	sleep(3); // Allow at least a few parser threads to settle down first before really starting
 	writelog(logctx, LOG_DEBUG, "Starting submission queue checker");
 	rc = process_submission_queue(dbc, msgq, &activethreads);
 	writelog(logctx, LOG_DEBUG, "Submission queue checker shut down");
