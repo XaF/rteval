@@ -10,6 +10,23 @@ the rteval_parsed that a new report has been received and it will start
 processing that file independently of the web/XML-RPC server.
 
 
+** Installing the software
+
+If you install this application from source, please read the
+README.xmlrpc file for more information about the building and
+installation process.
+
+Please read the README.xmlrpc file also for setting up and preparing
+the database which the rteval_parserd program will be using.  This
+file will also contain information regarding upgrading the database.
+
+If you are installing this application from a binary package, like RPM
+files on Fedora/RHEL based boxes, you should have the rteval_parserd
+in your $PATH and the needed file for the parsing (xmlparser.xsl)
+should be installed in a directory rteval_parserd where look for it by
+default.
+
+
 ** Configure rteval_parsed
 
 This daemon uses the same configuration file as the rest of the rteval program
