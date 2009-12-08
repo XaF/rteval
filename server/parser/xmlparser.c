@@ -412,3 +412,34 @@ xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summar
  exit:
 	return hostinfo_d;
 }
+
+int sqldataGetRequiredSchemaVer(LogContext *log, xmlNode *sqldata_root)
+{
+	char *schver = NULL, *cp = NULL, *ptr = NULL;
+	int majv = 0, minv = 0;
+
+	if( !sqldata_root || (xmlStrcmp(sqldata_root->name, (xmlChar *) "sqldata") != 0) ) {
+		writelog(log, LOG_ERR, "sqldataGetRequiredSchemaVer: Invalid document node");
+		return -1;
+	}
+
+	schver = xmlGetAttrValue(sqldata_root->properties, "schemaver");
+	if( schver == NULL ) {
+		return 100;  // If not defined, presume lowest available version.
+	}
+	cp = strdup(schver);
+	assert( cp != NULL );
+
+	if( (ptr = strpbrk(cp, ".")) != NULL ) {
+		*ptr = 0;
+		ptr++;
+		majv = atoi_nullsafe(cp);
+		minv = atoi_nullsafe(ptr);
+	} else {
+		majv = atoi_nullsafe(cp);
+		minv = 0;
+	}
+	free_nullsafe(cp);
+
+	return (majv * 100) + minv;
+}

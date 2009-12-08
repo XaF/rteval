@@ -45,4 +45,5 @@ int sqldataGetFid(LogContext *log, xmlNode *sqld, const char *fname);
 char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int recid);
 xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			   int syskey, char **hostname, char **ipaddr);
+int sqldataGetRequiredSchemaVer(LogContext *log, xmlNode *sqldata_root);
 #endif
