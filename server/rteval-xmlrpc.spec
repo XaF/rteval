@@ -1,5 +1,5 @@
 Name:		rteval-xmlrpc
-Version:	1.0
+Version:	1.1
 Release:	1%{?dist}
 Summary:	XML-RPC server and parser for rteval
 
@@ -41,7 +41,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc COPYING README.xmlrpc parser/README.parser sql/rteval-%{version}.sql
+%doc COPYING README.xmlrpc parser/README.parser sql/rteval-%{version}.sql sql/delta-*_*.sql
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
 %{_localstatedir}/www/html/rteval/
 %{_bindir}/rteval_parserd
@@ -49,6 +49,16 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Dec  8 2009 David Sommerseth <davids@redhat.com> - 1.1-1
+- Updated to rteval-xmlrpc v1.1
+  - Added new database table, rteval_info, containing some information about the
+    rteval-xmlrpc installation
+  - Made rteval_parserd aware of which SQL schema version it is working against
+  - Added 'schemaver' attributes to <sqldata/> tags, defining which SQL schema
+    version which is needed
+  - Added mean_absolute_deviation and variance fields from rteval XML reports to
+    the database
+
 * Thu Dec  3 2009 David Sommerseth <davids@redhat.com> - 1.0-1
 - Inital rteval-xmlrpc.spec file
 

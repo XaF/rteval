@@ -23,7 +23,9 @@
 #   are deemed to be part of the source code.
 #
 SUBDIRS = parser
-dist_doc_DATA = parser/README.parser sql/rteval-1.0.sql
+dist_doc_DATA = parser/README.parser 	\
+	sql/delta-1.0_1.1.sql 		\
+	sql/rteval-$(SQLSCHEMAVER).sql
 
 apache-rteval.conf:
 	[ -n $(XMLRPCROOT) ] && $(srcdir)/gen_config.sh $(XMLRPCROOT)/API1

@@ -20,7 +20,7 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 CONFSRC	:=	rteval/rteval.conf
 
 # XML-RPC related files
-XMLRPCVER := 1.0
+XMLRPCVER := 1.1
 XMLRPCDIR := server
 
 DESTDIR	:=
