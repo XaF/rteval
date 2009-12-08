@@ -128,10 +128,10 @@ loadrpm:
 rpmlint: rpms
 	@echo "==============="
 	@echo "running rpmlint"
-	rpmlint -v rpm/SRPMS/rteval*.src.rpm
-	rpmlint -v rpm/RPMS/noarch/rteval*.noarch.rpm
-	rpmlint -v rpm-loads/SRPMS/rteval-loads*.src.rpm
-	rpmlint -v rpm-loads/RPMS/noarch/rteval-loads*.noarch.rpm
+	rpmlint -v $(shell find ./rpm -type f -name "*.rpm") 	 \
+		$(shell find ./rpm-loads -type f -name "*.rpm")	 \
+		$(shell find ./rpm/SPECS -type f -name "rteval*.spec") \
+		$(shell find ./rpm-loads/SPECS -type f -name "rteval*.spec" )
 
 help:
 	@echo ""
