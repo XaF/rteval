@@ -10,11 +10,11 @@ ID to the client.
 
 A parser daemon needs to run as well.  This daemon is connected to the
 same database as the XML-RPC service and it will wait for new reports in
-the submission queue to be parsed.  Look into the rteval/server/parser
-directory for more information on setting up the rteval_parserd process.
+the submission queue to be parsed.  Look into the README.parser file
+for more information on setting up the rteval_parserd process.
 
 Each parsed report will get a unique system ID which then can be used to
-track how each system changes behavior on different kernels.
+track how each system changes behaviour on different kernels.
 
 
 **
@@ -23,7 +23,7 @@ track how each system changes behavior on different kernels.
    - Apache web server
    - mod_python-3.3.x
    - PostgreSQL v8.3 or later
-   - rteval 1.3
+   - rteval 1.12 or later
 
 
 **
@@ -37,15 +37,25 @@ The default path used for the rteval client is
 If you have a HTTP setup which will follow this scheme, you do not
 need to change any URLs at all.
 
+When installing the rteval-xmlrpc-1.1 RPM on a Fedora/RHEL based box,
+Apache will be automatically configured.  But the Apache web server
+will need to be restarted when you have setup the database.
+
+     # server httpd restart
+
+For manual installations, see the instructions under "Building and
+installing from source" further down in this file.
+
 
 **
 ** Database preparations
 **
 
+** Setting up a new database
 All reports are saved in a database.  To create the needed database
 user and database, execute the following command line:
 
-   psql < ../sql/rteval-1.0.sql
+   # psql < /usr/share/doc/rteval-xmlrpc-1.1/rteval-1.1.sql
 
 This script will first create a database user called 'xmlrpc', assign
 a default password before creating a database called 'rteval'.  The
@@ -60,31 +70,66 @@ pg_hba.conf entry example:
 
 # TYPE  DATABASE    USER        CIDR-ADDRESS          METHOD
 hostssl rteval	    rtevxmlrpc	127.0.0.1/32	      md5
+hostssl rteval	    rtevparser	127.0.0.1/32	      md5
 
 The XML-RPC database connector will always try to connect via SSL.  To
 modify the default password, connect to the database with psql and
 issue this SQL command:
 
-   rteval=# ALTER USER xmlrpc WITH ENCRYPTED PASSWORD '<newpassword>';
+   rteval=# ALTER USER rtevxmlrpc WITH ENCRYPTED PASSWORD '<newpassword>';
+   rteval=# ALTER USER rtevparser WITH ENCRYPTED PASSWORD '<newpassword>';
+
+Or you can use the "safe mode" via the psql command:
+
+   rteval=# \password rtevxmlrpc
+   Enter new password:
+   Enter it again:
+   rteval=# \password rtevparser
+   Enter new password:
+   Enter it again:
+
+
+** Update an already existing database
+If you already have an rteval database setup, you can run the delta
+which corresponds to the update the database tables to the latest
+versions.
+
+   psql rteval < /usr/share/doc/rteval-xmlrpc-1.1/delta-1.0_1.1.sql
 
 
 **
-** Installing the needed files
+** Building an installing from source
 **
-A quick little shell script will copy the needed files for you.
 
-    ./install.sh {server-side file path}
+The rteval-xmlrpc uses autotools to configure and build the
+rteval-xmlrpc server and parser.
 
-The {server-side file path} argument need to point at a directory
-Apache uses for htdocs files.
+   ./configure [--with-xmlrpc-webroot=<full path>]
 
-When running the install.sh script, a configuration file suitable for
-Apache will be generated (apache-rteval.conf).  This file needs to be
-copied to a directory where Apache will pick it up, or implement its
-content into your apache config file.
+If the --with-xmlrpc-webroot is not provided, the mod_python files
+needed for the XML-RPC server will not be installed, and only the
+report parser will be built and installed.
 
-On RHEL/Fedora based distributions, the apache-rteval.conf can be
-copied into /etc/httpd/conf.d/
+The path to the --with-xmlrpc-webroot must be a directory which the
+Apache web server can access and serve files from (htdocs dir).  On
+Fedora/RHEL this path should be:
+
+     ./configure --with-xmlrpc-webroot=/var/www/html/rteval
+
+With this done, you can now do the traditional 'make' and 'make
+install'.  The default install prefix is /usr/local, unless you
+changed it with --prefix=<path>.  You will then find the
+rteval_parserd installed under /usr/local/bin/rteval_parserd and
+README files, the SQL scripts and an Apache config file will be found
+under /usr/local/share/doc/rteval-xmlrpc-1.1/
+
+The Apache configuration file can be copied into the configuration
+directory Apache uses for its modules.  On RHEL/Fedora based
+distributions, the apache-rteval.conf can be copied into
+/etc/httpd/conf.d/
+
+For more information about the report parser (rteval_parserd), please
+have a look at the README.parser file.
 
 
 **

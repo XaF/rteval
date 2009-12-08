@@ -55,6 +55,7 @@
  */
 dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log) {
 	dbconn *ret = NULL;
+        PGresult *dbr = NULL;
 
 	ret = (dbconn *) malloc_nullsafe(log, sizeof(dbconn)+2);
 	ret->id = id;
@@ -85,6 +86,27 @@ dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log) {
 		free_nullsafe(ret);
 		return NULL;
 	}
+
+	// Retrieve the SQL schema version
+	dbr = PQexec(ret->db,
+		     "SELECT FLOOR(value::NUMERIC(6,3))*100 " // Convert version string to integer
+		     "       + to_char(substring(value, position('.' in value)+1)::INTEGER, '00')::INTEGER"
+		     "  FROM rteval_info WHERE key = 'sql_schema_ver'");
+	if( !dbr || (PQresultStatus(dbr) != PGRES_TUPLES_OK) || (PQntuples(dbr) != 1) ) {
+		// Query failed, assuming SQL schema version 1.00 (100).
+		// SQL schema versions before 1.1 (101) do not have the rteval_info table, thus
+		// a failure is not completely unexpected.
+		ret->sqlschemaver = 100;
+	} else {
+		ret->sqlschemaver = atoi_nullsafe(PQgetvalue(dbr, 0, 0));
+		if( ret->sqlschemaver < 100 ) {
+			ret->sqlschemaver = 100;  // The minimal version - version 1.00.
+		}
+	}
+	if( dbr ) {
+		PQclear(dbr);
+	}
+
 	return ret;
 }
 
@@ -198,8 +220,9 @@ void db_disconnect(dbconn *dbc) {
 eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	xmlNode *root_n = NULL, *fields_n = NULL, *recs_n = NULL, *ptr_n = NULL, *val_n = NULL;
 	char **field_ar = NULL, *fields = NULL, **value_ar = NULL, *values = NULL, *table = NULL, 
-		tmp[20], *sql = NULL, *key = NULL;
-	unsigned int fieldcnt = 0, *field_idx, i = 0;
+		tmp[20], *sql = NULL, *key = NULL, oid[34];
+
+	unsigned int fieldcnt = 0, *field_idx, i = 0, schemaver = 0;
 	PGresult *dbres = NULL;
 	eurephiaVALUES *res = NULL;
 
@@ -216,6 +239,20 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	if( !table ) {
 		writelog(dbc->log, LOG_ERR,
 			 "[Connection %i] Input XML document is missing table reference", dbc->id);
+		return NULL;
+	}
+
+	schemaver = sqldataGetRequiredSchemaVer(dbc->log, root_n);
+	if( schemaver < 100 ) {
+		writelog(dbc->log, LOG_ERR,
+			 "[Connection %i] Failed parsing required SQL schema version", dbc->id);
+		return NULL;
+	}
+	if( schemaver > dbc->sqlschemaver ) {
+		writelog(dbc->log, LOG_ERR,
+			 "[Connection %i] Cannot process data for the '%s' table.  "
+			 "The needed SQL schema version is %i, while the database is using version %i",
+			 dbc->id, table, schemaver, dbc->sqlschemaver);
 		return NULL;
 	}
 
@@ -305,6 +342,7 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 
 	// Loop through all records and generate SQL statements
 	res = eCreate_value_space(dbc->log, 1);
+	memset(&oid, 0, 34);
 	foreach_xmlnode(recs_n->children, ptr_n) {
 		if( ptr_n->type != XML_ELEMENT_NODE ) {
 			continue;
@@ -355,8 +393,7 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 			// If the /sqldata/@key attribute was set, fetch the returning ID
 			eAdd_value(res, key, PQgetvalue(dbres, 0, 0));
 		} else {
-			static char oid[32];
-			snprintf(oid, 30, "%ld%c", (unsigned long int) PQoidValue(dbres), 0);
+			snprintf(oid, 33, "%ld%c", (unsigned long int) PQoidValue(dbres), 0);
 			eAdd_value(res, "oid", oid);
 		}
 		PQclear(dbres);
@@ -629,6 +666,8 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 	case STAT_ASSIGNED:
 	case STAT_RTERIDREG:
 	case STAT_REPMOVE:
+	case STAT_XMLFAIL:
+	case STAT_FTOOBIG:
 		snprintf(sql, 4096,
 			 "UPDATE submissionqueue SET status = %i"
 			 " WHERE submid = %i", status, submid);
@@ -642,7 +681,6 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 
 	case STAT_SUCCESS:
 	case STAT_UNKNFAIL:
-	case STAT_XMLFAIL:
 	case STAT_SYSREG:
 	case STAT_GENDB:
 	case STAT_RTEVRUNS:

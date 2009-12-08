@@ -136,19 +136,42 @@ static char *get_destination_path(LogContext *log, const char *destdir,
 
 
 /**
+ * Checks if the file size of the given file is below the given max size value.
+ *
+ * @param thrdata  Pointer to a threadData_t structure with log context and max_report_size setting
+ * @param fname    Filename of the file to check
+ *
+ * @return Returns 1 if file is within the limit, otherwise 0.  On errors -1 is returned.
+ */
+inline int check_filesize(threadData_t *thrdata, const char *fname) {
+	struct stat info;
+
+	if( !fname ) {
+		return 0;
+	}
+
+	errno = 0;
+	if( (stat(fname, &info) < 0) ) {
+		writelog(thrdata->dbc->log, LOG_ERR, "Failed to check report file '%s': %s",
+			 fname, strerror(errno));
+		return -1;
+	}
+
+	return (info.st_size <= thrdata->max_report_size);
+}
+
+
+/**
  * The core parse function.  Parses an XML file and stores it in the database according to
  * the xmlparser.xsl template.
  *
- * @param dbc         Database connection
- * @param xslt        Pointer to a parsed XSLT Stylesheet (xmlparser.xsl)
- * @param mtx_sysreg  Mutex locking to avoid simultaneous registration of systems, as they cannot
- *                    be in an SQL transaction (due to SHA1 sysid must be registered and visible ASAP)
- * @param destdir     Destination directory for the report file, when moved from the queue.
- * @param job         Pointer to a parseJob_t structure containing the job information
+ * @param thrdata  Pointer to a threadData_t structure with database connection, log context, settings, etc
+ * @param job      Pointer to a parseJob_t structure containing the job information
  *
  * @return Return values:
  * @code
  *          STAT_SUCCESS  : Successfully registered report
+ *          STAT_FTOOBIG  : XML report file is too big
  *          STAT_XMLFAIL  : Could not parse the XML report file
  *          STAT_SYSREG   : Failed to register the system into the systems or systems_hostname tables
  *          STAT_RTERIDREG: Failed to get a new rterid value
@@ -158,91 +181,100 @@ static char *get_destination_path(LogContext *log, const char *destdir,
  *          STAT_REPMOVE  : Failed to move the report file
  * @endcode
  */
-inline int parse_report(dbconn *dbc, xsltStylesheet *xslt, pthread_mutex_t *mtx_sysreg,
-			const char *destdir, parseJob_t *job) {
+inline int parse_report(threadData_t *thrdata, parseJob_t *job)
+{
 	int syskey = -1, rterid = -1;
 	int rc = -1;
 	xmlDoc *repxml = NULL;
 	char *destfname;
 
+	// Check file size - and reject too big files
+	if( check_filesize(thrdata, job->filename) == 0 ) {
+		writelog(thrdata->dbc->log, LOG_ERR,
+			 "Report file '%s' is too big, rejected", job->filename);
+		return STAT_FTOOBIG;
+	}
+
+
 	repxml = xmlParseFile(job->filename);
 	if( !repxml ) {
-		writelog(dbc->log, LOG_ERR,
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Could not parse XML file: %s", job->filename);
 	        return STAT_XMLFAIL;
 	}
 
-	pthread_mutex_lock(mtx_sysreg);
-	syskey = db_register_system(dbc, xslt, repxml);
+	pthread_mutex_lock(thrdata->mtx_sysreg);
+	syskey = db_register_system(thrdata->dbc, thrdata->xslt, repxml);
 	if( syskey < 0 ) {
-		writelog(dbc->log, LOG_ERR,
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Failed to register system (XML file: %s)", job->filename);
 		rc = STAT_SYSREG;
 		goto exit;
 
 	}
-	rterid = db_get_new_rterid(dbc);
+	rterid = db_get_new_rterid(thrdata->dbc);
 	if( rterid < 0 ) {
-		writelog(dbc->log, LOG_ERR,
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Failed to register rteval run (XML file: %s)", job->filename);
 		rc = STAT_RTERIDREG;
 		goto exit;
 	}
-	pthread_mutex_unlock(mtx_sysreg);
+	pthread_mutex_unlock(thrdata->mtx_sysreg);
 
-	if( db_begin(dbc) < 1 ) {
+	if( db_begin(thrdata->dbc) < 1 ) {
 		rc = STAT_GENDB;
 		goto exit;
 	}
 
 	// Create a new filename of where to save the report
-	destfname = get_destination_path(dbc->log, destdir, job, rterid);
+	destfname = get_destination_path(thrdata->dbc->log, thrdata->destdir, job, rterid);
 	if( !destfname ) {
-		writelog(dbc->log, LOG_ERR,
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Failed to generate local report filename for (%i) %s",
 			job->submid, job->filename);
-		db_rollback(dbc);
+		db_rollback(thrdata->dbc);
 		rc = STAT_UNKNFAIL;
 		goto exit;
 	}
 
-	if( db_register_rtevalrun(dbc, xslt, repxml, job->submid, syskey, rterid, destfname) < 0 ) {
-		writelog(dbc->log, LOG_ERR,
+	if( db_register_rtevalrun(thrdata->dbc, thrdata->xslt, repxml, job->submid,
+				  syskey, rterid, destfname) < 0 ) {
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Failed to register rteval run (XML file: %s)",
 			 job->filename);
-		db_rollback(dbc);
+		db_rollback(thrdata->dbc);
 		rc = STAT_RTEVRUNS;
 		goto exit;
 	}
 
-	if( db_register_cyclictest(dbc, xslt, repxml, rterid) != 1 ) {
-		writelog(dbc->log, LOG_ERR,
+	if( db_register_cyclictest(thrdata->dbc, thrdata->xslt, repxml, rterid) != 1 ) {
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Failed to register cyclictest data (XML file: %s)",
 			 job->filename);
-		db_rollback(dbc);
+		db_rollback(thrdata->dbc);
 		rc = STAT_CYCLIC;
 		goto exit;
 	}
 
 	// When all database registrations are done, move the file to it's right place
-	if( make_report_dir(dbc->log, destfname) < 1 ) { // Make sure report directory exists
-		db_rollback(dbc);
+	if( make_report_dir(thrdata->dbc->log, destfname) < 1 ) { // Make sure report directory exists
+		db_rollback(thrdata->dbc);
 		rc = STAT_REPMOVE;
 		goto exit;
 	}
 
 	if( rename(job->filename, destfname) < 0 ) { // Move the file
-		writelog(dbc->log, LOG_ERR,
+		writelog(thrdata->dbc->log, LOG_ERR,
 			 "Failed to move report file from %s to %s (%s)",
 			 job->filename, destfname, strerror(errno));
-		db_rollback(dbc);
+		db_rollback(thrdata->dbc);
 		rc = STAT_REPMOVE;
 		goto exit;
 	}
 	free_nullsafe(destfname);
 
 	rc = STAT_SUCCESS;
-	db_commit(dbc);
+	db_commit(thrdata->dbc);
 
  exit:
 	xmlFreeDoc(repxml);
@@ -283,7 +315,7 @@ void *parsethread(void *thrargs) {
 			if( *(args->threadcount) <= 1 ) {
 				writelog(args->dbc->log, LOG_EMERG,
 					 "No more worker threads available.  "
-					 "Initiating complete shutdown");
+					 "Signaling for complete shutdown!");
 				kill(getpid(), SIGUSR1);
 			}
 			exitcode = 1;
@@ -316,8 +348,7 @@ void *parsethread(void *thrargs) {
 
 			// Mark the job as "in progress", if successful update, continue parsing it
 			if( db_update_submissionqueue(args->dbc, jobinfo.submid, STAT_INPROG) ) {
-				res = parse_report(args->dbc, args->xslt, args->mtx_sysreg,
-						   args->destdir, &jobinfo);
+				res = parse_report(args, &jobinfo);
 				// Set the status for the submission
 				db_update_submissionqueue(args->dbc, jobinfo.submid, res);
 			} else {

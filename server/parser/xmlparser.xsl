@@ -97,7 +97,7 @@
             <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
-	<sqldata table="cyclic_histogram">
+	<sqldata schemaver="1.0" table="cyclic_histogram">
 	  <fields>
             <field fid="0">rterid</field>
             <field fid="1">core</field>
@@ -122,7 +122,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="systems_sql">
-    <sqldata table="systems" key="syskey">
+    <sqldata schemaver="1.0" table="systems" key="syskey">
       <fields>
         <field fid="0">sysid</field>
         <field fid="1">dmidata</field>
@@ -141,7 +141,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="sys_hostname_sql">
-    <sqldata table="systems_hostname">
+    <sqldata schemaver="1.0" table="systems_hostname">
       <fields>
         <field fid="0">syskey</field>
         <field fid="1">hostname</field>
@@ -158,7 +158,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_sql">
-    <sqldata table="rtevalruns">
+    <sqldata schemaver="1.0" table="rtevalruns">
       <fields>
         <field fid="0">syskey</field>
         <field fid="1">kernel_ver</field>
@@ -197,7 +197,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval" mode="rtevalruns_details_sql">
-    <sqldata table="rtevalruns_details">
+    <sqldata schemaver="1.0" table="rtevalruns_details">
       <fields>
         <field fid="0">rterid</field>
         <field fid="1">xmldata</field>
@@ -216,7 +216,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval/cyclictest" mode="cyclic_stats_sql">
-    <sqldata table="cyclic_statistics">
+    <sqldata schemaver="1.1" table="cyclic_statistics">
       <fields>
         <field fid="0">rterid</field>
         <field fid="1">coreid</field>
@@ -229,6 +229,8 @@
         <field fid="8">range</field>
         <field fid="9">median</field>
         <field fid="10">stddev</field>
+	<field fid="11">mean_abs_dev</field>
+	<field fid="12">variance</field>
       </fields>
       <records>
         <xsl:for-each select="core/statistics|system/statistics">
@@ -250,6 +252,8 @@
             <value fid="8"><xsl:value-of select="range"/></value>
             <value fid="9"><xsl:value-of select="mean"/></value>
             <value fid="10"><xsl:value-of select="standard_deviation"/></value>
+	    <value fid="11"><xsl:value-of select="mean_absolute_deviation"/></value>
+	    <value fid="12"><xsl:value-of select="variance"/></value>
           </record>
         </xsl:for-each>
       </records>
@@ -257,7 +261,7 @@
   </xsl:template>
 
   <xsl:template match="/rteval/cyclictest/RawSampleData" mode="cyclic_raw_sql">
-    <sqldata table="cyclic_rawdata">
+    <sqldata schemaver="1.0" table="cyclic_rawdata">
       <fields>
         <field fid="0">rterid</field>
         <field fid="1">cpu_num</field>

@@ -126,8 +126,10 @@ unsigned int get_mqueue_msg_max(LogContext *log) {
  * Main loop, which polls the submissionqueue table and puts jobs found here into a POSIX MQ queue
  * which the worker threads will pick up.
  *
- * @param dbc    Database connection, where to query the submission queue
- * @param msgq   file descriptor for the message queue
+ * @param dbc           Database connection, where to query the submission queue
+ * @param msgq          file descriptor for the message queue
+ * @param activethreads Pointer to an int value containing active worker threads.  Each thread updates
+ *                      this value directly, and this function should only read it.
  *
  * @return Returns 0 on successful run, otherwise > 0 on errors.
  */
@@ -216,9 +218,8 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 			res = mq_send(msgq, (char *) job, sizeof(parseJob_t), 1);
 			if( (res < 0) && (errno != EAGAIN) ) {
 				writelog(dbc->log, LOG_EMERG,
-					 "Could not send parse job to the queue.  "
-					 "Shutting down!");
-				shutdown = 1;
+					 "Could not send shutdown notification to the queue.");
+				free_nullsafe(job);
 				return rc;
 			} else if( errno == EAGAIN ) {
 				writelog(dbc->log, LOG_WARNING,
@@ -306,6 +307,7 @@ int main(int argc, char **argv) {
 	struct mq_attr msgq_attr;
 	mqd_t msgq = 0;
 	int i,rc, mq_init = 0, max_threads = 0, started_threads = 0, activethreads = 0;
+	unsigned int max_report_size = 0;
 
 	// Initialise XML and XSLT libraries
 	xsltInit();
@@ -386,6 +388,7 @@ int main(int argc, char **argv) {
 
 	reportdir = eGet_value(config, "reportdir");
 	writelog(logctx, LOG_INFO, "Starting %i worker threads", max_threads);
+	max_report_size = defaultIntValue(atoi_nullsafe(eGet_value(config, "max_report_size")), 1024*1024);
 	for( i = 0; i < max_threads; i++ ) {
 		// Prepare thread specific data
 		thrdata[i] = malloc_nullsafe(logctx, sizeof(threadData_t));
@@ -414,6 +417,7 @@ int main(int argc, char **argv) {
 		thrdata[i]->mtx_sysreg = &mtx_sysreg;
 		thrdata[i]->xslt = xslt;
 		thrdata[i]->destdir = reportdir;
+		thrdata[i]->max_report_size = max_report_size;
 
 		thread_attrs[i] = malloc_nullsafe(logctx, sizeof(pthread_attr_t));
 		if( !thread_attrs[i] ) {
@@ -459,6 +463,7 @@ int main(int argc, char **argv) {
 	// checks the submission queue and puts unprocessed records on the POSIX MQ
 	// to be parsed by one of the threads
 	//
+	sleep(3); // Allow at least a few parser threads to settle down first before really starting
 	writelog(logctx, LOG_DEBUG, "Starting submission queue checker");
 	rc = process_submission_queue(dbc, msgq, &activethreads);
 	writelog(logctx, LOG_DEBUG, "Submission queue checker shut down");
@@ -478,8 +483,12 @@ int main(int argc, char **argv) {
 			}
 			pthread_attr_destroy(thread_attrs[i]);
 		}
-		free_nullsafe(threads[i]);
-		free_nullsafe(thread_attrs[i]);
+		if( threads ) {
+			free_nullsafe(threads[i]);
+		}
+		if( thread_attrs ) {
+			free_nullsafe(thread_attrs[i]);
+		}
 
 		// Disconnect threads database connection
 		if( thrdata && thrdata[i] ) {

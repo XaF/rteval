@@ -39,6 +39,7 @@ typedef struct {
         dbconn *dbc;                  /**< Database connection assigned to this thread */
         xsltStylesheet *xslt;         /**< XSLT stylesheet assigned to this thread */
         const char *destdir;          /**< Directory where to put the parsed reports */
+        unsigned int max_report_size; /**< Maximum accepted file size of reports (config: max_report_size) */
 } threadData_t;
 
 #endif

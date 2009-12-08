@@ -5,9 +5,26 @@
 The purpose of the daemon is to off load the web server from the heavy duty
 work of parsing and processing the rteval XML reports.  The XML-RPC server
 will receive the reports and put the files in a queue directory on the
-filesystem and register the the submission in the database.  This will notify
+file system and register the the submission in the database.  This will notify
 the rteval_parsed that a new report has been received and it will start
 processing that file independently of the web/XML-RPC server.
+
+
+** Installing the software
+
+If you install this application from source, please read the
+README.xmlrpc file for more information about the building and
+installation process.
+
+Please read the README.xmlrpc file also for setting up and preparing
+the database which the rteval_parserd program will be using.  This
+file will also contain information regarding upgrading the database.
+
+If you are installing this application from a binary package, like RPM
+files on Fedora/RHEL based boxes, you should have the rteval_parserd
+in your $PATH and the needed file for the parsing (xmlparser.xsl)
+should be installed in a directory rteval_parserd where look for it by
+default.
 
 
 ** Configure rteval_parsed
@@ -38,6 +55,20 @@ The default values are:
   - reportdir: /var/lib/rteval/report
     Where to save the parsed reports
 
+  - threads: 4
+    Number of worker threads.  This defines how many reports you will
+    process in parallel.  The recommended number here is the number
+    of available CPU cores, as having a higher thread number often
+    punishes the performance.
+
+  - max_report_size: 2097152
+    Maximum file size of reports which the parser will process.  The
+    default value is 2MB.  The value must be given in bytes.  Remember
+    that this value is per thread, and that XML and XSLT processing can
+    be quite memory hungry.  If this value is set too high or you have too
+    many worker threads, your system might become unresponsive for a while
+    and the parser can be killed by the kernel (OOM).
+
 
 ** rteval_parserd arguments
 
@@ -50,7 +81,7 @@ The default values are:
 
 - Configuration file
 By default the program will look for /etc/rteval.conf.  This can be
-overriden by using --config <config file>.
+overridden by using --config <config file>.
 
 - Logging
 When the program is started as a daemon, it will log to syslog by default.
@@ -65,7 +96,7 @@ destinations are treated as filenames.  Valid 'destinations' are:
     syslog:[facility]   - Log to syslog
     <file name>         - Log to given file
 
-For syslog the default facility is 'daemon', but can be overriden by using
+For syslog the default facility is 'daemon', but can be overridden by using
 one of the following facility values:
     daemon, user and local0 to local7
 
@@ -81,9 +112,9 @@ Log verbosity is set by the --log-level.  The valid values here are:
     debug               - Detailed run information, incl. thread operation
 
 - Threads
-By default, the daemon will use 5 threads.  One for the main threads which
-processes the submission queue and notifies the working threads.  The 4 other
-threads are worker threads, which will process the received reports.
+By default, the daemon will use five threads.  One for the main threads which
+processes the submission queue and notifies the working threads.  The four
+other threads are worker threads, which will process the received reports.
 
 Each of the worker threads will have its own connection to the database.  This
 connection will be connected to the database as long as the daemon is running.
@@ -124,6 +155,9 @@ upon such a notification.
 Whenever a notification is received, it will always parse all unprocessed
 reports.  In addition it will also only listen for notifications when there
 are no unprocessed reports.
+
+The core PostgreSQL implementation is only done in pgsql.[ch], which provides an
+abstract API layer for the rest of the parser daemon.
 
 
 ** Submission queue status codes

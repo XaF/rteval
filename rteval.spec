@@ -33,7 +33,6 @@ times is done and printed to the screen.
 %prep
 %setup -q
 
-
 # version sanity check (make sure specfile and rteval.py match)
 srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
 if [ $srcver != %{version} ]; then
@@ -42,16 +41,6 @@ if [ $srcver != %{version} ]; then
 fi
 
 %build
-
-%package xmlrpc
-Summary:	XML-RPC server based on mod_python for receving reports from rteval
-Group:		Applications/System
-Requires:	postgresql httpd mod_python
-
-%description xmlrpc
-This package requires Apache, mod_python and a PostgreSQL server.  It will
-enable an XML-RPC interface for the rteval program to submit the reports to
-a central server.
 
 
 %install
@@ -62,17 +51,6 @@ mkdir -p ${RPM_BUILD_ROOT}/usr/bin
 # note that python_sitelib has a leading slash...
 ln -s ../..%{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/usr/bin/rteval
 
-# XML-RPC server install
-cd server
-mkdir -p ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 rteval_xmlrpc.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 xmlrpc_API1.py  ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 rtevaldb.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-install -m 644 database.py ${RPM_BUILD_ROOT}/var/www/html/rteval/API1
-mkdir -p ${RPM_BUILD_ROOT}/etc/httpd/conf.d/
-./gen_config.sh %{_localstatedir}/www/html/rteval/API1
-install -m 644 apache-rteval.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
-cd ..
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -92,18 +70,12 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/rteval/
 /usr/bin/rteval
 
-%files xmlrpc
-%defattr(-,root,root,-)
-%doc COPYING server/README.xmlrpc sql/rteval-1.0.sql
-%config(noreplace) %{_sysconfdir}/httpd/conf.d/rteval-xmlrpc.conf
-%{_localstatedir}/www/html/rteval/
-
-
 %changelog
-* Sat Nov 28 2009 Clark Williams <williams@redhat.com> - 1.12-2
+* Thu Dec  3 2009 David Sommerseth <davids@redhat.com> - 1.12-2
 - fixed Makefile and specfile to include and install the
   rteval/rteval_histogram_raw.py source file for gaining
   raw access to histogram data
+- Removed xmlrpc package during merge against master_ipv4 branch
 
 * Wed Nov 25 2009 Clark Williams <williams@redhat.com> - 1.12-1
 - fix incorrect reporting of measurement thread priorities

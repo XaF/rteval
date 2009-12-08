@@ -9,6 +9,14 @@ tarball
 *.bz2
 *.rpt
 *.xml
+*.o
+Makefile.in
+aclocal.m4
+config.h.in
+configure
+depcomp
+install-sh
+missing
 build
 rpm*
 usr

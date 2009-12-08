@@ -21,22 +21,14 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 CONFSRC	:=	rteval/rteval.conf
 
 # XML-RPC related files
-XMLRPCSRC  :=	server/database.py	\
-		server/rtevaldb.py	\
-		server/rteval_xmlrpc.py	\
-		server/xmlrpc_API1.py
-
-APACHECONF :=	server/apache-rteval.conf.tpl	\
-		server/gen_config.sh
-
-XMLRPCDOC  :=	server/README.xmlrpc
-
-SQLSRC	   :=	sql/rteval-1.0.sql
+XMLRPCVER := 1.1
+XMLRPCDIR := server
 
 DESTDIR	:=
-DATADIR	:=	$(DESTDIR)/usr/share
+PREFIX  :=      /usr
+DATADIR	:=	$(DESTDIR)/$(PREFIX)/share
 CONFDIR	:=	$(DESTDIR)/etc
-MANDIR	:=	$(DESTDIR)/usr/share/man
+MANDIR	:=	$(DESTDIR)/$(PREFIX)/share/man
 PYLIB	:= 	$(DESTDIR)$(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 LOADDIR	:=	loadsource
 
@@ -53,9 +45,10 @@ sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
-	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz
 
 realclean: clean
+	[ -f $(XMLRPCDIR)/Makefile ] && make -C $(XMLRPCDIR) maintainer-clean || echo -n
 	rm -rf run tarball rpm
 
 install: install_loads install_rteval
@@ -71,11 +64,9 @@ install_rteval: installdirs
 	install -m 644 rteval/rteval_histogram_raw.xsl $(DATADIR)/rteval
 	install -m 644 rteval/rteval.conf $(CONFDIR)
 	install -m 644 doc/rteval.8 $(MANDIR)/man8/
-	gzip $(MANDIR)/man8/rteval.8
+	gzip -f $(MANDIR)/man8/rteval.8
 	chmod 755 $(PYLIB)/rteval/rteval.py
-	if [ "$(DESTDIR)" = "" ]; then \
-		ln -s $(PYLIB)/rteval/rteval.py /usr/bin/rteval; \
-	fi
+#	ln -s $(PYLIB)/rteval/rteval.py $(DESTDIR)/usr/bin/rteval;
 
 install_loads:	$(LOADS)
 	[ -d $(DATADIR)/rteval/loadsource ] || mkdir -p $(DATADIR)/rteval/loadsource
@@ -104,20 +95,30 @@ tarfile:
 	cp $(CONFSRC) tarball/rteval-$(VERSION)/rteval
 	cp -r doc/ tarball/rteval-$(VERSION)
 	cp Makefile setup.py rteval.spec COPYING tarball/rteval-$(VERSION)
-	cp $(XMLRPCSRC) tarball/rteval-$(VERSION)/server
-	cp $(APACHECONF) tarball/rteval-$(VERSION)/server
-	cp $(XMLRPCDOC) tarball/rteval-$(VERSION)/server
-	cp $(SQLSRC) tarball/rteval-$(VERSION)/sql
 	tar -C tarball -cjvf rteval-$(VERSION).tar.bz2 rteval-$(VERSION)
 
-rpms rpm: rtevalrpm loadrpm
+rteval-xmlrpc-$(XMLRPCVER).tar.gz :
+	cd $(XMLRPCDIR) ;             \
+	autoreconf --install ;           \
+	./configure --prefix=$(PREFIX) ; \
+	make distcheck
+	cp $(XMLRPCDIR)/rteval-xmlrpc-$(XMLRPCVER).tar.gz $(HERE)/
 
-rtevalrpm:	tarfile
+rpm_prep:
 	rm -rf rpm
 	mkdir -p rpm/{BUILD,RPMS,SRPMS,SOURCES,SPECS}
+
+rpms rpm: rpm_prep rtevalrpm loadrpm xmlrpcrpm
+
+rtevalrpm: tarfile
 	cp rteval-$(VERSION).tar.bz2 rpm/SOURCES
 	cp rteval.spec rpm/SPECS
 	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval.spec
+
+xmlrpcrpm: rteval-xmlrpc-$(XMLRPCVER).tar.gz
+	cp rteval-xmlrpc-$(XMLRPCVER).tar.gz rpm/SOURCES/
+	cp server/rteval-xmlrpc.spec rpm/SPECS/
+	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval-xmlrpc.spec
 
 loadrpm: 
 	rm -rf rpm-loads
@@ -129,10 +130,10 @@ loadrpm:
 rpmlint: rpms
 	@echo "==============="
 	@echo "running rpmlint"
-	rpmlint -v rpm/SRPMS/rteval*.src.rpm
-	rpmlint -v rpm/RPMS/noarch/rteval*.noarch.rpm
-	rpmlint -v rpm-loads/SRPMS/rteval-loads*.src.rpm
-	rpmlint -v rpm-loads/RPMS/noarch/rteval-loads*.noarch.rpm
+	rpmlint -v $(shell find ./rpm -type f -name "*.rpm") 	 \
+		$(shell find ./rpm-loads -type f -name "*.rpm")	 \
+		$(shell find ./rpm/SPECS -type f -name "rteval*.spec") \
+		$(shell find ./rpm-loads/SPECS -type f -name "rteval*.spec" )
 
 help:
 	@echo ""
