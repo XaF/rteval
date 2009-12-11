@@ -21,7 +21,7 @@
 
       <SystemDevices>
         <xsl:apply-templates select="SystemSlots"/>
-        <xsl:apply-templates select="OnBoardDevicesInfo"/>
+        <xsl:apply-templates select="OnBoardDevicesInfo/dmi_on_board_devices/Device"/>
       </SystemDevices>
       <PortConnectors>
         <xsl:apply-templates select="PortConnectorInfo"/>
@@ -138,11 +138,11 @@
     </SystemSlot>
   </xsl:template>
 
-  <xsl:template match="/dmidecode/OnBoardDevicesInfo">
+  <xsl:template match="/dmidecode/OnBoardDevicesInfo/dmi_on_board_devices/Device">
     <OnBoardDevice>
-      <xsl:attribute name="Enabled"><xsl:value-of select="dmi_on_board_devices/Device/@Enabled"/></xsl:attribute>
-      <xsl:attribute name="Type"><xsl:value-of select="dmi_on_board_devices/Device/Type"/></xsl:attribute>
-      <xsl:value-of select="dmi_on_board_devices/Device/Description"/>
+      <xsl:attribute name="Enabled"><xsl:value-of select="@Enabled"/></xsl:attribute>
+      <xsl:attribute name="Type"><xsl:value-of select="Type"/></xsl:attribute>
+      <xsl:value-of select="Description"/>
     </OnBoardDevice>
   </xsl:template>
 
