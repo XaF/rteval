@@ -7,7 +7,7 @@
       <xsl:attribute name="SerialNo"><xsl:value-of select="SystemInfo/SerialNumber"/></xsl:attribute>
       <xsl:attribute name="SystemUUID"><xsl:value-of select="SystemInfo/SystemUUID"/></xsl:attribute>
       <xsl:copy-of select="/dmidecode/DMIversion"/>
-      <xsl:apply-templates select="SystemInfo|BIOSinfo"/>
+      <xsl:apply-templates select="SystemInfo|BIOSinfo|IPMIdeviceInfo"/>
 
       <SystemProcessors>
         <xsl:apply-templates select="ProcessorInfo[Populated = 'Enabled']"/>
@@ -26,6 +26,7 @@
       <PortConnectors>
         <xsl:apply-templates select="PortConnectorInfo"/>
       </PortConnectors>
+      <xsl:apply-templates select="OEMstrings"/>
     </HardwareInfo>
   </xsl:template>
 
@@ -36,6 +37,22 @@
       <xsl:attribute name="BIOSrevision"><xsl:value-of select="BIOSrevision"/></xsl:attribute>
       <xsl:value-of select ="Vendor"/>
     </BIOS>
+    <BIOSconfig>
+      <xsl:for-each select="Characteristics/flags/flag[@enabled='1']|Characteristics/characteristic[@enabled='1']">
+	<characteristic>
+	  <xsl:choose>
+	    <xsl:when test="local-name(.) = 'flag'">
+	      <xsl:attribute name="level"><xsl:value-of select="../../@level"/></xsl:attribute>
+	    </xsl:when>
+	    <xsl:when test="local-name(.) = 'characteristic'">
+	      <xsl:attribute name="level"><xsl:value-of select="../@level"/></xsl:attribute>
+	    </xsl:when>
+	    <xsl:otherwise/>
+	  </xsl:choose>
+	  <xsl:value-of select="."/>
+	</characteristic>
+      </xsl:for-each>
+    </BIOSconfig>
   </xsl:template>
 
   <xsl:template match="/dmidecode/SystemInfo">
@@ -47,10 +64,20 @@
         <xsl:attribute name="SerialNum"><xsl:value-of select="../BaseBoardInfo/SerialNumber"/></xsl:attribute>
         <xsl:value-of select="../BaseBoardInfo/ProductName"/>
       </BaseBoard>
+      <BaseBoardFeatures>
+	<xsl:copy-of select="../BaseBoardInfo/Features/feature"/>
+      </BaseBoardFeatures>
       <BootErrors>
         <xsl:value-of select="../SystemBootInfo/Status"/>
       </BootErrors>
     </GeneralInfo>
+  </xsl:template>
+
+  <xsl:template match="/dmidecode/IPMIdeviceInfo">
+    <IPMInterface>
+      <xsl:attribute name="interface"><xsl:value-of select="BaseAddress/@interface"/></xsl:attribute>
+      <xsl:value-of select="InterfaceType"/>
+    </IPMInterface>
   </xsl:template>
 
   <xsl:template match="/dmidecode/ProcessorInfo">
@@ -153,6 +180,17 @@
       <xsl:attribute name="Connector"><xsl:value-of select="Connector[@type='external']"/></xsl:attribute>
       <xsl:value-of select="PortType"/>
     </Connector>
+  </xsl:template>
+
+  <xsl:template match="/dmidecode/OEMstrings">
+    <OEMstrings>
+      <xsl:for-each select="Record">
+	<OEMstring>
+	  <xsl:attribute name="index"><xsl:value-of select="@index"/></xsl:attribute>
+	  <xsl:value-of select="."/>
+	</OEMstring>
+      </xsl:for-each>
+    </OEMstrings>
   </xsl:template>
 
 </xsl:stylesheet>
