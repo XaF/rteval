@@ -46,6 +46,7 @@ import shutil
 import rtevalclient
 import ethtool
 from datetime import datetime
+from distutils import sysconfig
 
 sys.pathconf = "."
 import load
@@ -128,6 +129,9 @@ class RtEval(object):
 
         if not os.path.exists(self.config.xslt_report):
             raise RuntimeError, "can't find XSL template (%s)!" % self.config.xslt_report
+
+        # Add rteval directory into module search path
+        sys.path.insert(0, '%s/rteval' % sysconfig.get_python_lib())
 
 
     def get_base_os(self):
