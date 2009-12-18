@@ -56,7 +56,7 @@ import rtevalConfig
 import rtevalMailer
 
 class RtEval(object):
-    def __init__(self):
+    def __init__(self, cmdargs):
         self.version = "1.12"
         self.load_modules = []
         self.workdir = os.getcwd()
@@ -95,7 +95,7 @@ class RtEval(object):
         self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
 
         # parse command line options
-        self.parse_options()
+        self.parse_options(cmdargs)
 
         # read in config file info
         self.inifile = self.config.Load(self.cmd_options.inifile)
@@ -216,7 +216,7 @@ class RtEval(object):
         return ret_kthreads
 
 
-    def parse_options(self):
+    def parse_options(self, cmdargs):
         '''parse the command line arguments'''
         parser = optparse.OptionParser()
         parser.add_option("-d", "--duration", dest="duration",
@@ -253,7 +253,7 @@ class RtEval(object):
                           type='string', default=None,
                           help="initialization file for configuring loads and behavior")
 
-        (self.cmd_options, self.cmd_arguments) = parser.parse_args()
+        (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
             mult = 1.0
             v = self.cmd_options.duration.lower()
@@ -701,7 +701,8 @@ if __name__ == '__main__':
     import pwd, grp
 
     try:
-        ec = RtEval().rteval()
+        rteval = RtEval(sys.argv[1:])
+        ec = rteval.rteval()
         sys.exit(ec)
     except KeyboardInterrupt:
         sys.exit(0)
