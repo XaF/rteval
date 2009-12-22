@@ -53,6 +53,7 @@ class RunData(object):
         self.median = 0.0
         self.range = 0.0
         self.mad = 0.0
+        self.variance = 0.0
 
     def sample(self, value):
         self.samples[value] += self.samples.setdefault(value, 0) + 1
@@ -68,6 +69,17 @@ class RunData(object):
 
     def reduce(self):
         import math
+
+        # check to see if we have any samples and if we
+        # only have 1 (or none) set the calculated values
+        # to zero and return
+        if self.numsamples <= 1:
+            print "skipping %s (%d samples)" % (self.id, self.numsamples)
+            self.variance = 0
+            self.mad = 0
+            self.stddev = 0
+            return
+
         print "reducing %s" % self.id
         total = 0
         keys = self.samples.keys()
