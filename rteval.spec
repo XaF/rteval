@@ -2,8 +2,8 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.12
-Release:	2%{?dist}
+Version:	1.13
+Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -71,6 +71,19 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Tue Dec 22 2009 Clark Williams <williams@redhat.com> - 1.13-1
+- added cyclictest default initializers
+- added sanity checks to statistics reduction code
+- updated release checklist to include origin push
+- updated Makefile clean and help targets
+- davids updates (mainly for v7 integration):
+  - Add explicit sys.path directory to the python sitelib+
+    '/rteval'
+  - Send program arguments via RtEval() constructor
+  - Added more DMI data into the summary.xml report
+  - Fixed issue with not including all devices in the 
+    OnBoardDeviceInfo tag
+
 * Thu Dec  3 2009 David Sommerseth <davids@redhat.com> - 1.12-2
 - fixed Makefile and specfile to include and install the
   rteval/rteval_histogram_raw.py source file for gaining
