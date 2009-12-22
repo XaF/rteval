@@ -89,6 +89,10 @@ class RtEval(object):
                 'source'     : 'hackbench.tar.bz2',
                 'jobspercore': '5',
                 },
+            'cyclictest' : {
+                'interval' : '100',
+                'buckets'  : '2000',
+                }
             }
 
         # setup initial configuration
