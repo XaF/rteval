@@ -45,7 +45,7 @@ sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
-	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz doc/*~
 
 realclean: clean
 	[ -f $(XMLRPCDIR)/Makefile ] && make -C $(XMLRPCDIR) maintainer-clean || echo -n
@@ -140,7 +140,8 @@ help:
 	@echo "rteval Makefile targets:"
 	@echo ""
 	@echo "        runit:     do a short testrun locally [default]"
-	@echo "        rpm:       run rpmbuild"
+	@echo "        rpm:       run rpmbuild for all rpms"
+	@echo "        rpmlint:   run rpmlint against all rpms/srpms/specfiles"
 	@echo "        tarfile:   create the source tarball"
 	@echo "        install:   install rteval locally"
 	@echo "        clean:     cleanup generated files"
