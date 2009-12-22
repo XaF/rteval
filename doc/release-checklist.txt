@@ -18,4 +18,5 @@
 9. Commit rteval/rteval.py and rteval.spec changes
 10. Create signed tag of the form v<major>.<minor> for the release:
     e.g.:  git tag -u williams@redhat.com  v1.10
+11. Push master branch back to origin
 
