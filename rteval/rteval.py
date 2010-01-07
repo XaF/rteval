@@ -428,6 +428,9 @@ class RtEval(object):
         "Create a screen report, based on a predefined XSLT template"
         self.xmlreport.Write("-", self.config.xslt_report)
 
+    def XMLreport(self):
+        "Retrieves the complete rteval XML report as a libxml2.xmlDoc object"
+        return self.xmlreport.GetXMLdocument()
 
     def show_report(self, xmlfile, xsltfile):
         '''summarize a previously generated xml file'''
