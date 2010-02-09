@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.13
+Version:	1.14
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Tue Feb  9 2010 Clark Williams <williams@redhat.com> - 1.14-1
+- David Sommerseth <davids@redhat.com>:
+  merged  XMLReport() changes for hwcert suite
+
 * Tue Dec 22 2009 Clark Williams <williams@redhat.com> - 1.13-1
 - added cyclictest default initializers
 - added sanity checks to statistics reduction code
