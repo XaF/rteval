@@ -58,6 +58,8 @@ import rtevalMailer
 
 class RtEval(object):
     def __init__(self, cmdargs):
+        if os.getuid() != 0:
+            raise RuntimeError, "must be root to run rteval"
         self.version = "1.14"
         self.load_modules = []
         self.workdir = os.getcwd()
@@ -163,6 +165,12 @@ class RtEval(object):
         return numcores
 
 
+    def get_num_nodes(self):
+        from glob import glob
+        nodes = len(glob('/sys/devices/system/node/node*'))
+        self.debug("counted %d numa nodes" % nodes)
+        return nodes
+        
     def get_memory_size(self):
         '''find out how much memory is installed'''
         f = open('/proc/meminfo')
@@ -347,6 +355,7 @@ class RtEval(object):
 
         self.xmlreport.openblock('hardware')
         self.xmlreport.taggedvalue('cpu_cores', self.numcores)
+        self.xmlreport.taggedvalue('numa_nodes', self.numanodes)
         self.xmlreport.taggedvalue('memory_size', self.memsize)
         self.xmlreport.closeblock()
 
@@ -503,6 +512,7 @@ class RtEval(object):
         # Collect misc system info
         self.baseos = self.get_base_os()
         self.numcores = self.get_num_cores()
+        self.numanodes = self.get_num_nodes()
         self.memsize = self.get_memory_size()
         (self.current_clocksource, self.available_clocksource) = self.get_clocksources()
         self.services = self.get_services()
@@ -541,7 +551,7 @@ class RtEval(object):
             self.start_loads()
             
             print "rteval run started at %s" % time.asctime()
-            print "started %d loads on %d cores" % (len(self.loads), self.numcores)
+            print "started %d loads on %d cores with %d numa nodes" % (len(self.loads), self.numcores, self.numanodes)
             print "Run duration: %d seconds" % self.config.duration
             
             start = datetime.now()

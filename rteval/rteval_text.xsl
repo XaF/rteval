@@ -44,6 +44,10 @@
     <xsl:value-of select="hardware/cpu_cores"/>
     <xsl:text>&#10;</xsl:text>
 
+    <xsl:text>   NUMA Nodes:   </xsl:text>
+    <xsl:value-of select="hardware/numa_nodes"/>
+    <xsl:text>&#10;</xsl:text>
+
     <xsl:text>   Memory:       </xsl:text>
     <xsl:value-of select="hardware/memory_size"/>
     <xsl:text> KB&#10;</xsl:text>

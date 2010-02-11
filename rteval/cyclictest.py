@@ -194,6 +194,12 @@ class Cyclictest(Thread):
     def debug(self, str):
         if self.debugging: print "cyclictest: %s" % str
 
+    def getmode(self):
+        from glob import glob
+        if len(glob('/sys/devices/system/node/node*')) > 1:
+            return "--numa"
+        return "--smp"
+
     def run(self):
         if self.params.has_key('buckets'):
             buckets = int(self.params.buckets)
@@ -202,12 +208,17 @@ class Cyclictest(Thread):
         if self.params.has_key('interval'):
             self.interval = '-i%d' % int(self.params.interval)
 
-        self.cmd = ['cyclictest', self.interval, '-a', '-qnm', '-d0', '-h %d' % buckets,
-                    "-p%d" % self.priority]
+        self.cmd = ['cyclictest', 
+                    self.interval, 
+                    '-qm', 
+                    '-d0', 
+                    '-h %d' % buckets,
+                    "-p%d" % self.priority,
+                    self.getmode(),
+                    ]
+
         if self.threads:
             self.cmd.append("-t%d" % self.threads)
-        else:
-            self.cmd.append("-t")
 
         self.debug("starting with cmd: %s" % " ".join(self.cmd))
         null = os.open('/dev/null', os.O_RDWR)
