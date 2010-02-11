@@ -508,15 +508,15 @@ class RtEval(object):
         shutil.copyfile(dpath, os.path.join(self.reportdir, "dmesg"))
 
 
-    def show_remaining_time(self, t):
-        days = t / 86400
-        t -= days
-        hours = t / 3600
-        t -= hours
-        minutes = t / 60
-        t -= minutes
-        print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (
-            days, hours, minutes, t)
+    def show_remaining_time(self, remaining):
+        r = int(remaining)
+        days = r / 86400
+        if days: r = r - (days * 86400)
+        hours = r / 3600
+        if hours: r = r - (hours * 3600)
+        minutes = r / 60
+        if minutes: r = r - (minutes * 60)
+        print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (days, hours, minutes, r)
 
     def measure(self):
         # Collect misc system info
@@ -599,8 +599,8 @@ class RtEval(object):
                 accum += float(p.readline().split()[0])
                 samples += 1
                 if currtime >= rpttime:
-                    left = stoptime - currtime
-                    self.show_remaining_time(left)
+                    left_to_run = stoptime - currtime
+                    self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
                 currtime = time.time()
                 
