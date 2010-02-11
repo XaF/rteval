@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.15
+Version:	1.16
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Feb 11 2010 Clark Williams <williams@redhat.com> - 1.16-1
+- fix errors in show_remaining_time() introduced because
+  time values are floats rather than ints
+
 * Thu Feb 11 2010 Clark Williams <williams@redhat.com> - 1.15-1
 - added logic to use --numa and --smp options of new cyclictest
 - added countdown report for time remaining in a run

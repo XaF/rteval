@@ -60,7 +60,7 @@ class RtEval(object):
     def __init__(self, cmdargs):
         if os.getuid() != 0:
             raise RuntimeError, "must be root to run rteval"
-        self.version = "1.15"
+        self.version = "1.16"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.inifile = None
