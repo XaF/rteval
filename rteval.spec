@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.14
+Version:	1.15
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -16,7 +16,7 @@ BuildRequires:	python
 Requires:	python
 Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
-Requires:	rt-tests >= 0.29
+Requires:	rt-tests >= 0.65
 Requires:	rteval-loads
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
@@ -71,6 +71,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Feb 11 2010 Clark Williams <williams@redhat.com> - 1.15-1
+- added logic to use --numa and --smp options of new cyclictest
+- added countdown report for time remaining in a run
+
 * Tue Feb  9 2010 Clark Williams <williams@redhat.com> - 1.14-1
 - David Sommerseth <davids@redhat.com>:
   merged  XMLReport() changes for hwcert suite
