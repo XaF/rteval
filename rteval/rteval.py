@@ -78,7 +78,8 @@ class RtEval(object):
                 'installdir' : '/usr/share/rteval',
                 'srcdir'     : '/usr/share/rteval/loadsource',
                 'xmlrpc'     : None,
-                'xslt_report': '/usr/share/rteval/rteval_text.xsl'
+                'xslt_report': '/usr/share/rteval/rteval_text.xsl',
+                'report_interval': '600',
                 },
             'loads' : {
                 'kcompile'   : 'module',
@@ -466,12 +467,11 @@ class RtEval(object):
         while not ready:
             busy = 0
             for l in self.loads:
-                self.debug("checking load: %s" % l.name)
                 if not l.isAlive():
                     raise RuntimeError, "%s died" % l.name
                 if not l.isReady():
                     busy += 1
-                    self.debug("%s is busy" % l.name)
+                    self.debug("waiting for %s" % l.name)
             if busy:
                 time.sleep(1.0)
             else:
@@ -508,6 +508,16 @@ class RtEval(object):
         shutil.copyfile(dpath, os.path.join(self.reportdir, "dmesg"))
 
 
+    def show_remaining_time(self, t):
+        days = t / 86400
+        t -= days
+        hours = t / 3600
+        t -= hours
+        minutes = t / 60
+        t -= minutes
+        print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (
+            days, hours, minutes, t)
+
     def measure(self):
         # Collect misc system info
         self.baseos = self.get_base_os()
@@ -543,7 +553,8 @@ class RtEval(object):
         self.info("setting up cyclictest")
         self.cyclictest = cyclictest.Cyclictest(duration=self.config.duration,
                                                 debugging=self.config.debugging,
-                                                params=self.config.GetSection('cyclictest'))
+                                                params=self.config.GetSection('cyclictest'),
+                                                numnodes = self.numanodes)
 
         nthreads = 0
         try:
@@ -571,10 +582,14 @@ class RtEval(object):
             accum = 0.0
             samples = 0
 
+            report_interval = int(self.config.GetSection('rteval').report_interval)
+
             # wait for time to expire or thread to die
             self.info("waiting for duration (%f)" % self.config.duration)
             stoptime = (time.time() + self.config.duration)
-            while time.time() <= stoptime:
+            currtime = time.time()
+            rpttime = currtime + report_interval
+            while currtime <= stoptime:
                 time.sleep(1.0)
                 if not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
@@ -583,6 +598,12 @@ class RtEval(object):
                 p.seek(0)
                 accum += float(p.readline().split()[0])
                 samples += 1
+                if currtime >= rpttime:
+                    left = stoptime - currtime
+                    self.show_remaining_time(left)
+                    rpttime = currtime + report_interval
+                currtime = time.time()
+                
                 
         finally:
             # stop cyclictest

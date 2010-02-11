@@ -158,7 +158,7 @@ class RunData(object):
 class Cyclictest(Thread):
     def __init__(self, duration=None, priority = 95, 
                  outfile = None, threads = None, debugging=False,
-                 keepdata = False, params={}):
+                 keepdata = False, params={}, numnodes=0):
         Thread.__init__(self)
         self.duration = duration
         self.keepdata = keepdata
@@ -187,6 +187,7 @@ class Cyclictest(Thread):
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
         self.numcores = numcores
+        self.numnodes = numnodes
 
     def __del__(self):
         pass
@@ -195,10 +196,11 @@ class Cyclictest(Thread):
         if self.debugging: print "cyclictest: %s" % str
 
     def getmode(self):
-        from glob import glob
-        if len(glob('/sys/devices/system/node/node*')) > 1:
-            return "--numa"
-        return "--smp"
+        if self.numnodes > 1:
+            self.debug("running in NUMA mode (%d nodes)" % self.numnodes)
+            return '--numa'
+        self.debug("running in SMP mode")
+        return '--smp'
 
     def run(self):
         if self.params.has_key('buckets'):
