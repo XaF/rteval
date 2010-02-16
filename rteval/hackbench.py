@@ -72,6 +72,11 @@ class Hackbench(load.Load):
                 sys.exit(-1)
             if not os.path.exists(self.mydir):
                 raise RuntimeError, 'no hackbench directory!'
+        mult = 1
+        if self.params.has_key('jobspercore'):
+            mult = int(self.params.jobspercore)
+        self.jobs = self.num_cpus * mult
+            
 
     def build(self):
         self.debug("building")
@@ -80,23 +85,18 @@ class Hackbench(load.Load):
         exe = os.path.join(self.mydir, "hackbench")
         if os.path.exists(exe):
             os.remove(exe)
-        subprocess.call(["make", "-C", self.mydir], 
-                              stdin=null, stdout=null, stderr=null)
+        subprocess.call(["make", "-C", self.mydir],  
+                             stdin=null, stdout=null, stderr=null)
         self.debug("built")
+        self.exe = os.path.join(self.mydir, "hackbench")
+        if not os.path.exists(self.exe):
+            raise RuntimeError, "Can't find hackbench executable: %s" % self.exe
+        self.args = [self.exe, str(self.jobs)]
         self.ready = True
 
     def runload(self):
-        exe = os.path.join(self.mydir, "hackbench")
-        if not os.path.exists(exe):
-            self.debug("Can't find exe!")
-            return
-        mult = 1
-        if self.params.has_key('jobspercore'):
-            mult = int(self.params.jobspercore)
-        jobs = self.num_cpus * mult
         null = os.open("/dev/null", os.O_RDWR)
-        self.debug("starting loop (jobs: %d)" % jobs)
-        self.args = [exe, str(jobs)]
+        self.debug("starting loop (jobs: %d)" % self.jobs)
         p = subprocess.Popen(self.args, stdin=null,stdout=null,stderr=null)
         while not self.stopevent.isSet():
             time.sleep(1.0)
@@ -104,14 +104,15 @@ class Hackbench(load.Load):
                 p.wait()
                 p = subprocess.Popen(self.args,stdin=null,stdout=null,stderr=null)
         self.debug("stopping")
-        p.terminate()
+        os.kill(p.pid, SIGTERM)
         count = 30
         while count > 0 and p.poll() == None:
             time.sleep(1.0)
             count -= 1
         if p.poll() == None:
-            p.kill()
+            os.kill(p.pid, SIGKILL)
         p.wait()
+        self.debug("returning from runload()")
 
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
