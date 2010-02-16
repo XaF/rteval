@@ -147,6 +147,7 @@ class RtEval(object):
             s = chr(c)
             if s not in string.printable:
                 self.junk += s
+        self.transtable = string.maketrans("", "")
 
     def get_base_os(self):
         '''record what userspace we're running on'''
@@ -214,7 +215,7 @@ class RtEval(object):
         for s in service_list:
             cmd = ['/sbin/service', s, 'status']
             c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-            status = c.stdout.read().strip().translate(None, self.junk)
+            status = c.stdout.read().strip().translate(self.transtable, self.junk)
             ret_services[s] = status
         return ret_services
             
