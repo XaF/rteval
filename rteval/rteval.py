@@ -36,6 +36,7 @@ import sys
 import os
 import os.path
 import time
+import string
 import threading
 import subprocess
 import socket
@@ -140,6 +141,12 @@ class RtEval(object):
         # Add rteval directory into module search path
         sys.path.insert(0, '%s/rteval' % sysconfig.get_python_lib())
 
+        # generate a set of "junk" characters to use for filtering later
+        self.junk = ""
+        for c in range(0, 0xff):
+            s = chr(c)
+            if s not in string.printable:
+                self.junk += s
 
     def get_base_os(self):
         '''record what userspace we're running on'''
@@ -206,9 +213,8 @@ class RtEval(object):
         self.debug("getting services status")
         for s in service_list:
             cmd = ['/sbin/service', s, 'status']
-            #self.debug("cmd: %s" % " ".join(cmd))
             c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-            status = c.stdout.read().strip()
+            status = c.stdout.read().strip().translate(None, self.junk)
             ret_services[s] = status
         return ret_services
             
