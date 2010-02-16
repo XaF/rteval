@@ -105,6 +105,13 @@ class Hackbench(load.Load):
                 p = subprocess.Popen(self.args,stdin=null,stdout=null,stderr=null)
         self.debug("stopping")
         p.terminate()
+        count = 30
+        while count > 0 and p.poll() == None:
+            time.sleep(1.0)
+            count -= 1
+        if p.poll() == None:
+            p.kill()
+        p.wait()
 
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
