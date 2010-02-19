@@ -1,5 +1,5 @@
 Name:		rteval-loads
-Version:	1.0
+Version:	1.1
 Release:	1%{?dist}
 Summary:	Source files for rteval loads
 Group:		Development/Tools
@@ -42,5 +42,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+* Fri Feb 19 2010 Clark Williams <williams@redhat.com> - 1.1-1
+- updated hackbench source with fixes from David Sommerseth 
+  <davids@redhat.com> to cleanup child processes
+
 * Thu Nov  5 2009 Clark Williams <williams@redhat.com> - 1.0-1
 - initial packaging effort
