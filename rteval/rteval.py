@@ -239,6 +239,23 @@ class RtEval(object):
                 pass    # Ignore lines which don't have a number in the first row
         return ret_kthreads
 
+    def get_modules(self):
+        modlist = []
+        try:
+            fp = open('/proc/modules', 'r')
+            line = fp.readline()
+            while line:
+                mod = line.split()
+                modlist.append({"modname": mod[0],
+                                "modsize": mod[1],
+                                "numusers": mod[2],
+                                "usedby": mod[3],
+                                "modstate": mod[4]})
+                line = fp.readline()
+            fp.close()
+        except Exception, err:
+            raise err
+        return modlist
 
     def parse_options(self, cmdargs):
         '''parse the command line arguments'''
@@ -383,7 +400,27 @@ class RtEval(object):
                                              })
             self.xmlreport.closeblock()
 
+        modlist = self.get_modules()
+        if len(modlist):
+            self.xmlreport.openblock('kernelmodules')
+            for mod in modlist:
+                self.xmlreport.openblock('module')
+                self.xmlreport.taggedvalue('info', mod['modname'],
+                                           {'size': mod['modsize'],
+                                            'state': mod['modstate'],
+                                            'numusers': mod['numusers']})
+                if mod['usedby'] != '-':
+                    self.xmlreport.openblock('usedby')
+                    for ub in mod['usedby'].split(','):
+                        if len(ub):
+                            self.xmlreport.taggedvalue('module', ub, None)
+                    self.xmlreport.closeblock()
+                self.xmlreport.closeblock()
+            self.xmlreport.closeblock()
+
+        #
         # Retrieve configured IP addresses
+        #
         self.xmlreport.openblock('network_config')
 
         # Get the interface name for the IPv4 default gw
