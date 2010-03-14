@@ -605,8 +605,12 @@ class RtEval(object):
             # start the loads
             self.start_loads()
             
-            print "rteval run started at %s" % time.asctime()
-            print "started %d loads on %d cores with %d numa nodes" % (len(self.loads), self.numcores, self.numanodes)
+            print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
+            print "started %d loads on %d cores" % (len(self.loads), self.numcores),
+            if self.numanodes > 1:
+                print " with %d numa nodes" % self.numanodes
+            else:
+                print ""
             print "Run duration: %d seconds" % self.config.duration
             
             start = datetime.now()
@@ -730,6 +734,33 @@ class RtEval(object):
         except:
             os.chdir(cwd)
 
+    def summarize(self, file):
+        isarchive = False
+        summary = file
+        if file.endswith(".tar.bz2"):
+            import tarfile
+            try:
+                t = tarfile.open(file)
+            except:
+                print "Don't know how to summarize %s (tarfile open failed)" % file
+                return
+            element = None
+            for f in t.getnames():
+                if f.find('summary.xml') != -1:
+                    element = f
+                    break
+            if element == None:
+                print "No summary.xml found in tar archive %s" % file
+                return
+            tmp = tempfile.gettempdir()
+            self.debug("extracting %s from %s for summarizing" % (element, file))
+            t.extract(element, path=tmp)
+            summary = os.path.join(tmp, element)
+            isarchive = True
+        self.show_report(summary, 'rteval_text.xsl')
+        if isarchive:
+            os.unlink(summary)
+
     def rteval(self):
         ''' main function for rteval'''
         retval = 0;
@@ -741,7 +772,7 @@ class RtEval(object):
 
             for x in self.cmd_arguments:
                 if self.cmd_options.summarize:
-                    self.show_report(x, 'rteval_text.xsl')
+                    self.summarize(x)
                 elif self.cmd_options.rawhistogram:
                     self.show_report(x, 'rteval_histogram_raw.xsl')
 
