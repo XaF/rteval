@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.18
+Version:	1.19
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Tue Mar 16 2010 Clark Williams <williams@redhat.com> - 1.19-1
+- add ability for --summarize to read tarfiles
+- from David Sommerseth <davids@redhat.com>
+  - gather info about loaded kernel modules for XML file
+  - added child tracking to hackbench to prevent zombies
+
 * Tue Feb 16 2010 Clark Williams <williams@redhat.com> - 1.18-1
 - fix usage of python 2.6 features on RHEL5 (python 2.4)
 
