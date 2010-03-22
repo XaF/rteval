@@ -7,16 +7,15 @@
 # Copyright 2009 Red Hat, Inc. and/or its affiliates.
 # Released under the GPL
 #
-# chkconfig: 345 84 16
+# chkconfig: - 20 80
 # description: The rteval_parserd waits for rteval summary reports and parses them on arrival
 # config: /etc/sysconfig/rteval_parserd
 #
 ### BEGIN INIT INFO
 # Provides: rteval_parserd
 # Required-Start: postgresql
-# Required-Stop:
-# Should-Start:
-# Default-Start: 3 4 5
+# Required-Stop: -
+# Default-Stop: 0 1 6
 # Short-Description: start and stop rteval_parserd
 # Description: The rteval_parserd waits for rteval summary reports and parses them on arrival
 ### END INIT INFO
@@ -77,6 +76,7 @@ start() {
     pidof $prog > $PIDFILE
     RETVAL=$?
     [ $RETVAL = 0 ] && success $"$prog startup" || failure $"$prog startup"
+    [ $RETVAL = 0 ] && touch /var/lock/subsys/$prog
     echo
     return $RETVAL
 }
@@ -94,8 +94,8 @@ stop() {
     kill -TERM $PID
     RETVAL=$?
     [ $RETVAL = 0 ] && success $"$prog shutdown" || failure $"$prog (pid $PID) shutdown"
+    [ $RETVAL = 0 ] && rm -f /var/lock/subsys/$prog $PIDFILE
     echo
-    rm -f $PIDFILE
 }
 
 case "$1" in
@@ -112,10 +112,14 @@ case "$1" in
 	stop
 	start
 	;;
+  reload)
+	stop
+	start
+	;;
   condrestart)
         ;;
   *)
-	echo $"Usage: $prog {start|stop|restart|status|help}"
+	echo $"Usage: $prog {start|stop|restart|reload|status|help}"
 	RETVAL=3
 esac
 
