@@ -117,8 +117,8 @@ rtevalrpm: tarfile
 
 xmlrpcrpm: rteval-xmlrpc-$(XMLRPCVER).tar.gz
 	cp rteval-xmlrpc-$(XMLRPCVER).tar.gz rpm/SOURCES/
-	cp server/rteval-xmlrpc.spec rpm/SPECS/
-	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval-xmlrpc.spec
+	cp server/rteval-parser.spec rpm/SPECS/
+	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval-parser.spec
 
 loadrpm: 
 	rm -rf rpm-loads
