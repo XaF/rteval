@@ -12,7 +12,7 @@
  */
 
 /**
- * @file   rteval_parserd.c
+ * @file   rteval-parserd.c
  * @author David Sommerseth <davids@redhat.com>
  * @date   Thu Oct 15 11:59:27 2009
  *
@@ -84,7 +84,7 @@ void sigcatch(int sig) {
 
 /**
  * Opens and reads /proc/sys/fs/mqueue/msg_max, to get the maximum number of allowed messages
- * on POSIX MQ queues.  rteval_parserd will use as much of this as possible when needed.
+ * on POSIX MQ queues.  rteval-parserd will use as much of this as possible when needed.
  *
  * @return Returns the system msg_max value, or DEFAULT_MSG_MAX on failure to read the setting.
  */
@@ -523,7 +523,7 @@ int main(int argc, char **argv) {
 	xmlCleanupParser();
 	xsltCleanupGlobals();
 
-	writelog(logctx, LOG_EMERG, "rteval_parserd is stopped");
+	writelog(logctx, LOG_EMERG, "rteval-parserd is stopped");
 	close_log(logctx);
 	return rc;
 }

@@ -31,7 +31,7 @@
  * Print a help screen to stdout
  */
 void usage() {
-	printf("rteval_parserd:  Parses new reports recieved via XML-RPC\n"
+	printf("rteval-parserd:  Parses new reports recieved via XML-RPC\n"
 	       "\n"
 	       "This program will wait for changes to the rteval 'submissionqueue' table.\n"
 	       "When a new report is registered here, it will send this report to one of\n"

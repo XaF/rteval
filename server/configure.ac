@@ -128,7 +128,7 @@ AC_CHECK_LIB([pthread], [pthread_mutex_lock], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CHECK_LIB([pthread], [pthread_mutex_unlock], [DUMMY=], AX_msgMISSINGFUNC())
 
 # Back to needed autotools stuff
-AC_CONFIG_SRCDIR([parser/rteval_parserd.c])
+AC_CONFIG_SRCDIR([parser/rteval-parserd.c])
 AC_CONFIG_HEADERS([parser/config.h])
 AC_CONFIG_FILES([Makefile parser/Makefile])
 

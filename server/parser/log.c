@@ -92,7 +92,7 @@ LogContext *init_log(const char *logdest, const char *loglvl) {
 
 	if( logdest == NULL ) {
 		logctx->logtype = ltSYSLOG;
-		openlog("rteval_parserd", LOG_PID, LOG_DAEMON);
+		openlog("rteval-parserd", LOG_PID, LOG_DAEMON);
 	} else {
 		if( strncmp(logdest, "syslog:", 7) == 0 ) {
 			const char *fac = logdest+7;
@@ -118,7 +118,7 @@ LogContext *init_log(const char *logdest, const char *loglvl) {
 				facid = LOG_USER;
 			}
 			logctx->logtype = ltSYSLOG;
-			openlog("rteval_parserd", LOG_PID, facid);
+			openlog("rteval-parserd", LOG_PID, facid);
 		} else if( strcmp(logdest, "stderr:") == 0 ) {
 			logctx->logtype = ltCONSOLE;
 			logctx->logfp = stderr;

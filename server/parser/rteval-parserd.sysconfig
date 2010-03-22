@@ -1,4 +1,4 @@
-# Configuration parameters for rteval_parserd
+# Configuration parameters for rteval-parserd
 
 # *** Number of worker threads
 # * When this is not set, the default will be one thread per CPU core
@@ -19,5 +19,5 @@ LOGLEVEL=notice
 # CONFIGFILE=/etc/rteval.conf
 
 # *** PID file
-# * Full path to where to look for the PID file, defaults to /var/run/rteval_parserd.pid
-# PIDFILE=/var/run/rteval_parserd.pid
+# * Full path to where to look for the PID file, defaults to /var/run/rteval-parserd.pid
+# PIDFILE=/var/run/rteval-parserd.pid

@@ -16,7 +16,7 @@
  * @author David Sommerseth <davids@redhat.com>
  * @date   Wed Oct 21 11:17:24 2009
  *
- * @brief  Status values used by rteval_parserd
+ * @brief  Status values used by rteval-parserd
  *
  */
 
