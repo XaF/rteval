@@ -43,3 +43,7 @@ rteval_parserd_SOURCES = argparser.c argparser.h 			 \
 # Don't build, only install
 xsltdir=$(datadir)/rteval
 dist_xslt_DATA = xmlparser.xsl
+
+# Copy init script and config file example to the docs dir
+initscriptdir=$(docdir)/initscripts
+dist_initscript_DATA = rteval_parserd.init rteval_parserd.sysconfig
