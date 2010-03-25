@@ -18,7 +18,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
        rtiid  SERIAL,
        PRIMARY KEY(rtiid)
     );
-    GRANT SELECT ON rteval_info TO rtevaldb_parser;
+    GRANT SELECT ON rteval_info TO rtevparser;
     INSERT INTO rteval_info (key, value) VALUES ('sql_schema_ver','1.2');
 
 -- Enable plpgsql.  It is expected that this PL/pgSQL is available.
