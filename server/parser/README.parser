@@ -1,5 +1,5 @@
 **
-**  rteval_parsed - the rteval XML report parser
+**  rteval-parsed - the rteval XML report parser
 **
 
 The purpose of the daemon is to off load the web server from the heavy duty
@@ -12,22 +12,49 @@ processing that file independently of the web/XML-RPC server.
 
 ** Installing the software
 
-If you install this application from source, please read the
-README.xmlrpc file for more information about the building and
-installation process.
+  !! Please install also the rteval-xmlrpc package and read the !!
+  !! README.xmlrpc file also for setting up and preparing the   !!
+  !! database which the rteval-parserd program will be using.   !!
+  !! This file will also contain information regardingupgrading !!
+  !! the database.                                              !!
 
-Please read the README.xmlrpc file also for setting up and preparing
-the database which the rteval-parserd program will be using.  This
-file will also contain information regarding upgrading the database.
-
-If you are installing this application from a binary package, like RPM
+When installing this application from a binary package, like RPM
 files on Fedora/RHEL based boxes, you should have the rteval-parserd
-in your $PATH and the needed file for the parsing (xmlparser.xsl)
-should be installed in a directory rteval-parserd where look for it by
-default.
+in your $PATH.  Otherwise, when installing from sources, the configure
+script defines the default paths.
 
 
 ** Configure rteval-parsed
+
+When starting the rteval-parserd via the init.d script (or via the 'service'
+command on RHEL/Fedora distributions) it will use the values configured in
+/etc/sysconfig/rteval-parserd.
+
+The available parameters are:
+
+    - NUM_THREADS
+      When this is not defined, the default behaviour is to use the number
+      of available CPU cores.  The init.d script will detect this
+      automatically.
+
+    - LOG
+      This defines how logging will be done.  See the rteval-parserd
+      arguments description further down in the document for more
+      information.
+
+    - LOGLEVEL
+      Defines how verbose the logging will be.  See the rteval-parserd
+      arguments description further down in the document for more
+      information.
+
+    - CONFIGFILE
+      The default configuration file rteval-parserd will try to read is
+      /etc/rteval.conf.  See the next paragraph for more information about
+      this file.  This argument let you override the default config file.
+
+    - PIDFILE
+      Defines where the init.d script will put the PID file for the
+      rteval-parserd process.  The default is /var/run/rteval-parserd.pid
 
 This daemon uses the same configuration file as the rest of the rteval program
 suite, /etc/rteval.conf.  It will parse the section named 'xmlrpc_parser'.
@@ -59,7 +86,9 @@ The default values are:
     Number of worker threads.  This defines how many reports you will
     process in parallel.  The recommended number here is the number
     of available CPU cores, as having a higher thread number often
-    punishes the performance.
+    punishes the performance.  The default value is 4 when rteval-parserd
+    is started directly.  When started via the init.d script, the default
+    is to start one thread per CPU core.
 
   - max_report_size: 2097152
     Maximum file size of reports which the parser will process.  The
@@ -67,7 +96,7 @@ The default values are:
     that this value is per thread, and that XML and XSLT processing can
     be quite memory hungry.  If this value is set too high or you have too
     many worker threads, your system might become unresponsive for a while
-    and the parser can be killed by the kernel (OOM).
+    and the parser might be killed by the kernel (OOM).
 
 
 ** rteval-parserd arguments
