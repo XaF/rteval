@@ -85,7 +85,7 @@
             <xsl:text>The parameter 'report_filename' parameter cannot be empty</xsl:text>
           </xsl:message>
         </xsl:if>
-	<sqldata schemaver="1.0" table="rtevalruns">
+	<sqldata schemaver="1.2" table="rtevalruns">
 	  <fields>
             <field fid="0">syskey</field>
             <field fid="1">kernel_ver</field>
@@ -98,6 +98,7 @@
             <field fid="8">report_filename</field>
 	    <field fid="9">rterid</field>
 	    <field fid="10">submid</field>
+	    <field fid="11">distro</field>
 	  </fields>
 	  <records>
             <record>
@@ -118,6 +119,7 @@
               <value fid="8"><xsl:value-of select="$report_filename"/></value>
               <value fid="9"><xsl:value-of select="$rterid"/></value>
               <value fid="10"><xsl:value-of select="$submid"/></value>
+	      <value fid="11"><xsl:value-of select="uname/baseos"/></value>
             </record>
 	  </records>
 	</sqldata>

@@ -1,0 +1,5 @@
+-- SQL delta update from rteval-1.1.sql to rteval-1.2.sql
+
+UPDATE rteval_info SET value = '1.2' WHERE key = 'sql_schema_ver';
+
+ALTER TABLE rtevalruns ADD COLUMN distro VARCHAR(128);
