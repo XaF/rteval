@@ -1,6 +1,6 @@
 Name:		rteval-parser
-Version:	1.1
-Release:	2%{?dist}
+Version:	1.2
+Release:	1%{?dist}
 Summary:	Report parser daemon for  rteval XML-RPC
 %define pkgname rteval-xmlrpc-%{version}
 
