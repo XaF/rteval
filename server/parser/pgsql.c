@@ -811,9 +811,11 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			 hostname);
 
 		if( ipaddr ) {
-			snprintf(sqlq, 4096, " AND ipaddr='%.64s'", ipaddr);
+			append_str(sqlq, "AND ipaddr='", 4028);
+			append_str(sqlq, ipaddr, 4092);
+			append_str(sqlq, "'", 4096);
 		} else {
-			snprintf(sqlq, 4096, " AND ipaddr IS NULL");
+			append_str(sqlq, "%s AND ipaddr IS NULL", 4096);
 		}
 
 		dbres = PQexec(dbc->db, sqlq);
