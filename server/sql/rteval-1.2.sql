@@ -127,6 +127,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
 --
     CREATE TABLE rtevalruns_details (
         rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
+        numa_nodes    INTEGER,
         xmldata       xml NOT NULL,
         PRIMARY KEY(rterid)
     );

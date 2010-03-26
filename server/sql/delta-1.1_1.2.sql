@@ -3,3 +3,4 @@
 UPDATE rteval_info SET value = '1.2' WHERE key = 'sql_schema_ver';
 
 ALTER TABLE rtevalruns ADD COLUMN distro VARCHAR(128);
+ALTER TABLE rtevalruns_details ADD COLUMN numa_nodes INTEGER;
