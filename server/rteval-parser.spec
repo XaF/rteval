@@ -1,6 +1,6 @@
 Name:		rteval-parser
 Version:	1.2
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Report parser daemon for  rteval XML-RPC
 %define pkgname rteval-xmlrpc-%{version}
 
@@ -86,6 +86,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Mar 26 2010 David Sommerseth <davids@redhat.com> - 1.2-2
+- Improved logging
+
+* Fri Mar 26 2010 David Sommerseth <davids@redhat.com> - 1.2-1
+- Cleaned up xmlparser.xsl
+- Honour 'isnull' attributes in SQL XML
+- Improved IP address handling on system registration when ipaddr == NULL
+- Fixed wrong GRANT statement in rteval_info table
+
 * Mon Mar 22 2010 David Sommerseth <davids@redhat.com> - 1.1-2
 - rteval-xmlrpc.spec renamed to rteval-parser.spec
 - Split XML-RPC noarch related files and the binary part with rteval-parserd

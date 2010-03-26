@@ -179,7 +179,7 @@ int process_submission_queue(dbconn *dbc, mqd_t msgq, int *activethreads) {
 		}
 
 		// Send the job to the queue
-		writelog(dbc->log, LOG_INFO, "** New job: submid %i, %s", job->submid, job->filename);
+		writelog(dbc->log, LOG_DEBUG, "** New job queued: submid %i, %s", job->submid, job->filename);
 		do {
 			int res;
 
