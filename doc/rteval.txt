@@ -1,0 +1,134 @@
+Evaluating Realtime Linux system performance with rteval
+--------------------------------------------------------
+
+One of the problems of developing and fielding any software product
+that runs on a wide range of hardware platforms, is determining how
+well the product performs on those platforms. This is especially true
+about developing something as closely tied to hardware as a Realtime
+Linux system. So, how to measure the performance of a realtime Linux
+kernel on a particular hardware platform? What defines "good
+performance" for a realtime system? 
+
+A real time system is one which must meet deadlines of some
+sort. These deadlines may be periodic (e.g. occuring every 200
+milliseconds) or they may be a some time limit following the occurance
+of an event (e.g. no more than 100 milliseconds following the arrival
+of a network packet). To give a realtime application the best chance
+of meeting its deadline(s), a realtime OS must minimize the time
+between event occurance and the servicing of that event (latency). 
+
+The 'rteval' program is an attempt to put together a synthetic
+benchmark which mimics a well behaved realtime application, running on
+a heavily loaded realtime Linux system. Rteval uses the 'cyclictest'
+program in the role of the realtime app and uses two loads, a parallel
+build of a Linux kernel and the scheduler benchmark 'hackbench' to
+boost the system load.  
+
+The Load Applications
+---------------------
+
+Rteval uses two system loads. The first is looping a scheduler
+benchmark called 'hackbench'. Hackbench creates pairs of threads which
+send data from a sender to a receiver via a pipe or socket. It creates
+many small processes which do lots of I/O, exercising the kernel
+scheduler by causing many scheduling decisions. The rteval wrapper
+class for hackbench continually runs the hackbench program until
+signaled to stop by the main logic. The number of hackbench threads is
+determined by the number of cpu cores available on the test system.  
+
+The other load used by rteval is a parallel compile of the Linux
+kernel. Rteval has a module named 'kcompile' which controls the kernel
+build process by invoking the make process with 2 times the number of
+online cpus simultaneous build jobs.  The clean, bzImage and modules
+targets are built with an 'allmodconfig' configuration file to
+maximize the amount of compilation done. This results in a large
+amount of process creation (preprocessors, compiler, assemblers and
+linkers) as well as a moderately heavy file I/O load. The kernel build
+load is repeated until the rteval runtime is reached. 
+
+The intent behind having the load programs is to generate enough
+threads doing a balanced load of operations (disk I/O, computation,
+IPC, etc.) so that there is no time in which a processor core in the
+system under test does not have a process ready to run. The success of
+the loads can be measured by watching the system 'load average'
+(either by examining /proc/loadavg or running the 'uptime' or 'top'
+programs). 
+
+The Measurement Application
+---------------------------
+
+The cyclictest program is used as the realtime application. Cyclictest
+measures the delay between timer expiration and the time when the program 
+waiting for the timer actually runs. The way it does this is by taking
+a timestamp (t1) just before calling the timer wait function, then
+sleeping for a specified interval. Upon waking up, a second timestamp
+(t2) is taken. Then the difference is calculated between the timer
+expiration time (t1 + interval) and the actual wakeup time (t2). This
+is the event latency.  For example, if the initial time stamp t1 is
+1000 and the interval is 100, then the calculated wakup time is
+1100. If the wakeup time stamp (t2) is 1110, then cyclictest would
+report a latency of 10. 
+
+The cyclictest program is run in one of two modes, with either the
+--smp option or the --numa option, based on the number of memory nodes
+detected on the system. Both of these cases create a measurement
+thread for each online cpu in the system and these threads are run
+with a SCHED_FIFO scheduling policy at priority 95. All memory
+allocations done by cyclictest are locked into page tables using the
+mlockall(2) system call (to prevent page faults). The measurement
+threads are run with the same interval (100 microseconds) using the
+clock_gettime(2) call to get time stamps and the clock_nanosleep(2)
+call to actually invoke a timer. Cyclictest keeps a histogram of
+observed latency values for each thread, which is dumped to standard
+output and read by rteval when the run is complete. 
+
+The Results
+-----------
+
+The main idea behind the 'rteval' program was to get two pieces of
+information about the performance of the RT Linux kernel on a
+particular hardware platform:
+
+	   1. What is the maximum latency seen?
+	   2. How variable are the service times?
+
+The first is easy, just iterate through the histograms returned for
+each cpu and find the highest index with a non-zero value.  The second
+is a little more complicated. 
+
+Early in rteval development, rather than use a histogram the
+cyclictest run would just dump all the samples to a file and rteval
+would parse the file after the run. Unfortunately, when you're
+sampling at a rate of once every 100 microseconds for each cpu in the
+system, you're going to generate a *lot* of data. Especially since we
+want to run rteval for many hours, possibly days.  The output from
+cyclictest in that mode is a 26-character string for each sample
+recorded, so when sampling at 100us you generate 10,000 samples per
+second, so for a 1 hour run on a four core box, you'd get:
+
+	10,000 * 60 * 60 * 4 == 144,000,000 samples/hr
+
+Multiply that times the 26 character string written by cyclictest and
+you write 374,400,000 bytes per hour to disk. A 12 hour run on a  four
+core system would generate about 44 gigabytes of data. This was deemed
+excessive...
+
+So the decision was made to recored the latency values in histogram
+format, one histogram for each measurement thread. This has the
+advantage of using only a fixed amount of memory to record samples,
+but has the disadvantage of losing temporal ordering information,
+which would allow you to detect periodic latency's by looking at the
+time stamp for a spike. It also complicates statistics calculations
+which presume you have the entire data set for analysis. This was
+worked around by treating each non-zero histogram bucket as a series
+of samples for that index value. 
+
+The variability calculation is basically a stock standard deviation
+calculation, where a mean is calculated for the data set and then
+variance and standard deviation are calculated. Other measures of
+variability of such as Mean Absolute Deviation are calulated, but to
+date Standard Deviation has been a reliable indicator of the
+variability of service times. This variability is sometimes called
+'jitter' in realtime paralance, due to the plot the data would make on
+an oscilloscope. 
+
