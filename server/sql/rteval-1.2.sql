@@ -126,9 +126,11 @@ CREATE DATABASE rteval ENCODING 'utf-8';
 -- /rteval/loads and /rteval/cyclictest/command_line
 --
     CREATE TABLE rtevalruns_details (
-        rterid        INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
-        numa_nodes    INTEGER,
-        xmldata       xml NOT NULL,
+        rterid          INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
+        num_cpu_cores   INTEGER,
+        num_cpu_sockets INTEGER,
+        numa_nodes      INTEGER,
+        xmldata         xml NOT NULL,
         PRIMARY KEY(rterid)
     );
     GRANT INSERT ON rtevalruns_details TO rtevparser;

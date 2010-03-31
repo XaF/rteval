@@ -132,24 +132,29 @@
             <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
-	<sqldata schemaver="1.2" table="rtevalruns_details">
-	  <fields>
+        <sqldata schemaver="1.2" table="rtevalruns_details">
+          <fields>
             <field fid="0">rterid</field>
             <field fid="1">numa_nodes</field>
-            <field fid="2">xmldata</field>
-	  </fields>
-	  <records>
+            <field fid="2">num_cpu_cores</field>
+            <field fid="3">xmldata</field>
+          </fields>
+          <records>
             <record>
               <value fid="0"><xsl:value-of select="$rterid"/></value>
               <value fid="1"><xsl:value-of select="hardware/numa_nodes"/></value>
-              <value fid="2" type="xmlblob">
-		<rteval_details>
-		  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
-		</rteval_details>
+              <value fid="2"><xsl:value-of select="hardware/cpu_cores"/></value>
+              <value fid="3" type="xmlblob">
+                <rteval_details>
+                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
+                  <hardware>
+                    <xsl:copy-of select="hardware/memory_size|hardware/cpu_topology"/>
+                  </hardware>
+                </rteval_details>
               </value>
             </record>
-	  </records>
-	</sqldata>
+          </records>
+        </sqldata>
       </xsl:when>
 
       <!-- TABLE: cyclic_statistics -->
