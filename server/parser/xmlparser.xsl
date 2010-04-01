@@ -137,14 +137,27 @@
             <field fid="0">rterid</field>
             <field fid="1">numa_nodes</field>
             <field fid="2">num_cpu_cores</field>
-            <field fid="3">xmldata</field>
+            <field fid="3">num_cpu_sockets</field>
+            <field fid="4">xmldata</field>
           </fields>
           <records>
             <record>
               <value fid="0"><xsl:value-of select="$rterid"/></value>
               <value fid="1"><xsl:value-of select="hardware/numa_nodes"/></value>
-              <value fid="2"><xsl:value-of select="hardware/cpu_cores"/></value>
-              <value fid="3" type="xmlblob">
+              <value fid="2">
+                <xsl:choose>
+                  <xsl:when test="hardware/cpu_topology">
+                    <xsl:value-of select="hardware/cpu_topology/@num_cpu_cores"/>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <xsl:value-of select="hardware/cpu_cores"/>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </value>
+              <value fid="3">
+                <xsl:value-of select="hardware/cpu_topology/@num_cpu_sockets"/>
+              </value>
+              <value fid="4" type="xmlblob">
                 <rteval_details>
                   <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
                   <hardware>
