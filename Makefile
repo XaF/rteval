@@ -3,6 +3,7 @@ PACKAGE :=	rteval
 VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec | head -n 1)
 D	:=	10
 PYSRC	:=	rteval/rteval.py 	\
+		rteval/cputopology.py	\
 		rteval/cyclictest.py 	\
 		rteval/dmi.py 		\
 		rteval/hackbench.py 	\
