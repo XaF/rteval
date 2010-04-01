@@ -32,6 +32,9 @@ class CPUtopology:
     def __init__(self, root="/"):
         self.sysdir = root + "/sys/devices/system/cpu"
         self.__cputop_n = None
+        self.__cpu_cores = 0
+        self.__online_cores = 0
+        self.__cpu_sockets = 0
 
     def __read(self, dirname, fname):
         fp = open(os.path.join(self.sysdir, dirname, fname), 'r')
@@ -47,9 +50,6 @@ class CPUtopology:
         "Parses the cpu topology information from /sys/devices/system/cpu/cpu*"
 
         self.__cputop_n = libxml2.newNode('cpu_topology')
-        cpu_cores = 0
-        online_cores = 0
-        cpu_sockets = 0
 
         for dirname in os.listdir(self.sysdir):
             # Only parse directories which starts with 'cpu'
@@ -69,30 +69,35 @@ class CPUtopology:
                         cpu_n.newProp('name', dirname)
                         online = (dirname == 'cpu0') and 1 or self.__read(dirname, 'online')
                         cpu_n.newProp('online', str(online))
-                        cpu_cores += 1
+                        self.__cpu_cores += 1
 
                         # Check if the CPU is online, if it is, grab more info available
                         if online == 1:
-                            online_cores += 1
+                            self.__online_cores += 1
                             cpu_n.newProp('core_id',
                                           str(self.__read(os.path.join(dirname, 'topology'), 'core_id')))
                             phys_pkg_id = self.__read(os.path.join(dirname, 'topology'),
                                                       'physical_package_id')
                             cpu_n.newProp('physical_package_id', str(phys_pkg_id))
-                            if phys_pkg_id > (cpu_sockets - 1):
-                                cpu_sockets = phys_pkg_id + 1
+                            if phys_pkg_id > (self.__cpu_sockets - 1):
+                                self.__cpu_sockets = phys_pkg_id + 1
                         break;
 
         # Summarise the core counts
-        self.__cputop_n.newProp('num_cpu_cores', str(cpu_cores))
-        self.__cputop_n.newProp('num_cpu_cores_online', str(online_cores))
-        self.__cputop_n.newProp('num_cpu_sockets', str(cpu_sockets))
+        self.__cputop_n.newProp('num_cpu_cores', str(self.__cpu_cores))
+        self.__cputop_n.newProp('num_cpu_cores_online', str(self.__online_cores))
+        self.__cputop_n.newProp('num_cpu_sockets', str(self.__cpu_sockets))
 
         return self.__cputop_n
 
     def getXMLdata(self):
-        return self.__cputop_n;
+        return self.__cputop_n
 
+    def getCPUcores(self, only_online):
+        return only_online and self.__online_cores or self.__cpu_cores
+
+    def getCPUsockets(self):
+        return self.__cpu_sockets
 
 if __name__ == '__main__':
     cputop = CPUtopology()
@@ -101,3 +106,5 @@ if __name__ == '__main__':
     x = libxml2.newDoc('1.0')
     x.setRootElement(n)
     x.saveFormatFileEnc('-','UTF-8',1)
+
+    # print "CPU cores: %i (online: %i) - CPU sockets: %i" % (cputop.getCPUcores(False), cputop.getCPUcores(True), cputop.getCPUsockets())
