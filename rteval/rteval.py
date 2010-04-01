@@ -56,6 +56,7 @@ import xmlout
 import dmi
 import rtevalConfig
 import rtevalMailer
+from cputopology import CPUtopology
 
 class RtEval(object):
     def __init__(self, cmdargs):
@@ -123,6 +124,7 @@ class RtEval(object):
 
         self.loads = []
         self.start = None
+        self.cputopology = None
         self.numcores = None
         self.memsize = None
         self.current_clocksource = None
@@ -162,16 +164,17 @@ class RtEval(object):
         self.debug("baseos: %s" % distro)
         return distro
 
-    def get_num_cores(self):
+    def get_cpu_topology(self):
         ''' figure out how many processors we have available'''
-        f = open('/proc/cpuinfo')
-        numcores = 0
-        for line in f:
-            if line.lower().startswith('processor'):
-                numcores += 1
-        f.close()
-        self.debug("counted %d cores" % numcores)
-        return numcores
+
+        topology = CPUtopology()
+        topology.parse()
+
+        self.numcores = topology.getCPUcores(True)
+        self.debug("counted %d cores (%d online) and %d sockets" %
+                   (topology.getCPUcores(False), self.numcores,
+                    topology.getCPUsockets()))
+        return topology.getXMLdata()
 
 
     def get_num_nodes(self):
@@ -379,7 +382,7 @@ class RtEval(object):
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock('hardware')
-        self.xmlreport.taggedvalue('cpu_cores', self.numcores)
+        self.xmlreport.AppendXMLnodes(self.cputopology)
         self.xmlreport.taggedvalue('numa_nodes', self.numanodes)
         self.xmlreport.taggedvalue('memory_size', self.memsize)
         self.xmlreport.closeblock()
@@ -565,7 +568,7 @@ class RtEval(object):
     def measure(self):
         # Collect misc system info
         self.baseos = self.get_base_os()
-        self.numcores = self.get_num_cores()
+        self.cputopology = self.get_cpu_topology()
         self.numanodes = self.get_num_nodes()
         self.memsize = self.get_memory_size()
         (self.current_clocksource, self.available_clocksource) = self.get_clocksources()
