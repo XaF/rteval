@@ -62,12 +62,11 @@ class CPUtopology:
 
                 # Parse contents of the cpu dir
                 for cpudir in os.listdir(os.path.join(self.sysdir, dirname)):
-                    cpu_n = self.__cputop_n.newChild(None,'cpu',None)
-                    cpu_n.newProp('name', dirname)
-
                     # Check if it is a proper CPU directory which should contain an 'online' file
                     # except on 'cpu0' which cannot be offline'd
                     if (cpudir.find('online',0) == 0) or dirname == 'cpu0':
+                        cpu_n = self.__cputop_n.newChild(None,'cpu',None)
+                        cpu_n.newProp('name', dirname)
                         online = (dirname == 'cpu0') and 1 or self.__read(dirname, 'online')
                         cpu_n.newProp('online', str(online))
                         cpu_cores += 1
