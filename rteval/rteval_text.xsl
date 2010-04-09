@@ -49,8 +49,8 @@
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Memory:       </xsl:text>
-    <xsl:value-of select="hardware/memory_size"/>
-    <xsl:text> KB&#10;</xsl:text>
+    <xsl:value-of select="hardware/memory_size"/> <xsl:value-of select="hardware/memory_size/@unit"/>
+    <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Kernel:       </xsl:text>
     <xsl:value-of select="uname/kernel"/>

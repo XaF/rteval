@@ -188,10 +188,19 @@ class RtEval(object):
         f = open('/proc/meminfo')
         for l in f:
             if l.startswith('MemTotal:'):
-                size = int(l.split()[1])
+                rawsize = int(l.split()[1])
                 f.close()
-                self.debug("memory size %d" % size)
-                return size
+
+                # Get a more readable result
+                units = ('KB', 'MB','GB','TB')
+                size = rawsize
+                for unit in units:
+                    if size < 1024:
+                        break
+                    size = float(size) / 1024
+
+                self.debug("memory size %d KB (%.3f %s)" % (rawsize, size, unit))
+                return (size, unit)
         raise RuntimeError, "can't find memtotal in /proc/meminfo!"
 
 
@@ -384,7 +393,7 @@ class RtEval(object):
         self.xmlreport.openblock('hardware')
         self.xmlreport.AppendXMLnodes(self.cputopology)
         self.xmlreport.taggedvalue('numa_nodes', self.numanodes)
-        self.xmlreport.taggedvalue('memory_size', self.memsize)
+        self.xmlreport.taggedvalue('memory_size', "%.3f" % self.memsize[0], {"unit": self.memsize[1]})
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock('services')
