@@ -49,7 +49,15 @@
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Memory:       </xsl:text>
-    <xsl:value-of select="hardware/memory_size"/> <xsl:value-of select="hardware/memory_size/@unit"/>
+    <xsl:value-of select="hardware/memory_size"/>
+    <xsl:choose>
+      <xsl:when test="hardware/memory_size/@unit">
+	<xsl:value-of select="concat(' ',hardware/memory_size/@unit)"/>
+      </xsl:when>
+      <xsl:otherwise>
+	<xsl:text> kB</xsl:text>
+      </xsl:otherwise>
+    </xsl:choose>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Kernel:       </xsl:text>
