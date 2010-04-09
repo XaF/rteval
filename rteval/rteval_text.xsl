@@ -50,7 +50,15 @@
 
     <xsl:text>   Memory:       </xsl:text>
     <xsl:value-of select="hardware/memory_size"/>
-    <xsl:text> KB&#10;</xsl:text>
+    <xsl:choose>
+      <xsl:when test="hardware/memory_size/@unit">
+	<xsl:value-of select="concat(' ',hardware/memory_size/@unit)"/>
+      </xsl:when>
+      <xsl:otherwise>
+	<xsl:text> kB</xsl:text>
+      </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Kernel:       </xsl:text>
     <xsl:value-of select="uname/kernel"/>

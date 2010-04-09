@@ -171,15 +171,20 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
  *         This memory buffer must be free'd after usage.
  */
 static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
-	const char *hash = NULL;
+	const char *hash = NULL, *isnull = NULL;
 	SHA1Context shactx;
 	uint8_t shahash[SHA1_HASH_SIZE];
-	char *ret = NULL, *ptr = NULL;;
+	char *ret = NULL, *ptr = NULL;
 	int i;
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
 	    || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") != 0) ) {
 		    return NULL;
+	}
+
+	isnull = xmlGetAttrValue(sql_n->properties, "isnull");
+	if( isnull && (strcmp(isnull, "1") == 0) ) {
+		return NULL;
 	}
 
 	hash = xmlGetAttrValue(sql_n->properties, "hash");

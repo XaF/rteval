@@ -52,15 +52,17 @@ installing from source" further down in this file.
 **
 
 ** Setting up a new database
-All reports are saved in a database.  To create the needed database
+All reports are saved in a database.  If you have not used the
+rteval-xmlrpc interface before, you need to create the needed database
 user and database, execute the following command line:
 
-   # psql < /usr/share/doc/rteval-xmlrpc-1.1/rteval-1.1.sql
+   # psql < /usr/share/doc/rteval-xmlrpc-1.1/rteval-1.2.sql
 
-This script will first create a database user called 'xmlrpc', assign
-a default password before creating a database called 'rteval'.  The
-database will be populated with the needed tables and the 'xmlrpc'
-user will get the needed privileges to do its job.
+This script will first create a database user called 'rtevxmlrpc' and
+'rtevparser', assign default password before creating the database called
+'rteval'.  The database will be populated with the needed tables and the
+'rtevxmlrpc' and 'rtevparser' users will get the needed privileges to do
+their job.
 
 Remember to also update the pg_hba.conf file in the PostgreSQL data
 directory.  You need to allow the xmlrpc user access from the web
@@ -91,10 +93,24 @@ Or you can use the "safe mode" via the psql command:
 
 ** Update an already existing database
 If you already have an rteval database setup, you can run the delta
-which corresponds to the update the database tables to the latest
-versions.
+scripts to only do the pure database schema changes.
 
+To find out which schema version you using, do the following:
+
+   psql rteval -c "SELECT value FROM rteval_info WHERE key='sql_schema_ver'"
+   value
+   -------
+     1.1
+   (1 row)
+
+This indicates that the database is at the schema version 1.1.  If you do not
+have the rteval_info table, you are for sure on schema version 1.0.
+
+* Update from schema version 1.0 to 1.1
    psql rteval < /usr/share/doc/rteval-xmlrpc-1.1/delta-1.0_1.1.sql
+
+* Update from schema version 1.2 to 1.2
+   psql rteval < /usr/share/doc/rteval-xmlrpc-1.1/delta-1.1_1.2.sql
 
 
 **
@@ -121,14 +137,14 @@ install'.  The default install prefix is /usr/local, unless you
 changed it with --prefix=<path>.  You will then find the
 rteval_parserd installed under /usr/local/bin/rteval_parserd and
 README files, the SQL scripts and an Apache config file will be found
-under /usr/local/share/doc/rteval-xmlrpc-1.1/
+under /usr/local/share/doc/rteval-parser-1.1/
 
 The Apache configuration file can be copied into the configuration
 directory Apache uses for its modules.  On RHEL/Fedora based
 distributions, the apache-rteval.conf can be copied into
 /etc/httpd/conf.d/
 
-For more information about the report parser (rteval_parserd), please
+For more information about the report parser (rteval-parserd), please
 have a look at the README.parser file.
 
 
@@ -154,9 +170,9 @@ or parameters is not set.
      db_username: xmlrpc
      db_password: rtevaldb
 
-The directory datadir parameter points at must be writable to the
+The directory the datadir parameter points at must be writable to the
 apache process.  Here copies of the received summary.xml files will be
-saved before being parsed into the the database.
+saved before the rteval-parserd process parses the reports.
 
 
 **
@@ -171,5 +187,5 @@ script:
                                  --xmlrpc-submit=localhost
 
 See --help for more info on this utility.  Usually the log files of Apache and
-PostgreSQL provides pretty good information on what's going wrong.
+PostgreSQL provides pretty good information if something goes wrong.
 

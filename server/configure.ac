@@ -25,8 +25,8 @@
 #   To create the ./configure script you need to run 'autoreconf --install'
 #
 
-AC_INIT([rteval-xmlrpc], [1.1], [davids@redhat.com])
-SQLSCHEMAVER=1.1
+AC_INIT([rteval-xmlrpc], [1.3], [davids@redhat.com])
+SQLSCHEMAVER=1.2
 AC_SUBST(SQLSCHEMAVER)
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
@@ -128,7 +128,7 @@ AC_CHECK_LIB([pthread], [pthread_mutex_lock], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CHECK_LIB([pthread], [pthread_mutex_unlock], [DUMMY=], AX_msgMISSINGFUNC())
 
 # Back to needed autotools stuff
-AC_CONFIG_SRCDIR([parser/rteval_parserd.c])
+AC_CONFIG_SRCDIR([parser/rteval-parserd.c])
 AC_CONFIG_HEADERS([parser/config.h])
 AC_CONFIG_FILES([Makefile parser/Makefile])
 

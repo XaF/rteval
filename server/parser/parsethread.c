@@ -191,7 +191,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 	// Check file size - and reject too big files
 	if( check_filesize(thrdata, job->filename) == 0 ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Report file '%s' is too big, rejected", job->filename);
+			 "[Thread %i] (submid: %i) Report file '%s' is too big, rejected",
+			 thrdata->id, job->submid, job->filename);
 		return STAT_FTOOBIG;
 	}
 
@@ -199,7 +200,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 	repxml = xmlParseFile(job->filename);
 	if( !repxml ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Could not parse XML file: %s", job->filename);
+			 "[Thread %i] (submid: %i) Could not parse XML file: %s",
+			 thrdata->id, job->submid, job->filename);
 	        return STAT_XMLFAIL;
 	}
 
@@ -207,7 +209,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 	syskey = db_register_system(thrdata->dbc, thrdata->xslt, repxml);
 	if( syskey < 0 ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Failed to register system (XML file: %s)", job->filename);
+			 "[Thread %i] Failed to register system (submid: %i, XML file: %s)",
+			 thrdata->id, job->submid, job->filename);
 		rc = STAT_SYSREG;
 		goto exit;
 
@@ -215,7 +218,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 	rterid = db_get_new_rterid(thrdata->dbc);
 	if( rterid < 0 ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Failed to register rteval run (XML file: %s)", job->filename);
+			 "[Thread %i] Failed to register rteval run (submid: %i, XML file: %s)",
+			 thrdata->id, job->submid, job->filename);
 		rc = STAT_RTERIDREG;
 		goto exit;
 	}
@@ -230,8 +234,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 	destfname = get_destination_path(thrdata->dbc->log, thrdata->destdir, job, rterid);
 	if( !destfname ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Failed to generate local report filename for (%i) %s",
-			job->submid, job->filename);
+			 "[Thread %i] Failed to generate local report filename for (submid: %i) %s",
+			 thrdata->id, job->submid, job->filename);
 		db_rollback(thrdata->dbc);
 		rc = STAT_UNKNFAIL;
 		goto exit;
@@ -240,8 +244,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 	if( db_register_rtevalrun(thrdata->dbc, thrdata->xslt, repxml, job->submid,
 				  syskey, rterid, destfname) < 0 ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Failed to register rteval run (XML file: %s)",
-			 job->filename);
+			 "[Thread %i] Failed to register rteval run (submid: %i, XML file: %s)",
+			 thrdata->id, job->submid, job->filename);
 		db_rollback(thrdata->dbc);
 		rc = STAT_RTEVRUNS;
 		goto exit;
@@ -249,8 +253,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 
 	if( db_register_cyclictest(thrdata->dbc, thrdata->xslt, repxml, rterid) != 1 ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Failed to register cyclictest data (XML file: %s)",
-			 job->filename);
+			 "[Thread %i] Failed to register cyclictest data (submid: %i, XML file: %s)",
+			 thrdata->id, job->submid, job->filename);
 		db_rollback(thrdata->dbc);
 		rc = STAT_CYCLIC;
 		goto exit;
@@ -265,8 +269,8 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 
 	if( rename(job->filename, destfname) < 0 ) { // Move the file
 		writelog(thrdata->dbc->log, LOG_ERR,
-			 "Failed to move report file from %s to %s (%s)",
-			 job->filename, destfname, strerror(errno));
+			 "[Thread %i] (submid: %i) Failed to move report file from %s to %s (%s)",
+			 thrdata->id, job->submid, job->filename, destfname, strerror(errno));
 		db_rollback(thrdata->dbc);
 		rc = STAT_REPMOVE;
 		goto exit;
@@ -275,7 +279,9 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 
 	rc = STAT_SUCCESS;
 	db_commit(thrdata->dbc);
-
+	writelog(thrdata->dbc->log, LOG_INFO,
+		 "[Thread %i] Report parsed and stored (submid: %i, rterid: %i)",
+		 thrdata->id, job->submid, rterid);
  exit:
 	xmlFreeDoc(repxml);
 	return rc;
@@ -342,9 +348,9 @@ void *parsethread(void *thrargs) {
 		if( (errno != EAGAIN) && (len > 0) ) {
 			int res = 0;
 
-			writelog(args->dbc->log, LOG_DEBUG,
-				 "** Thread %i: Job recieved, submid: %i",
-				 args->id, jobinfo.submid);
+			writelog(args->dbc->log, LOG_INFO,
+				 "[Thread %i] Job recieved, submid: %i - %s",
+				 args->id, jobinfo.submid, jobinfo.filename);
 
 			// Mark the job as "in progress", if successful update, continue parsing it
 			if( db_update_submissionqueue(args->dbc, jobinfo.submid, STAT_INPROG) ) {

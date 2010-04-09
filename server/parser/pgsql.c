@@ -807,8 +807,17 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 		// Check if this hostname and IP address is registered
 		snprintf(sqlq, 4096,
 			 "SELECT syskey FROM systems_hostname"
-			 " WHERE hostname='%.256s' AND ipaddr='%.64s'",
-			 hostname, ipaddr);
+			 " WHERE hostname='%.256s'",
+			 hostname);
+
+		if( ipaddr ) {
+			append_str(sqlq, "AND ipaddr='", 4028);
+			append_str(sqlq, ipaddr, 4092);
+			append_str(sqlq, "'", 4096);
+		} else {
+			append_str(sqlq, "%s AND ipaddr IS NULL", 4096);
+		}
+
 		dbres = PQexec(dbc->db, sqlq);
 		if( PQresultStatus(dbres) != PGRES_TUPLES_OK ) {
 			writelog(dbc->log, LOG_ALERT, "[Connection %i] SQL %s",

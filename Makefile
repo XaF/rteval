@@ -3,6 +3,7 @@ PACKAGE :=	rteval
 VERSION :=      $(shell awk '/Version:/ { print $$2 }' ${PACKAGE}.spec | head -n 1)
 D	:=	10
 PYSRC	:=	rteval/rteval.py 	\
+		rteval/cputopology.py	\
 		rteval/cyclictest.py 	\
 		rteval/dmi.py 		\
 		rteval/hackbench.py 	\
@@ -21,7 +22,7 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 CONFSRC	:=	rteval/rteval.conf
 
 # XML-RPC related files
-XMLRPCVER := 1.1
+XMLRPCVER := 1.3
 XMLRPCDIR := server
 
 DESTDIR	:=
@@ -45,7 +46,7 @@ sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
-	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz doc/*~
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz doc/*~ server/rteval-xmlrpc-*.tar.gz
 
 realclean: clean
 	[ -f $(XMLRPCDIR)/Makefile ] && make -C $(XMLRPCDIR) maintainer-clean || echo -n
@@ -117,8 +118,8 @@ rtevalrpm: tarfile
 
 xmlrpcrpm: rteval-xmlrpc-$(XMLRPCVER).tar.gz
 	cp rteval-xmlrpc-$(XMLRPCVER).tar.gz rpm/SOURCES/
-	cp server/rteval-xmlrpc.spec rpm/SPECS/
-	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval-xmlrpc.spec
+	cp server/rteval-parser.spec rpm/SPECS/
+	rpmbuild -ba --define "_topdir $(HERE)/rpm" rpm/SPECS/rteval-parser.spec
 
 loadrpm: 
 	rm -rf rpm-loads
