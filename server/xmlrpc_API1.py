@@ -104,22 +104,3 @@ class XMLRPC_API1():
 
         return rterid
 
-
-    def StoreRawFile(self, clientid, filename, bzb64data, decompdata):
-        if decompdata is True:
-            decompr = bz2.BZ2Decompressor()
-            data = decompr.decompress(base64.b64decode(bzb64data))
-        else:
-            data = base64.b64decode(bzb64data)
-
-        # Make sure we have a directory to write files into
-        self.__mkdatadir(self.datadir + '/uploads/' + clientid)
-
-        # Get a unique filename, as close as possible to the input filename
-        fname = self.__getfilename(('uploads/%s/%s' % clientid), filename, None, not decompdata)
-
-        # Save and return filename used server side
-        f = open(fname, "w")
-        f.write(data)
-        f.close()
-        return fname
