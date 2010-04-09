@@ -43,6 +43,8 @@ class rtevalclient:
         else:
             self.hostname = hostn
 
+    def Hello(self):
+        return self.srv.Hello(self.hostname)
 
     def SendReport(self, xmldoc):
         if xmldoc.type != 'document_xml':

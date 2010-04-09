@@ -22,7 +22,7 @@ XSLSRC	:=	rteval/rteval_dmi.xsl 	\
 CONFSRC	:=	rteval/rteval.conf
 
 # XML-RPC related files
-XMLRPCVER := 1.2
+XMLRPCVER := 1.3
 XMLRPCDIR := server
 
 DESTDIR	:=
@@ -46,7 +46,7 @@ sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
 clean:
-	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz doc/*~
+	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz doc/*~ server/rteval-xmlrpc-*.tar.gz
 
 realclean: clean
 	[ -f $(XMLRPCDIR)/Makefile ] && make -C $(XMLRPCDIR) maintainer-clean || echo -n

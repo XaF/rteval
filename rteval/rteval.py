@@ -46,6 +46,7 @@ import statvfs
 import shutil
 import rtevalclient
 import ethtool
+import xmlrpclib
 from datetime import datetime
 from distutils import sysconfig
 
@@ -150,6 +151,29 @@ class RtEval(object):
             if s not in string.printable:
                 self.junk += s
         self.transtable = string.maketrans("", "")
+
+        # If --xmlrpc-submit is given, check that we can access the server
+        res = None
+        if self.config.xmlrpc:
+            self.debug("Checking if XML-RPC server '%s' is reachable" % self.config.xmlrpc)
+            try:
+                client = rtevalclient.rtevalclient("http://%s/rteval/API1/" % self.config.xmlrpc)
+                res = client.Hello()
+            except xmlrpclib.ProtocolError:
+                # Server do not support Hello(), but is reachable
+                self.info("Got XML-RPC connection with %s but it did not support Hello()"
+                          % self.config.xmlrpc)
+                res = None
+            except socket.error, err:
+                self.info("Could not establish XML-RPC contact with %s\n%s"
+                          % (self.config.xmlrpc, str(err)))
+                sys.exit(2)
+
+            if res:
+                self.info("Verified XML-RPC connection with %s (XML-RPC API version: %i)"
+                          % (res["server"], res["APIversion"]))
+                self.debug("Recieved greeting: %s" % res["greeting"])
+
 
     def get_base_os(self):
         '''record what userspace we're running on'''

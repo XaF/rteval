@@ -1,6 +1,7 @@
 Name:		rteval-parser
-Version:	1.2
-Release:	2%{?dist}
+Version:	1.3
+%define sqlschemaver 1.2
+Release:	1%{?dist}
 Summary:	Report parser daemon for  rteval XML-RPC
 %define pkgname rteval-xmlrpc-%{version}
 
@@ -71,7 +72,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc COPYING parser/README.parser sql/rteval-%{version}.sql sql/delta-*_*.sql
+%doc COPYING parser/README.parser sql/rteval-%{sqlschemaver}.sql sql/delta-*_*.sql
 %config(noreplace) %{_sysconfdir}/sysconfig/rteval-parserd
 %attr(0755,root,root) %{_sysconfdir}/init.d/rteval-parserd
 %{_bindir}/rteval-parserd
@@ -86,6 +87,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Apr  9 2010 David Sommerseth <davids@redhat.com> - 1.3-1
+- Updated XML-RPC server, added Hello method
+
 * Fri Mar 26 2010 David Sommerseth <davids@redhat.com> - 1.2-2
 - Improved logging
 

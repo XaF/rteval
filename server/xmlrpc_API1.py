@@ -29,13 +29,14 @@ import bz2
 import base64
 import libxml2
 import string
-import inspect
+import platform
 import rtevaldb
 
 
 class XMLRPC_API1():
     def __init__(self, config=None, debug=False, nodbaction=False):
         # Some defaults
+        self.apiversion = 1
         self.fnametrans = string.maketrans("/\\.", "::_") # replace path delimiters in filenames
         self.debug = debug
         self.nodbaction = nodbaction
@@ -104,3 +105,8 @@ class XMLRPC_API1():
 
         return rterid
 
+
+    def Hello(self, clientid):
+        return {"greeting": "Hello %s" % clientid,
+                "server": platform.node(),
+                "APIversion": self.apiversion}
