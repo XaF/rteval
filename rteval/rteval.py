@@ -134,6 +134,7 @@ class RtEval(object):
         self.kthreads = None
         self.xml = None
         self.baseos = "unknown"
+        self.annotate = self.cmd_options.annotate
 
         if not self.config.xslt_report.startswith(self.config.installdir):
             self.config.xslt_report = os.path.join(self.config.installdir, "rteval_text.xsl")
@@ -329,6 +330,9 @@ class RtEval(object):
         parser.add_option("-f", "--inifile", dest="inifile",
                           type='string', default=None,
                           help="initialization file for configuring loads and behavior")
+        parser.add_option("-a", "--annotate", dest="annotate",
+                          type="string", default=None,
+                          help="Add a little annotation which is stored in the report")
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
@@ -398,6 +402,8 @@ class RtEval(object):
                                  'seconds': seconds})
         self.xmlreport.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
         self.xmlreport.taggedvalue('time', self.start.strftime('%H:%M:%S'))
+        if self.annotate:
+            self.xmlreport.taggedvalue('annotate', self.annotate)
         self.xmlreport.closeblock()
         self.xmlreport.openblock('uname')
         self.xmlreport.taggedvalue('node', node)
