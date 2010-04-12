@@ -157,17 +157,40 @@ class RtEval(object):
         res = None
         if self.config.xmlrpc:
             self.debug("Checking if XML-RPC server '%s' is reachable" % self.config.xmlrpc)
-            try:
-                client = rtevalclient.rtevalclient("http://%s/rteval/API1/" % self.config.xmlrpc)
-                res = client.Hello()
-            except xmlrpclib.ProtocolError:
-                # Server do not support Hello(), but is reachable
-                self.info("Got XML-RPC connection with %s but it did not support Hello()"
-                          % self.config.xmlrpc)
-                res = None
-            except socket.error, err:
-                self.info("Could not establish XML-RPC contact with %s\n%s"
-                          % (self.config.xmlrpc, str(err)))
+            attempt = 0
+            warning_sent = False
+            ping_failed = False
+            while attempt < 6:
+                try:
+                    client = rtevalclient.rtevalclient("http://%s/rteval/API1/" % self.config.xmlrpc)
+                    res = client.Hello()
+                    attempt = 10
+                    ping_failed = False
+                except xmlrpclib.ProtocolError:
+                    # Server do not support Hello(), but is reachable
+                    self.info("Got XML-RPC connection with %s but it did not support Hello()"
+                              % self.config.xmlrpc)
+                    res = None
+                except socket.error, err:
+                    self.info("Could not establish XML-RPC contact with %s\n%s"
+                              % (self.config.xmlrpc, str(err)))
+
+                    if (self.mailer is not None) and (not warning_sent):
+                        self.mailer.SendMessage("[RTEVAL:WARNING] Failed to ping XML-RPC server",
+                                                "Server %s did not respond.  Not giving up yet."
+                                                % self.config.xmlrpc)
+                        warning_sent = True
+
+                    # Do attempts handling
+                    attempt += 1
+                    if attempt > 5:
+                        break # To avoid sleeping before we abort
+
+                    print "Failed pinging XML-RPC server.  Doing another attempt(%i) " % attempt
+                    time.sleep(attempt*15) # Incremental sleep - sleep attempts*15 seconds
+                    ping_failed = True
+
+            if ping_failed:
                 sys.exit(2)
 
             if res:
