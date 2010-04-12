@@ -191,7 +191,11 @@ class RtEval(object):
                     ping_failed = True
 
             if ping_failed:
-                sys.exit(2)
+                if not self.cmd_options.xmlrpc_noabort:
+                    print "ERROR: Could not reach XML-RPC server '%s'.  Aborting." % self.config.xmlrpc
+                    sys.exit(2)
+                else:
+                    print "WARNING: Could not ping the XML-RPC server.  Will continue anyway."
 
             if res:
                 self.info("Verified XML-RPC connection with %s (XML-RPC API version: %i)"
@@ -344,6 +348,9 @@ class RtEval(object):
         parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpc',
                           action='store', default=self.config.xmlrpc, metavar='HOST',
                           help='Hostname to XML-RPC server to submit reports')
+        parser.add_option("-P", "--xmlrpc-no-abort", dest="xmlrpc_noabort",
+                          action='store_true', default=False,
+                          help="Do not abort if XML-RPC server do not respond to ping request");
         parser.add_option("-Z", '--summarize', dest='summarize',
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
