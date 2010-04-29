@@ -891,6 +891,9 @@ if __name__ == '__main__':
     import pwd, grp
 
     try:
+        # Parse initial DMI decoding errors
+        dmi.ProcessWarnings()
+
         rteval = RtEval(sys.argv[1:])
         ec = rteval.rteval()
         sys.exit(ec)
