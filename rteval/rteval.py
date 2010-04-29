@@ -61,8 +61,6 @@ from cputopology import CPUtopology
 
 class RtEval(object):
     def __init__(self, cmdargs):
-        if os.getuid() != 0:
-            raise RuntimeError, "must be root to run rteval"
         self.version = "1.19"
         self.load_modules = []
         self.workdir = os.getcwd()
@@ -851,7 +849,7 @@ class RtEval(object):
             sys.exit(0)
 
         if os.getuid() != 0:
-            print "Must be root to run evaluator!"
+            print "Must be root to run rteval!"
             sys.exit(-1)
 
         self.debug('''rteval options: 
