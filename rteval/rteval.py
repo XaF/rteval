@@ -44,6 +44,7 @@ import optparse
 import tempfile
 import statvfs
 import shutil
+import signal
 import rtevalclient
 import ethtool
 import xmlrpclib
@@ -58,6 +59,14 @@ import dmi
 import rtevalConfig
 import rtevalMailer
 from cputopology import CPUtopology
+
+
+sigint_received = False
+def sigint_handler(signum, frame):
+    global sigint_received
+    sigint_received = True
+    print "*** SIGINT received - stopping rteval run ***"
+
 
 class RtEval(object):
     def __init__(self, cmdargs):
@@ -632,6 +641,7 @@ class RtEval(object):
         if minutes: r = r - (minutes * 60)
         print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (days, hours, minutes, r)
 
+
     def measure(self):
         # Collect misc system info
         self.baseos = self.get_base_os()
@@ -703,11 +713,12 @@ class RtEval(object):
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
             # wait for time to expire or thread to die
+            signal.signal(signal.SIGINT, sigint_handler)
             self.info("waiting for duration (%f)" % self.config.duration)
             stoptime = (time.time() + self.config.duration)
             currtime = time.time()
             rpttime = currtime + report_interval
-            while currtime <= stoptime:
+            while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
                 if not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
@@ -721,7 +732,7 @@ class RtEval(object):
                     self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
                 currtime = time.time()
-                
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
                 
         finally:
             # stop cyclictest
