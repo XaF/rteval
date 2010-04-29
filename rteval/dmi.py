@@ -34,7 +34,11 @@ import libxslt
 import dmidecode
 
 def ProcessWarnings():
-    for warnline in dmidecode.get_warnings().split('\n'):
+    warnings = dmidecode.get_warnings()
+    if warnings == None:
+        return
+
+    for warnline in warnings.split('\n'):
         # Ignore these warnings, as they are "valid" if not running as root
         if warnline == '/dev/mem: Permission denied':
             continue
