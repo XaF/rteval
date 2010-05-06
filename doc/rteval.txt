@@ -86,13 +86,13 @@ The cyclictest program is run in one of two modes, with either the
 detected on the system. Both of these cases create a measurement
 thread for each online cpu in the system and these threads are run
 with a SCHED_FIFO scheduling policy at priority 95. All memory
-allocations done by cyclictest are locked into page tables using the
-mlockall(2) system call (to prevent page faults). The measurement
-threads are run with the same interval (100 microseconds) using the
-clock_gettime(2) call to get time stamps and the clock_nanosleep(2)
-call to actually invoke a timer. Cyclictest keeps a histogram of
-observed latency values for each thread, which is dumped to standard
-output and read by rteval when the run is complete. 
+allocations done by cyclictest are locked into memory using the
+mlockall(2) system call (to eliminate major page faults). The
+measurement threads are run with the same interval (100 microseconds)
+using the clock_gettime(2) call to get time stamps and the
+clock_nanosleep(2) call to actually invoke a timer. Cyclictest keeps a
+histogram of observed latency values for each thread, which is dumped
+to standard output and read by rteval when the run is complete. 
 
 The Results
 -----------
@@ -183,23 +183,27 @@ impact.
 In the past few years, the number of cores per socket on a motherboard
 has gone up from 2 to 8, resulting in some scalability problems in the
 kernel. One area that has received a lot of attention is the load
-balancer. This is logic in the kernel that attempts to make sure that
-each core in the system has tasks to run and that no one core is
-overloaded with tasks. During a load balancer pass, a core with a long
-run queue (indicating there are many tasks ready on that core) will
-have some of those tasks migrated to other cores, which requires that
-both the current and destination cores run queue locks being held
-(meaning nothing can run on those cores). 
+balancer for SCHED_OTHER tasks. This is logic in the kernel that
+attempts to make sure that each core in the system has tasks to run
+and that no one core is overloaded with tasks. During a load balancer
+pass, a core with a long run queue (indicating there are many tasks
+ready on that core) will have some of those tasks migrated to other
+cores, which requires that both the current and destination cores run
+queue locks being held (meaning nothing can run on those cores). 
 
-In a stock Linux kernel long load balancer passes result in more
-utilization of cpus and an overall througput gain. Unfortunately long
-load balancer passes can result in missed deadlines because a task on
-the run queue for a core cannot run while the loadbalancer is
-running. To compensate for this on realtime Linux the load balancer
-has a lower number of target migrations and looks for contention on
-the run queue locks (meaning that a task is trying to be scheduled on
-one of the cores on which the balancer is operating). Research in this
-area is ongoing.  
+In a stock Linux kernel long SCHED_OTHER load balancer passes result
+in more utilization of cpus and an overall througput gain. 
+Unfortunately long load balancer passes can result in missed 
+deadlines because a task on the run queue for a core cannot run while
+the loadbalancer is running. To compensate for this on realtime Linux
+the load balancer has a lower number of target migrations and looks
+for contention on the run queue locks (meaning that a task is trying
+to be scheduled on one of the cores on which the balancer is
+operating). Research in this area is ongoing. 
+
+There is also a realtime thread (SCHED_FIFO and SCHED_RR) thread load
+balancer and similar research is being done towards reducing the
+overhead of this load balancer as well. 
 
 <what other areas?>
 
