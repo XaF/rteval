@@ -97,6 +97,7 @@ class Kcompile(load.Load):
             return
         self.debug("ready to run")
         self.ready = True
+        os.close(null)
 
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
@@ -118,7 +119,10 @@ class Kcompile(load.Load):
                 p = subprocess.Popen(self.args,
                                      stdin=null,stdout=null,stderr=null)
         self.debug("stopping")
-        os.kill(p.pid, SIGTERM)
+        if p.poll() == None:
+            os.kill(p.pid, SIGTERM)
+        p.wait()
+        os.close(null)
 
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile'})
