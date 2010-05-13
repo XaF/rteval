@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.20
+Version:	1.21
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,19 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Apr 13 2010 Clark Williams <williams@redhat.com> - 1.21-1
+- from Luis Claudio Goncalves <lgoncalv@redhat.com>:
+  - remove unecessary wait() call in cyclictest.py
+  - close /dev/null after using it
+  - call subprocess.wait() when needed
+  - remove delayloop code in hackbench.py
+- from David Sommerseth <davids@redhat.com>:
+  - add SIGINT handler
+  - handle non-root user case
+  - process DMI warnings before command line arguments
+  - added --annotate feature to rteval
+  - updates to xmlrpc code
+
 * Thu Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
 - code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
 - from David Sommerseth <davids@redhat.com>:
