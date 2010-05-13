@@ -33,6 +33,25 @@ import libxml2
 import libxslt
 import dmidecode
 
+def ProcessWarnings():
+    warnings = dmidecode.get_warnings()
+    if warnings == None:
+        return
+
+    for warnline in warnings.split('\n'):
+        # Ignore these warnings, as they are "valid" if not running as root
+        if warnline == '/dev/mem: Permission denied':
+            continue
+        if warnline == 'No SMBIOS nor DMI entry point found, sorry.':
+            continue
+
+        # All other warnings will be printed
+        if len(warnline) > 0:
+            print "** DMI WARNING ** %s" % warnline
+
+    dmidecode.clear_warnings()
+
+
 class DMIinfo(object):
     '''class used to obtain DMI info via python-dmidecode'''
 

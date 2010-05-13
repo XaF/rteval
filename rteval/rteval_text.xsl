@@ -18,6 +18,11 @@
     <xsl:value-of select="run_info/@hours"/><xsl:text>h </xsl:text>
     <xsl:value-of select="run_info/@minutes"/><xsl:text>m </xsl:text>
     <xsl:value-of select="run_info/@seconds"/><xsl:text>s</xsl:text>
+    <xsl:text>&#10;</xsl:text>
+    <xsl:if test="run_info/annotate">
+      <xsl:text>   Remarks:      </xsl:text>
+      <xsl:value-of select="run_info/annotate"/>
+    </xsl:if>
     <xsl:text>&#10;&#10;</xsl:text>
 
     <xsl:text>   Tested node:  </xsl:text>

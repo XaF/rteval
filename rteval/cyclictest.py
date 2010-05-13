@@ -235,7 +235,6 @@ class Cyclictest(Thread):
         self.debug("stopping")
         if c.poll() == None:
             os.kill(c.pid, signal.SIGINT)
-        c.wait()
         # now parse the histogram output
         for line in c.stdout:
             if line.startswith('#'): continue
