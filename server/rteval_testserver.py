@@ -44,11 +44,39 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     rpc_paths = ('/rteval/API1/',)
 
 
+class RTevald_config(object):
+    def __init__(self):
+        self.config = {'datadir': '/tmp/rteval-xmlrpc-testsrv',
+                       'db_server': 'localhost',
+                       'db_port': 5432,
+                       'database': 'dummy',
+                       'db_username': None,
+                       'db_password': None}
+        self.__update_vars()
+
+    def __update_vars(self):
+        for k in self.config.keys():
+            self.__dict__[k] = self.config[k]
+
+
 class RTevald():
     def __init__(self, options, log):
         self.options = options
         self.log = log
         self.server = None
+        self.config = RTevald_config()
+
+    def __prepare_datadir(self):
+        startdir = os.getcwd()
+        for dir in self.config.datadir.split("/"):
+            if dir is '':
+                continue
+            if not os.path.exists(dir):
+                os.mkdir(dir, 0700)
+            os.chdir(dir)
+        if not os.path.exists('queue'):
+            os.mkdir('queue', 0700)
+        os.chdir(startdir)
 
     def StartServer(self):
         # Create server
@@ -57,19 +85,21 @@ class RTevald():
         self.server.register_introspection_functions()
 
         # setup a class to handle requests
-        self.server.register_instance(xmlrpc_API1.XMLRPC_API1("./testsrv/", nodbaction=True, debug=True))
+        self.server.register_instance(xmlrpc_API1.XMLRPC_API1(self.config, nodbaction=True, debug=True))
 
         # Run the server's main loop
         self.log.Log("StartServer", "Listening on %s:%i" % (self.options.listen, self.options.port))
         try:
+            self.__prepare_datadir()
             self.server.serve_forever()
         except KeyboardInterrupt:
             self.log.Log("StartServer", "Server caught SIGINT")
-            pass
+            self.server.shutdown()
         finally:
             self.log.Log("StartServer", "Server stopped")
 
-
+    def StopServer(self):
+        self.server.shutdown()
 
 
 logger = None

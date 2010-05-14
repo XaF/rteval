@@ -122,7 +122,8 @@ if __name__ == '__main__':
             ('rteval','cputopology'),
             ('rteval','dmi'),
             ('rteval','rtevalConfig'),
-            ('rteval','xmlout')
+            ('rteval','xmlout'),
+            ('server','unittest')
             ))
     # Run all tests
     tests.RunTests()
