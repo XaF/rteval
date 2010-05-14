@@ -257,58 +257,76 @@ class XMLOut(object):
         return self.currtag.addChild(nodes)
 
 
-if __name__ == '__main__':
-    x = XMLOut('rteval', '0.6', None, 'UTF-8')
-    x.NewReport()
-    x.openblock('run_info', {'days': 0, 'hours': 0, 'minutes': 32, 'seconds': 18})
-    x.taggedvalue('time', '11:22:33')
-    x.taggedvalue('date', '2000-11-22')
-    x.closeblock()
-    x.openblock('uname')
-    x.taggedvalue('node', u'testing - \xe6\xf8')
-    x.taggedvalue('kernel', 'my_test_kernel', {'is_RT': 0})
-    x.taggedvalue('arch', 'mips')
-    x.closeblock()
-    x.openblock('hardware')
-    x.taggedvalue('cpu_cores', 2)
-    x.taggedvalue('memory_size', 1024*1024*2)
-    x.closeblock()
-    x.openblock('loads', {'load_average': 3.29})
-    x.taggedvalue('command_line','./load/loader --extreme --ultimate --threads 4096', {'name': 'heavyloader'})
-    x.taggedvalue('command_line','dd if=/dev/zero of=/dev/null', {'name': 'lightloader'})
-    x.closeblock()
-    x.close()
-    print "------------- XML OUTPUT ----------------------------"
-    x.Write("-")
-    print "------------- XSLT PARSED OUTPUT --------------------"
-    x.Write("-", "rteval_text.xsl")
-    print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    x.LoadReport("latency.xml", True)
-    x.Write("-")
-    x.Write("-", "rteval_text.xsl")
-    x.close()
+def unit_test(rootdir):
+    try:
+        x = XMLOut('rteval', 'UNIT-TEST', None, 'UTF-8')
+        x.NewReport()
+        x.openblock('run_info', {'days': 0, 'hours': 0, 'minutes': 32, 'seconds': 18})
+        x.taggedvalue('time', '11:22:33')
+        x.taggedvalue('date', '2000-11-22')
+        x.closeblock()
+        x.openblock('uname')
+        x.taggedvalue('node', u'testing - \xe6\xf8')
+        x.taggedvalue('kernel', 'my_test_kernel', {'is_RT': 0})
+        x.taggedvalue('arch', 'mips')
+        x.closeblock()
+        x.openblock('hardware')
+        x.taggedvalue('cpu_cores', 2)
+        x.taggedvalue('memory_size', 1024*1024*2)
+        x.closeblock()
+        x.openblock('loads', {'load_average': 3.29})
+        x.taggedvalue('command_line','./load/loader --extreme --ultimate --threads 4096', 
+                      {'name': 'heavyloader'})
+        x.taggedvalue('command_line','dd if=/dev/zero of=/dev/null', {'name': 'lightloader'})
+        x.closeblock()
+        x.close()
+        print "------------- XML OUTPUT ----------------------------"
+        x.Write("-")
+        print "------------- XSLT PARSED OUTPUT --------------------"
+        x.Write("-", "rteval_text.xsl")
+        print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        x.Write("/tmp/xmlout-test.xml")
+        del x
 
-    ##  Test new data parser ... it eats most data types
-    x.NewReport()
-    x.ParseData("ParseTest", "test string", {"type": "simple_string"})
-    x.ParseData("ParseTest", 1234, {"type": "integer"})
-    x.ParseData("ParseTest", 39.3904, {"type": "float"})
-    x.ParseData("ParseTest", (11,22,33,44,55), {"type": "tuples"})
-    x.ParseData("ParseTest", (99,88,77), {"type": "tuples", "comment": "Changed default tuple tag name"},
-                "int_values")
-    test = {"var1": "value 1",
-            "var2": { "varA1": 1,
-                      "pi": 3.1415926,
-                      "varA3": (1,
-                                2,
-                                {"test1": "val1"},
-                                (4.1,4.2,4.3),
-                                5),
-                      "varA4": {'another_level': True,
-                                'another_value': "blabla"}
-                      },
-            "utf8 data": u'æøå',
-            u"løpe": True}
-    x.ParseData("ParseTest", test, {"type": "dict"}, prefix="test ")
-    x.close()
-    x.Write("-")
+        print "------------- LOAD XML FROM FILE -----------------------------"
+        x = XMLOut('rteval','UNIT-TEST', None, 'UTF-8')
+        x.LoadReport("/tmp/xmlout-test.xml", True)
+        print "------------- LOADED XML DATA --------------------------------"
+        x.Write("-")
+        print "------------- XSLT PARSED OUTPUT FROM LOADED XML--------------"
+        x.Write("-", "rteval_text.xsl")
+        x.close()
+
+        ##  Test new data parser ... it eats most data types
+        print "------------- TESTING XMLOut::ParseData() --------------"
+        x.NewReport()
+        x.ParseData("ParseTest", "test string", {"type": "simple_string"})
+        x.ParseData("ParseTest", 1234, {"type": "integer"})
+        x.ParseData("ParseTest", 39.3904, {"type": "float"})
+        x.ParseData("ParseTest", (11,22,33,44,55), {"type": "tuples"})
+        x.ParseData("ParseTest", (99,88,77), {"type": "tuples", "comment": "Changed default tuple tag name"},
+                    "int_values")
+        test = {"var1": "value 1",
+                "var2": { "varA1": 1,
+                          "pi": 3.1415926,
+                          "varA3": (1,
+                                    2,
+                                    {"test1": "val1"},
+                                    (4.1,4.2,4.3),
+                                    5),
+                          "varA4": {'another_level': True,
+                                    'another_value': "blabla"}
+                          },
+                "utf8 data": u'æøå',
+                u"løpe": True}
+        x.ParseData("ParseTest", test, {"type": "dict"}, prefix="test ")
+        x.close()
+        x.Write("-")
+        return 0
+    except Exception, e:
+        print "** EXCEPTION %s", str(e)
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(unit_test('..'))
+

@@ -99,12 +99,24 @@ class CPUtopology:
     def getCPUsockets(self):
         return self.__cpu_sockets
 
+def unit_test(rootdir):
+    try:
+        cputop = CPUtopology()
+        n = cputop.parse()
+
+        print " ---- XML Result ---- "
+        x = libxml2.newDoc('1.0')
+        x.setRootElement(n)
+        x.saveFormatFileEnc('-','UTF-8',1)
+
+        print " ---- getCPUcores() / getCPUscokets() ---- "
+        print "CPU cores: %i (online: %i) - CPU sockets: %i" % (cputop.getCPUcores(False),
+                                                                cputop.getCPUcores(True),
+                                                                cputop.getCPUsockets())
+        return 0
+    except Exception, e:
+        print "** EXCEPTION %s", str(e)
+        return 1
+
 if __name__ == '__main__':
-    cputop = CPUtopology()
-    n = cputop.parse()
-
-    x = libxml2.newDoc('1.0')
-    x.setRootElement(n)
-    x.saveFormatFileEnc('-','UTF-8',1)
-
-    # print "CPU cores: %i (online: %i) - CPU sockets: %i" % (cputop.getCPUcores(False), cputop.getCPUcores(True), cputop.getCPUsockets())
+    unit_test()
