@@ -34,6 +34,9 @@ import libxslt
 import dmidecode
 
 def ProcessWarnings():
+    if not hasattr(dmidecode, 'get_warnings'):
+        return
+
     warnings = dmidecode.get_warnings()
     if warnings == None:
         return
