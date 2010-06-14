@@ -233,7 +233,8 @@ class Cyclictest(Thread):
                 break
             time.sleep(1.0)
         self.debug("stopping")
-        os.kill(c.pid, signal.SIGINT)
+        if c.poll() == None:
+            os.kill(c.pid, signal.SIGINT)
         # now parse the histogram output
         for line in c.stdout:
             if line.startswith('#'): continue
@@ -245,6 +246,7 @@ class Cyclictest(Thread):
         for n in self.data.keys():
             self.data[n].reduce()
         self.finished.set()
+        os.close(null)
 
     def genxml(self, x):
         x.openblock('cyclictest')

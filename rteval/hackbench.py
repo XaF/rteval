@@ -30,6 +30,7 @@ import time
 import glob
 import subprocess
 from signal import SIGTERM
+from signal import SIGKILL
 sys.pathconf = "."
 import load
 
@@ -41,6 +42,7 @@ class Hackbench(load.Load):
         null = open("/dev/null", "w")
         subprocess.call(['killall', '-9', 'hackbench'], 
                         stdout=null, stderr=null)
+        os.close(null)
 
     def setup(self):
         # find our tarball
@@ -93,6 +95,7 @@ class Hackbench(load.Load):
             raise RuntimeError, "Can't find hackbench executable: %s" % self.exe
         self.args = [self.exe, str(self.jobs)]
         self.ready = True
+        os.close(null)
 
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
@@ -104,15 +107,11 @@ class Hackbench(load.Load):
                 p.wait()
                 p = subprocess.Popen(self.args,stdin=null,stdout=null,stderr=null)
         self.debug("stopping")
-        os.kill(p.pid, SIGTERM)
-        count = 30
-        while count > 0 and p.poll() == None:
-            time.sleep(1.0)
-            count -= 1
         if p.poll() == None:
             os.kill(p.pid, SIGKILL)
         p.wait()
         self.debug("returning from runload()")
+        os.close(null)
 
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})

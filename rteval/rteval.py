@@ -44,6 +44,7 @@ import optparse
 import tempfile
 import statvfs
 import shutil
+import signal
 import rtevalclient
 import ethtool
 import xmlrpclib
@@ -59,11 +60,17 @@ import rtevalConfig
 import rtevalMailer
 from cputopology import CPUtopology
 
+
+sigint_received = False
+def sigint_handler(signum, frame):
+    global sigint_received
+    sigint_received = True
+    print "*** SIGINT received - stopping rteval run ***"
+
+
 class RtEval(object):
     def __init__(self, cmdargs):
-        if os.getuid() != 0:
-            raise RuntimeError, "must be root to run rteval"
-        self.version = "1.19"
+        self.version = "1.21"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.inifile = None
@@ -134,6 +141,7 @@ class RtEval(object):
         self.kthreads = None
         self.xml = None
         self.baseos = "unknown"
+        self.annotate = self.cmd_options.annotate
 
         if not self.config.xslt_report.startswith(self.config.installdir):
             self.config.xslt_report = os.path.join(self.config.installdir, "rteval_text.xsl")
@@ -156,18 +164,45 @@ class RtEval(object):
         res = None
         if self.config.xmlrpc:
             self.debug("Checking if XML-RPC server '%s' is reachable" % self.config.xmlrpc)
-            try:
-                client = rtevalclient.rtevalclient("http://%s/rteval/API1/" % self.config.xmlrpc)
-                res = client.Hello()
-            except xmlrpclib.ProtocolError:
-                # Server do not support Hello(), but is reachable
-                self.info("Got XML-RPC connection with %s but it did not support Hello()"
-                          % self.config.xmlrpc)
-                res = None
-            except socket.error, err:
-                self.info("Could not establish XML-RPC contact with %s\n%s"
-                          % (self.config.xmlrpc, str(err)))
-                sys.exit(2)
+            attempt = 0
+            warning_sent = False
+            ping_failed = False
+            while attempt < 6:
+                try:
+                    client = rtevalclient.rtevalclient("http://%s/rteval/API1/" % self.config.xmlrpc)
+                    res = client.Hello()
+                    attempt = 10
+                    ping_failed = False
+                except xmlrpclib.ProtocolError:
+                    # Server do not support Hello(), but is reachable
+                    self.info("Got XML-RPC connection with %s but it did not support Hello()"
+                              % self.config.xmlrpc)
+                    res = None
+                except socket.error, err:
+                    self.info("Could not establish XML-RPC contact with %s\n%s"
+                              % (self.config.xmlrpc, str(err)))
+
+                    if (self.mailer is not None) and (not warning_sent):
+                        self.mailer.SendMessage("[RTEVAL:WARNING] Failed to ping XML-RPC server",
+                                                "Server %s did not respond.  Not giving up yet."
+                                                % self.config.xmlrpc)
+                        warning_sent = True
+
+                    # Do attempts handling
+                    attempt += 1
+                    if attempt > 5:
+                        break # To avoid sleeping before we abort
+
+                    print "Failed pinging XML-RPC server.  Doing another attempt(%i) " % attempt
+                    time.sleep(attempt*15) # Incremental sleep - sleep attempts*15 seconds
+                    ping_failed = True
+
+            if ping_failed:
+                if not self.cmd_options.xmlrpc_noabort:
+                    print "ERROR: Could not reach XML-RPC server '%s'.  Aborting." % self.config.xmlrpc
+                    sys.exit(2)
+                else:
+                    print "WARNING: Could not ping the XML-RPC server.  Will continue anyway."
 
             if res:
                 self.info("Verified XML-RPC connection with %s (XML-RPC API version: %i)"
@@ -320,6 +355,9 @@ class RtEval(object):
         parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpc',
                           action='store', default=self.config.xmlrpc, metavar='HOST',
                           help='Hostname to XML-RPC server to submit reports')
+        parser.add_option("-P", "--xmlrpc-no-abort", dest="xmlrpc_noabort",
+                          action='store_true', default=False,
+                          help="Do not abort if XML-RPC server do not respond to ping request");
         parser.add_option("-Z", '--summarize', dest='summarize',
                           action='store_true', default=False,
                           help='summarize an already existing XML report')
@@ -329,6 +367,9 @@ class RtEval(object):
         parser.add_option("-f", "--inifile", dest="inifile",
                           type='string', default=None,
                           help="initialization file for configuring loads and behavior")
+        parser.add_option("-a", "--annotate", dest="annotate",
+                          type="string", default=None,
+                          help="Add a little annotation which is stored in the report")
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
@@ -398,6 +439,8 @@ class RtEval(object):
                                  'seconds': seconds})
         self.xmlreport.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
         self.xmlreport.taggedvalue('time', self.start.strftime('%H:%M:%S'))
+        if self.annotate:
+            self.xmlreport.taggedvalue('annotate', self.annotate)
         self.xmlreport.closeblock()
         self.xmlreport.openblock('uname')
         self.xmlreport.taggedvalue('node', node)
@@ -598,6 +641,7 @@ class RtEval(object):
         if minutes: r = r - (minutes * 60)
         print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (days, hours, minutes, r)
 
+
     def measure(self):
         # Collect misc system info
         self.baseos = self.get_base_os()
@@ -669,11 +713,12 @@ class RtEval(object):
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
             # wait for time to expire or thread to die
+            signal.signal(signal.SIGINT, sigint_handler)
             self.info("waiting for duration (%f)" % self.config.duration)
             stoptime = (time.time() + self.config.duration)
             currtime = time.time()
             rpttime = currtime + report_interval
-            while currtime <= stoptime:
+            while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
                 if not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
@@ -687,7 +732,7 @@ class RtEval(object):
                     self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
                 currtime = time.time()
-                
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
                 
         finally:
             # stop cyclictest
@@ -801,6 +846,9 @@ class RtEval(object):
         ''' main function for rteval'''
         retval = 0;
 
+        # Parse initial DMI decoding errors
+        dmi.ProcessWarnings()
+
         # if --summarize was specified then just parse the XML, print it and exit
         if self.cmd_options.summarize or self.cmd_options.rawhistogram:
             if len(self.cmd_arguments) < 1:
@@ -815,7 +863,7 @@ class RtEval(object):
             sys.exit(0)
 
         if os.getuid() != 0:
-            print "Must be root to run evaluator!"
+            print "Must be root to run rteval!"
             sys.exit(-1)
 
         self.debug('''rteval options: 
@@ -854,6 +902,9 @@ if __name__ == '__main__':
     import pwd, grp
 
     try:
+        # Parse initial DMI decoding errors
+        dmi.ProcessWarnings()
+
         rteval = RtEval(sys.argv[1:])
         ec = rteval.rteval()
         sys.exit(ec)

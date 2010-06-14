@@ -33,6 +33,28 @@ import libxml2
 import libxslt
 import dmidecode
 
+def ProcessWarnings():
+    if not hasattr(dmidecode, 'get_warnings'):
+        return
+
+    warnings = dmidecode.get_warnings()
+    if warnings == None:
+        return
+
+    for warnline in warnings.split('\n'):
+        # Ignore these warnings, as they are "valid" if not running as root
+        if warnline == '/dev/mem: Permission denied':
+            continue
+        if warnline == 'No SMBIOS nor DMI entry point found, sorry.':
+            continue
+
+        # All other warnings will be printed
+        if len(warnline) > 0:
+            print "** DMI WARNING ** %s" % warnline
+
+    dmidecode.clear_warnings()
+
+
 class DMIinfo(object):
     '''class used to obtain DMI info via python-dmidecode'''
 
@@ -64,12 +86,35 @@ class DMIinfo(object):
         xml.AppendXMLnodes(node)
 
 
-if __name__ == '__main__':
+def unit_test(rootdir):
     from pprint import pprint
-    
-    d = DMIinfo('.')
-    x = xmlout.XMLOut('dmi_test', "0.0")
-    x.NewReport()
-    d.genxml(x)
-    x.close()
-    x.Write('-')
+
+    class unittest_ConfigDummy(object):
+        def __init__(self, rootdir):
+            self.config = {'installdir': '%s/rteval'}
+            self.__update_vars()
+
+        def __update_vars(self):
+            for k in self.config.keys():
+                self.__dict__[k] = self.config[k]
+
+    try:
+        ProcessWarnings()
+        if os.getuid() != 0:
+            print "** ERROR **  Must be root to run this unit_test()"
+            return 1
+
+        cfg = unittest_ConfigDummy(rootdir)
+        d = DMIinfo(cfg)
+        x = xmlout.XMLOut('dmi_test', "0.0")
+        x.NewReport()
+        d.genxml(x)
+        x.close()
+        x.Write('-')
+        return 0
+    except Exception, e:
+        print "** EXCEPTION: %s" % str(e)
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(unit_test('.'))

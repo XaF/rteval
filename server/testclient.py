@@ -48,21 +48,9 @@ d.saveFormatFileEnc('-','UTF-8', 1)
 
 
 print "** Testing API"
-client = rtevalclient.rtevalclient("http://localhost:65432/rteval/API1")
+client = rtevalclient.rtevalclient("http://localhost:65432/rteval/API1/")
 
-server_fname = client.SendDataAsFile('test.data', "this is just a simple test file, compressed\n")
-print "1:  File name on server: %s" % server_fname
-
-server_fname = client.SendDataAsFile('test.data',
-                                     "this is just a simple test file, uncompressed server side\n", True)
-print "2:  File name on server: %s" % server_fname
-
-server_fname = client.SendFile('test.log')
-print "3:  File name on server: %s" % server_fname
-
-server_fname = client.SendFile('test.log', True)
-print "4:  File name on server: %s" % server_fname
-
+print "** 1: Hello(): %s" % str(client.Hello())
 status = client.SendReport(d)
-print "5:  SendReport(xmlDoc): %s" % status
+print "** 2: SendReport(xmlDoc): %s" % str(status)
 

@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.19
+Version:	1.21
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -63,7 +63,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %dir %{_datadir}/%{name}
 
-%doc COPYING
+%doc COPYING doc/rteval.txt
 %{_mandir}/man8/rteval.8*
 %{_datadir}/%{name}/rteval_*.xsl
 %config(noreplace) %{_sysconfdir}/rteval.conf
@@ -71,6 +71,28 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Apr 13 2010 Clark Williams <williams@redhat.com> - 1.21-1
+- from Luis Claudio Goncalves <lgoncalv@redhat.com>:
+  - remove unecessary wait() call in cyclictest.py
+  - close /dev/null after using it
+  - call subprocess.wait() when needed
+  - remove delayloop code in hackbench.py
+- from David Sommerseth <davids@redhat.com>:
+  - add SIGINT handler
+  - handle non-root user case
+  - process DMI warnings before command line arguments
+  - added --annotate feature to rteval
+  - updates to xmlrpc code
+
+* Thu Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
+- code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
+- from David Sommerseth <davids@redhat.com>:
+  - xmlrpc server updates 
+  - cputopology.py for recording topology in xml
+  - added NUMA node recording for run data
+  - rpmlint fixes
+- added start of rteval whitepaper in docs dir
+
 * Tue Mar 16 2010 Clark Williams <williams@redhat.com> - 1.19-1
 - add ability for --summarize to read tarfiles
 - from David Sommerseth <davids@redhat.com>

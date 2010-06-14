@@ -185,3 +185,19 @@ class rtevalConfig(rtevalCfgSection):
             return rtevalCfgSection(self.__config_data[section])
         except KeyError, err:
             raise KeyError("The section '%s' does not exist in the config file" % section)
+
+
+def unit_test(rootdir):
+    try:
+        cfg = rtevalConfig()
+        cfg.Load(rootdir + '/rteval/rteval.conf')
+        print cfg
+        return 0
+    except Exception, e:
+        print "** EXCEPTION %s", str(e)
+        return 1
+
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(unit_test('..'))

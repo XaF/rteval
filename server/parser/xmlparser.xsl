@@ -159,7 +159,7 @@
               </value>
               <value fid="4" type="xmlblob">
                 <rteval_details>
-                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
+                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line|run_info/annotate"/>
                   <hardware>
                     <xsl:copy-of select="hardware/memory_size|hardware/cpu_topology"/>
                   </hardware>
