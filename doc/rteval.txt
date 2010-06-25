@@ -1,5 +1,5 @@
 Evaluating Realtime Linux system performance with rteval
-Clark Williams <williams@redhat.com
+Clark Williams <williams@redhat.com>
 --------------------------------------------------------
 
 Abstract
