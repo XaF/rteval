@@ -32,11 +32,11 @@ $ cd python-dmidecode && sudo make install
 $ cd ..
 $ git clone \
   git://git.kernel.org/pub/scm/linux/kernel/git/acme/python-schedutils.git
-$ cd python-schedutils && sudo make install
+$ cd python-schedutils && sudo make DESTDIR=/ install
 $ cd ..
 $ git clone \
   git://git.kernel.org/pub/scm/linux/kernel/git/acme/python-ethtool.git
-$ cd python-ethtool && sudo make install
+$ cd python-ethtool && sudo make DESTDIR=/ install
 $ cd ..
 $ git clone \
   git://git.kernel.org/pub/scm/linux/kernel/git/clrkwllms/rt-tests.git
