@@ -77,6 +77,10 @@ class rtevalCfgSection(object):
         "keys() wrapper for configuration data"
         return self.__cfgdata.keys()
 
+    def setdefault(self, key, defvalue):
+        if not self.__dict__.has_key(key):
+            self.__dict__[key] = defvalue
+        return self.__dict__[key]
 
 class rtevalConfig(rtevalCfgSection):
     "Config parser for rteval"
@@ -166,10 +170,14 @@ class rtevalConfig(rtevalCfgSection):
 
 
     def AppendConfig(self, section, cfgvars):
-        "Add more config parameters to a section.  cfgvards must be a dictionary of parameters"
+        "Add more config parameters to a section.  cfgvard must be a dictionary of parameters"
 
-        for o in cfgvars.__dict__.keys():
-            self.__config_data[section][o] = cfgvars.__dict__[o]
+        if type(cfgvars) is dict:
+            for o in cfgvars.keys():
+                self.__config_data[section][o] = cfgvars[o]
+        else:
+            for o in cfgvars.__dict__.keys():
+                self.__config_data[section][o] = cfgvars.__dict__[o]
 
         if section == 'rteval':
             self._rtevalCfgSection__update_config_vars(self.__config_data['rteval'])

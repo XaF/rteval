@@ -30,23 +30,19 @@ import subprocess
 import threading
 
 class Load(threading.Thread):
-    def __init__(self, name="<unnamed>", builddir=None, srcdir=None,
-                 debug=False, num_cpus=1, params={}):
+    def __init__(self, name="<unnamed>", params={}):
         threading.Thread.__init__(self)
         self.name = name
-        self.builddir = builddir	# abs path to top dir
-        self.srcdir = srcdir		# abs path to src dir
-        self.num_cpus = num_cpus
-        self.debugging = debug
+        self.builddir = params.setdefault('builddir', None)	# abs path to top dir
+        self.srcdir = params.setdefault('srcdir', None)		# abs path to src dir
+        self.num_cpus = params.setdefault('numcores', 1)
+        self.debugging = params.setdefault('debugging', False)
+        self.source = params.setdefault('source', None)
+        self.params = params
+        self.ready = False
         self.mydir = None
         self.startevent = threading.Event()
         self.stopevent = threading.Event()
-        self.ready = False
-        self.params = params
-        if params.has_key('source'):
-            self.source = params.source
-        else:
-            self.source = None
 
         if not os.path.exists(self.builddir):
             os.makedirs(self.builddir)

@@ -156,18 +156,16 @@ class RunData(object):
 
 
 class Cyclictest(Thread):
-    def __init__(self, duration=None, priority = 95, 
-                 outfile = None, threads = None, debugging=False,
-                 keepdata = False, params={}, numnodes=0):
+    def __init__(self, params={}):
         Thread.__init__(self)
-        self.duration = duration
-        self.keepdata = keepdata
+        self.duration = params.setdefault('duration', None)
+        self.keepdata = params.setdefault('keepdata', False)
         self.stopevent = Event()
         self.finished = Event()
-        self.threads = threads
-        self.priority = priority
+        self.threads = params.setdefault('threads', None)
+        self.priority = params.setdefault('priority', 95)
         self.interval = "-i100"
-        self.debugging = debugging
+        self.debugging = params.setdefault('debugging', False)
         self.reportfile = 'cyclictest.rpt'
         self.params = params
         f = open('/proc/cpuinfo')
@@ -186,8 +184,8 @@ class Cyclictest(Thread):
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
-        self.numcores = numcores
-        self.numnodes = numnodes
+        self.numcores = params.setdefault('numcores', 1)
+        self.numanodes = params.setdefault('numanodes', 0)
 
     def __del__(self):
         pass
@@ -196,8 +194,8 @@ class Cyclictest(Thread):
         if self.debugging: print "cyclictest: %s" % str
 
     def getmode(self):
-        if self.numnodes > 1:
-            self.debug("running in NUMA mode (%d nodes)" % self.numnodes)
+        if self.numanodes > 1:
+            self.debug("running in NUMA mode (%d nodes)" % self.numanodes)
             return '--numa'
         self.debug("running in SMP mode")
         return '--smp'

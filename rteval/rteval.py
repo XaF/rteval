@@ -75,6 +75,7 @@ class RtEval(object):
         self.workdir = os.getcwd()
         self.inifile = None
         self.cmd_options = {}
+        self.start = datetime.now()
 
         default_config = {
             'rteval': {
@@ -124,6 +125,14 @@ class RtEval(object):
 
         self.debug("workdir: %s" % self.workdir)
 
+        # create our report directory
+        try:
+            self.make_report_dir()
+        except:
+            print "Cannot create the report dir!"
+            print "(is this an NFS filesystem with rootsquash turned on?)"
+            sys.exit(-1)
+
         # prepare a mailer, if that's configured
         if self.config.HasSection('smtp'):
             self.mailer = rtevalMailer.rtevalMailer(self.config.GetSection('smtp'))
@@ -131,7 +140,6 @@ class RtEval(object):
             self.mailer = None
 
         self.loads = []
-        self.start = None
         self.cputopology = None
         self.numcores = None
         self.memsize = None
@@ -610,7 +618,6 @@ class RtEval(object):
             l.join(2.0)
 
     def make_report_dir(self):
-        self.start = datetime.now()
         t = self.start
         i = 1
         self.reportdir = os.path.join(self.workdir,
@@ -669,16 +676,24 @@ class RtEval(object):
 
         self.info("setting up loads")
         self.loads = []
+        params = {'workdir':self.workdir, 
+                  'reportdir':self.reportdir,
+                  'builddir':builddir,
+                  'srcdir':self.config.srcdir,
+                  'verbose': self.config.verbose,
+                  'debugging': self.config.debugging,
+                  'numcores':self.numcores,
+                  }
+        
         for m in self.load_modules:
+            self.config.AppendConfig(m.__name__, params)
             self.info("creating load instance for %s" % m.__name__)
-            self.loads.append(m.create(builddir, self.config.srcdir, self.config.verbose,
-                                       self.numcores, self.config.GetSection(m.__name__)))
+            self.loads.append(m.create(self.config.GetSection(m.__name__)))
 
         self.info("setting up cyclictest")
-        self.cyclictest = cyclictest.Cyclictest(duration=self.config.duration,
-                                                debugging=self.config.debugging,
-                                                params=self.config.GetSection('cyclictest'),
-                                                numnodes = self.numanodes)
+        params['duration'] = self.config.duration
+        params['numanodes'] = self.numanodes
+        self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
 
         nthreads = 0
         try:
@@ -869,23 +884,17 @@ class RtEval(object):
         self.debug('''rteval options: 
         workdir: %s
         loaddir: %s
+        reportdir: %s
         verbose: %s
         debugging: %s
         duration: %f
         sysreport: %s
-        inifile:  %s''' % (self.workdir, self.config.srcdir, self.config.verbose,
+        inifile:  %s''' % (self.workdir, self.config.srcdir, self.reportdir, self.config.verbose,
                            self.config.debugging, self.config.duration, self.config.sysreport,
                            self.inifile))
 
         if not os.path.isdir(self.workdir):
             raise RuntimeError, "work directory %d does not exist" % self.workdir
-
-        try:
-            self.make_report_dir()
-        except:
-            print "Cannot create the report dir!"
-            print "(is this an NFS filesystem with rootsquash turned on?)"
-            sys.exit(-1)
 
         self.measure()
 

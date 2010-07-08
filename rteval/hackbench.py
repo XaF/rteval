@@ -35,8 +35,8 @@ sys.pathconf = "."
 import load
 
 class Hackbench(load.Load):
-    def __init__(self, builddir=None, srcdir=None, debug=False, num_cpus=1, params={}):
-        load.Load.__init__(self, "hackbench", builddir, srcdir, debug, num_cpus, params)
+    def __init__(self, params={}):
+        load.Load.__init__(self, "hackbench", params)
 
     def __del__(self):
         null = open("/dev/null", "w")
@@ -78,5 +78,5 @@ class Hackbench(load.Load):
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
 
-def create(builddir, srcdir, debug, num_cpus, params = {}):
-    return Hackbench(builddir, srcdir, debug, num_cpus, params)
+def create(params = {}):
+    return Hackbench(params)

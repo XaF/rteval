@@ -34,8 +34,8 @@ import xmlout
 kernel_prefix="linux-2.6"
 
 class Kcompile(load.Load):
-    def __init__(self, builddir=None, srcdir=None, debug=False, num_cpus=1, params={}):
-        load.Load.__init__(self, "kcompile", builddir, srcdir, debug, num_cpus, params)
+    def __init__(self, params={}):
+        load.Load.__init__(self, "kcompile", params)
 
     def setup(self):
         # find our source tarball
@@ -127,6 +127,6 @@ class Kcompile(load.Load):
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile'})
 
-def create(builddir, srcdir, debug, num_cpus, params = {}):
-    return Kcompile(builddir, srcdir, debug, num_cpus, params)
+def create(params = {}):
+    return Kcompile(params)
     
