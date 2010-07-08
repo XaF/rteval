@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	1.21
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -17,18 +17,18 @@ Requires:	python
 Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.65
-Requires:	rteval-loads
+Requires:	rteval-loads >= 1.2
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
 
 %description
-The rteval script is a utility for measuring various aspects of 
+The rteval script is a utility for measuring various aspects of
 realtime behavior on a system under load. The script unpacks the
-hackbench and kernel source, builds hackbench and then goes into a
-loop, running hackbench and compiling a kernel tree. During that loop
-the cyclictest program is run to measure event response time. After
-the run time completes, a statistical analysis of the event response
-times is done and printed to the screen.
+kernel source, and then goes into a loop, running hackbench and
+compiling a kernel tree. During that loop the cyclictest program
+is run to measure event response time. After the run time completes,
+a statistical analysis of the event response times is done and printed
+to the screen.
 
 %prep
 %setup -q

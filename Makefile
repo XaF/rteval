@@ -34,9 +34,8 @@ PYLIB	:= 	$(DESTDIR)$(shell python -c 'import distutils.sysconfig;  print distut
 LOADDIR	:=	loadsource
 
 KLOAD	:=	$(LOADDIR)/linux-2.6.26.1.tar.bz2
-HLOAD	:=	$(LOADDIR)/hackbench.tar.bz2
 BLOAD	:=	$(LOADDIR)/dbench-4.0.tar.gz
-LOADS	:=	$(KLOAD) $(HLOAD) $(BLOAD)
+LOADS	:=	$(KLOAD) $(BLOAD)
 
 runit:
 	[ -d ./run ] || mkdir run
