@@ -91,6 +91,7 @@ class RtEval(object):
                 'xmlrpc'     : None,
                 'xslt_report': '/usr/share/rteval/rteval_text.xsl',
                 'report_interval': '600',
+                'logging'    : False,
                 },
             'loads' : {
                 'kcompile'   : 'module',
@@ -378,6 +379,9 @@ class RtEval(object):
         parser.add_option("-a", "--annotate", dest="annotate",
                           type="string", default=None,
                           help="Add a little annotation which is stored in the report")
+        parser.add_option("-L", "--logging", dest="logging",
+                         action='store_true', default=False,
+                         help='log the output of the loads in the report directory')
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
@@ -628,6 +632,7 @@ class RtEval(object):
                                           t.strftime('rteval-%Y%m%d-'+str(i)))
         if not os.path.isdir(self.reportdir): 
             os.mkdir(self.reportdir)
+            os.mkdir(os.path.join(self.reportdir, "logs"))
         return self.reportdir
 
     def get_dmesg(self):
@@ -683,6 +688,7 @@ class RtEval(object):
                   'verbose': self.config.verbose,
                   'debugging': self.config.debugging,
                   'numcores':self.numcores,
+                  'logging':self.config.logging,
                   }
         
         for m in self.load_modules:
@@ -759,9 +765,7 @@ class RtEval(object):
         print "stopping run at %s" % time.asctime()
         # wait for cyclictest to finish calculating stats
         self.cyclictest.finished.wait()
-        end = datetime.now()
-        duration = end - start
-        self.genxml(duration, accum, samples)
+        self.genxml(datetime.now() - start, accum, samples)
         self.report()
         if self.config.sysreport:
             self.run_sysreport()
@@ -887,11 +891,12 @@ class RtEval(object):
         reportdir: %s
         verbose: %s
         debugging: %s
+        logging:  %s
         duration: %f
         sysreport: %s
         inifile:  %s''' % (self.workdir, self.config.srcdir, self.reportdir, self.config.verbose,
-                           self.config.debugging, self.config.duration, self.config.sysreport,
-                           self.inifile))
+                           self.config.debugging, self.config.logging, self.config.duration, 
+                           self.config.sysreport, self.inifile))
 
         if not os.path.isdir(self.workdir):
             raise RuntimeError, "work directory %d does not exist" % self.workdir

@@ -86,10 +86,12 @@ class Kcompile(load.Load):
     def build(self):
         self.debug("setting up all module config file in %s" % self.mydir)
         null = os.open("/dev/null", os.O_RDWR)
+        out = self.open_logfile("kcompile-build.stdout")
+        err = self.open_logfile("kcompile-build.stderr")
         # clean up from potential previous run
         try:
             ret = subprocess.call(["make", "-C", self.mydir, "distclean", "allmodconfig"], 
-                                  stdin=null, stdout=null, stderr=null)
+                                  stdin=null, stdout=out, stderr=err)
             if ret:
                 raise RuntimeError, "kcompile setup failed: %d" % ret
         except KeyboardInterrupt, m:
@@ -98,9 +100,16 @@ class Kcompile(load.Load):
         self.debug("ready to run")
         self.ready = True
         os.close(null)
+        os.close(out)
+        os.close(err)
 
     def runload(self):
         null = os.open("/dev/null", os.O_RDWR)
+        if self.logging:
+            out = self.open_logfile("kcompile.stdout")
+            err = self.open_logfile("kcompile.stderr")
+        else:
+            out = err = null
         mult=1
         if self.params.has_key('jobspercore'):
             mult = int(self.params.jobspercore)
@@ -110,19 +119,22 @@ class Kcompile(load.Load):
                      "-j%d" % njobs, 
                      "clean", "bzImage", "modules"]
         p = subprocess.Popen(self.args, 
-                             stdin=null,stdout=null,stderr=null)
+                             stdin=null,stdout=out,stderr=err)
         while not self.stopevent.isSet():
             time.sleep(1.0)
             if p.poll() != None:
                 p.wait()
                 self.debug("restarting compile job")
                 p = subprocess.Popen(self.args,
-                                     stdin=null,stdout=null,stderr=null)
+                                     stdin=null,stdout=out,stderr=err)
         self.debug("stopping")
         if p.poll() == None:
             os.kill(p.pid, SIGTERM)
         p.wait()
         os.close(null)
+        if self.logging:
+            os.close(out)
+            os.close(err)
 
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile'})

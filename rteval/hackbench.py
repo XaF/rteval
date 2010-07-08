@@ -59,10 +59,15 @@ class Hackbench(load.Load):
     def runload(self):
         self.args = ['hackbench', '-g', str(self.jobs)]
         null = os.open("/dev/null", os.O_RDWR)
+        if self.logging:
+            out = self.open_logfile("hackbench.stdout")
+            err = self.open_logfile("hackbench.stderr")
+        else:
+            out = err = null
         self.debug("starting loop (jobs: %d)" % self.jobs)
 
         while not self.stopevent.isSet():
-            p = subprocess.Popen(self.args, stdin=null, stdout=null)
+            p = subprocess.Popen(self.args, stdin=out, stdout=err)
             time.sleep(1.0)
             if p.poll() != None:
                 p.wait()
@@ -73,7 +78,9 @@ class Hackbench(load.Load):
         p.wait()
         self.debug("returning from runload()")
         os.close(null)
-
+        if self.logging:
+            os.close(out)
+            os.close(err)
 
     def genxml(self, x):
         x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})

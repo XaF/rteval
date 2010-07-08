@@ -38,6 +38,8 @@ class Load(threading.Thread):
         self.num_cpus = params.setdefault('numcores', 1)
         self.debugging = params.setdefault('debugging', False)
         self.source = params.setdefault('source', None)
+        self.reportdir = params.setdefault('reportdir', os.getcwd())
+        self.logging = params.setdefault('logging', False)
         self.params = params
         self.ready = False
         self.mydir = None
@@ -88,3 +90,6 @@ class Load(threading.Thread):
 
     def genxml(self, x):
         pass
+
+    def open_logfile(self, name):
+        return os.open(os.path.join(self.reportdir, "logs", name), os.O_CREAT|os.O_WRONLY)
