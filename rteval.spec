@@ -2,8 +2,8 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.21
-Release:	2%{?dist}
+Version:	1.22
+Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -71,6 +71,13 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.22-1
+- merged David Sommerseth <davids@redhat.com> changes to use
+  hackbench from rt-tests packages rather than carry local copy
+- converted all loads and cyclictest to pass __init__ parameters 
+  in a dictionary rather than as discrete parameters
+- added logging for load output
+
 * Thu Apr 13 2010 Clark Williams <williams@redhat.com> - 1.21-1
 - from Luis Claudio Goncalves <lgoncalv@redhat.com>:
   - remove unecessary wait() call in cyclictest.py
