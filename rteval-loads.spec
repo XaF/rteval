@@ -40,6 +40,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+* Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.2-1
+- removed hackbench tarball (now using rt-tests hackbench)
+
 * Fri Feb 19 2010 Clark Williams <williams@redhat.com> - 1.1-1
 - updated hackbench source with fixes from David Sommerseth 
   <davids@redhat.com> to cleanup child processes
