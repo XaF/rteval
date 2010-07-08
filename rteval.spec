@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.22
+Version:	1.23
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.23-1
+- version bump to deal with out-of-sync cvs issue
+ 
 * Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.22-1
 - merged David Sommerseth <davids@redhat.com> changes to use
   hackbench from rt-tests packages rather than carry local copy
