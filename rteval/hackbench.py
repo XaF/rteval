@@ -44,20 +44,26 @@ class Hackbench(load.Load):
                         stdout=null, stderr=null)
         os.close(null)
 
-
     def setup(self):
-        mult = 1
-        if self.params.has_key('jobspercore'):
-            mult = int(self.params.jobspercore)
+        'calculate arguments based on input parameters'
+        mult = int(self.params.setdefault('jobspercore', 2))
         self.jobs = self.num_cpus * mult
-
+        self.datasize = self.params.setdefault('datasize', '1024')
+        self.workunit = self.params.setdefault('workunit', 'thread')
+        if self.workunit.startswith('thread'):
+            workarg = '-T'
+        else:
+            workarg = '-P'
+        self.args = ['hackbench',  workarg, 
+                     '-g', str(self.jobs), 
+                     '-l', str(self.num_cpus * 256), 
+                     '-s', self.datasize,
+                     ]
 
     def build(self):
         self.ready = True
 
-
     def runload(self):
-        self.args = ['hackbench', '-g', str(self.jobs)]
         null = os.open("/dev/null", os.O_RDWR)
         if self.logging:
             out = self.open_logfile("hackbench.stdout")
@@ -67,11 +73,10 @@ class Hackbench(load.Load):
         self.debug("starting loop (jobs: %d)" % self.jobs)
 
         while not self.stopevent.isSet():
-            p = subprocess.Popen(self.args, stdin=out, stdout=err)
+            p = subprocess.Popen(self.args, stdin=out, stdout=out, stderr=err)
             time.sleep(1.0)
             if p.poll() != None:
                 p.wait()
-
         self.debug("stopping")
         if p.poll() == None:
             os.kill(p.pid, SIGKILL)
