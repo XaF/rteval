@@ -180,11 +180,11 @@ class Cyclictest(Thread):
                 desc = line.split(': ')[-1][:-1]
                 self.data[core].description = ' '.join(desc.split())
         f.close()
+        self.numcores = numcores
         self.data['system'] = RunData('system', 'system', self.priority)
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
         self.dataitems = len(self.data.keys())
         self.debug("system has %d cpu cores" % (self.dataitems - 1))
-        self.numcores = params.setdefault('numcores', 1)
         self.numanodes = params.setdefault('numanodes', 0)
 
     def __del__(self):
