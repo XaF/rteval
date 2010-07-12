@@ -71,6 +71,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Mon Jul 12 2010 Clark Williams <williams@redhat.com> - 1.25-1
+- fixed cyclictest bug that caused everything to be uniprocessor
+- updated source copyrights to 2010
+
 * Fri Jul  9 2010 Clark Williams <williams@redhat.com> - 1.24-1
 - modified hackbench arguments and added new parameters for 
   hackbench in rteval.conf
