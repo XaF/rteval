@@ -2,7 +2,7 @@
 #   rtevalclient.py
 #   XML-RPC client for sending data to a central rteval result server
 #
-#   Copyright 2009      David Sommerseth <davids@redhat.com>
+#   Copyright 2009,2010      David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by

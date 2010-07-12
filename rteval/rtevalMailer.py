@@ -1,7 +1,7 @@
 #
 #   rtevalmailer.py - module for sending e-mails
 #
-#   Copyright 2009   David Sommerseth <davids@redhat.com>
+#   Copyright 2009,2010   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by

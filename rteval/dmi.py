@@ -1,7 +1,7 @@
 #
 #   dmi.py - class to wrap DMI Table information
 #
-#   Copyright 2009   Clark Williams <williams@redhat.com>
+#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by

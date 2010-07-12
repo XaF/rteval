@@ -1,7 +1,8 @@
 #  
 #   hackbench.py - class to manage an instance of hackbench load
 #
-#   Copyright 2009   Clark Williams <williams@redhat.com>
+#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
+#   Copyright 2009,2010   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
