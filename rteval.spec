@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.25
+Version:	1.26
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Tue Jul 13 2010 Clark Williams <williams@redhat.com> - 1.26-1
+- modified hackbench parameters to reduce memory consumption
+
 * Mon Jul 12 2010 Clark Williams <williams@redhat.com> - 1.25-1
 - fixed cyclictest bug that caused everything to be uniprocessor
 - updated source copyrights to 2010
