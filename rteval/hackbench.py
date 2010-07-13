@@ -49,8 +49,8 @@ class Hackbench(load.Load):
         'calculate arguments based on input parameters'
         mult = int(self.params.setdefault('jobspercore', 2))
         self.jobs = self.num_cpus * mult
-        self.datasize = self.params.setdefault('datasize', '1024')
-        self.workunit = self.params.setdefault('workunit', 'thread')
+        self.datasize = self.params.setdefault('datasize', '128')
+        self.workunit = self.params.setdefault('workunit', 'process')
         if self.workunit.startswith('thread'):
             workarg = '-T'
         else:
