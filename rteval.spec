@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.26
+Version:	1.27
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Wed Jul 14 2010 Clark Williams <williams@redhat.com> - 1.27-1
+- modified hackbench to go back to using threads rather than 
+  processes for units of work
+- added memory size, number of numa nodes and run duration to the
+  parameter dictionary passed to all loads and cyclictest
+
 * Tue Jul 13 2010 Clark Williams <williams@redhat.com> - 1.26-1
 - modified hackbench parameters to reduce memory consumption
 
