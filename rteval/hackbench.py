@@ -50,7 +50,7 @@ class Hackbench(load.Load):
         mult = int(self.params.setdefault('jobspercore', 2))
         self.jobs = self.num_cpus * mult
         self.datasize = self.params.setdefault('datasize', '128')
-        self.workunit = self.params.setdefault('workunit', 'process')
+        self.workunit = self.params.setdefault('workunit', 'thread')
         if self.workunit.startswith('thread'):
             workarg = '-T'
         else:
