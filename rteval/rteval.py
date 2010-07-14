@@ -689,6 +689,9 @@ class RtEval(object):
                   'debugging': self.config.debugging,
                   'numcores':self.numcores,
                   'logging':self.config.logging,
+                  'memsize':self.memsize,
+                  'numanodes':self.numanodes,
+                  'duration':self.config.duration,
                   }
         
         for m in self.load_modules:
@@ -697,8 +700,6 @@ class RtEval(object):
             self.loads.append(m.create(self.config.GetSection(m.__name__)))
 
         self.info("setting up cyclictest")
-        params['duration'] = self.config.duration
-        params['numanodes'] = self.numanodes
         self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
 
         nthreads = 0
