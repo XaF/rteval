@@ -1,6 +1,6 @@
 Name:		rteval-loads
 Version:	1.2
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Source files for rteval loads
 Group:		Development/Tools
 License:	GPLv2
@@ -9,7 +9,6 @@ Source0:	http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.26.1.tar.bz2
 Source1:	dbench-4.0.tar.gz
 
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires:	rteval >= 1.10
 Requires:	gcc binutils make
 Obsoletes:	rteval-kcompile >= 1.0
 Obsoletes:	rteval-hackbench >= 1.0
@@ -40,6 +39,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+* Thu Jul 15 2010 Clark Williams <williams@redhat.com> - 1.2-2
+- removed rteval require from specfile (caused circular dependency)
+
 * Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.2-1
 - removed hackbench tarball (now using rt-tests hackbench)
 
