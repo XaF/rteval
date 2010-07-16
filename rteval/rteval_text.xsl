@@ -60,9 +60,11 @@
     </xsl:choose>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>   NUMA Nodes:   </xsl:text>
-    <xsl:value-of select="hardware/numa_nodes"/>
-    <xsl:text>&#10;</xsl:text>
+    <xsl:if test="hardware/numa_nodes">
+      <xsl:text>   NUMA Nodes:   </xsl:text>
+      <xsl:value-of select="hardware/numa_nodes"/>
+      <xsl:text>&#10;</xsl:text>
+    </xsl:if>
 
     <xsl:text>   Memory:       </xsl:text>
     <xsl:value-of select="hardware/memory_size"/>
