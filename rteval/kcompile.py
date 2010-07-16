@@ -110,10 +110,20 @@ class Kcompile(load.Load):
             err = self.open_logfile("kcompile.stderr")
         else:
             out = err = null
-        mult=1
-        if self.params.has_key('jobspercore'):
-            mult = int(self.params.jobspercore)
-        njobs = self.num_cpus * mult
+        mult = self.params.setdefault('jobspercore', 1)
+        mem = self.memsize[0]
+        if self.memsize[1] == 'KB':
+            mem = mem / (1024.0 * 1024.0)
+        elif self.memsize[1] == 'MB':
+            mem = mem / 1024.0
+        elif self.memsize[1] == 'TB':
+            mem = mem * 1024
+        ratio = float(mem) / float(self.num_cpus)
+        if ratio > 1.0:
+            njobs = self.num_cpus * mult
+        else:
+            self.debug("low memory system (%f GB/core)! Dropping jobs to one per core\n" % ratio)
+            njobs = self.num_cpus
         self.debug("starting loop (jobs: %d)" % njobs)
         self.args = ["make", "-C", self.mydir, 
                      "-j%d" % njobs, 

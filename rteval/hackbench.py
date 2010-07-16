@@ -47,7 +47,19 @@ class Hackbench(load.Load):
 
     def setup(self):
         'calculate arguments based on input parameters'
-        mult = int(self.params.setdefault('jobspercore', 2))
+        mem = self.memsize[0]
+        if self.memsize[1] == 'KB':
+            mem = mem / (1024.0 * 1024.0)
+        elif self.memsize[1] == 'MB':
+            mem = mem / 1024.0
+        elif self.memsize[1] == 'TB':
+            mem = mem * 1024
+        ratio = float(mem) / float(self.num_cpus)
+        if ratio >= 1.0:
+            mult = int(self.params.setdefault('jobspercore', 2))
+        else:
+            self.debug("low memory system (%f GB/core)! Dropping jobs to one-per-core\n" % ratio)
+            mult = 1
         self.jobs = self.num_cpus * mult
         self.datasize = self.params.setdefault('datasize', '128')
         self.workunit = self.params.setdefault('workunit', 'thread')

@@ -40,6 +40,7 @@ class Load(threading.Thread):
         self.source = params.setdefault('source', None)
         self.reportdir = params.setdefault('reportdir', os.getcwd())
         self.logging = params.setdefault('logging', False)
+        self.memsize = params.setdefault('memsize', (0, 'GB'))
         self.params = params
         self.ready = False
         self.mydir = None
