@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.27
+Version:	1.28
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Fri Jul 16 2010 Clark Williams <williams@redhat.com> - 1.28-1
+- added logic to loads to adjust number of jobs based on ratio
+  of memory per core
+
 * Wed Jul 14 2010 Clark Williams <williams@redhat.com> - 1.27-1
 - modified hackbench to go back to using threads rather than 
   processes for units of work
