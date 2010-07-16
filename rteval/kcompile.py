@@ -110,7 +110,7 @@ class Kcompile(load.Load):
             err = self.open_logfile("kcompile.stderr")
         else:
             out = err = null
-        mult = self.params.setdefault('jobspercore', 1)
+        mult = int(self.params.setdefault('jobspercore', 1))
         mem = self.memsize[0]
         if self.memsize[1] == 'KB':
             mem = mem / (1024.0 * 1024.0)
