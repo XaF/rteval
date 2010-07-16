@@ -70,7 +70,7 @@ def sigint_handler(signum, frame):
 
 class RtEval(object):
     def __init__(self, cmdargs):
-        self.version = "1.28"
+        self.version = "1.29"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.inifile = None
