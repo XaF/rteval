@@ -46,7 +46,18 @@
     <xsl:text>&#10;&#10;</xsl:text>
 
     <xsl:text>   CPU cores:    </xsl:text>
-    <xsl:value-of select="hardware/cpu_cores"/>
+    <xsl:choose>
+      <xsl:when test="hardware/cpu_topology">
+	<xsl:value-of select="hardware/cpu_topology/@num_cpu_cores"/>
+	<xsl:text> (online: </xsl:text>
+	<xsl:value-of select="hardware/cpu_topology/@num_cpu_cores_online"/>
+	<xsl:text>)</xsl:text>
+      </xsl:when>
+      <xsl:when test="hardware/cpu_cores">
+	<xsl:value-of select="hardware/cpu_cores"/>
+      </xsl:when>
+      <xsl:otherwise>(unknown)</xsl:otherwise>
+    </xsl:choose>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   NUMA Nodes:   </xsl:text>
