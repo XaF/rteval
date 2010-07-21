@@ -102,6 +102,8 @@ class Hackbench(load.Load):
                 time.sleep(self.err_sleep)
                 if self.err_sleep < 60.0:
                     self.err_sleep *= 2.0
+                if self.err_sleep > 60.0:
+                    self.err_sleep = 60.0
 
         self.debug("stopping")
         if p.poll() == None:
