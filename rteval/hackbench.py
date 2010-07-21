@@ -30,6 +30,7 @@ import os
 import time
 import glob
 import subprocess
+import errno
 from signal import SIGTERM
 from signal import SIGKILL
 sys.pathconf = "."
@@ -72,6 +73,7 @@ class Hackbench(load.Load):
                      '-l', str(self.num_cpus * 256), 
                      '-s', self.datasize,
                      ]
+        self.err_sleep = 5.0
 
     def build(self):
         self.ready = True
@@ -86,10 +88,21 @@ class Hackbench(load.Load):
         self.debug("starting loop (jobs: %d)" % self.jobs)
 
         while not self.stopevent.isSet():
-            p = subprocess.Popen(self.args, stdin=out, stdout=out, stderr=err)
-            time.sleep(1.0)
-            if p.poll() != None:
-                p.wait()
+            try:
+                p = subprocess.Popen(self.args, stdin=out, stdout=out, stderr=err)
+                time.sleep(1.0)
+                if p.poll() != None:
+                    p.wait()
+            except OSError, e:
+                if e.errno != errno.ENOMEM:
+                    raise
+                # Catch out-of-memory errors and wait a bit to (hopefully) 
+                # ease memory pressure
+                print "hackbench: %s, sleeping for %f seconds" % (e.strerror, self.err_sleep)
+                time.sleep(self.err_sleep)
+                if self.err_sleep < 60.0:
+                    self.err_sleep *= 2.0
+
         self.debug("stopping")
         if p.poll() == None:
             os.kill(p.pid, SIGKILL)
