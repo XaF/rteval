@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.30
+Version:	1.31
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Mon Jul 26 2010 Clark Williams <williams@redhat.com> - 1.31-1
+- from David Sommerseth <davids@redhat.com>:
+  - Updated hackbench implementation to avoid overusing resources
+  - Don't show NUMA node information if it's missing in the summary.xml
+  - Show CPU cores properly
+
 * Wed Jul 21 2010 Clark Williams <williams@redhat.com> - 1.30-1
 - added code to hackbench to try to detect and ease memory pressure
 
