@@ -62,16 +62,11 @@ class Hackbench(load.Load):
             self.debug("low memory system (%f GB/core)! Dropping jobs to one-per-core\n" % ratio)
             mult = 1
         self.jobs = self.num_cpus * mult
-        self.datasize = self.params.setdefault('datasize', '128')
-        self.workunit = self.params.setdefault('workunit', 'thread')
-        if self.workunit.startswith('thread'):
-            workarg = '-T'
-        else:
-            workarg = '-P'
-        self.args = ['hackbench',  workarg, 
+
+        self.args = ['hackbench',  '-P',
                      '-g', str(self.jobs), 
-                     '-l', str(self.num_cpus * 256), 
-                     '-s', self.datasize,
+                     '-l', str(self.params.setdefault('loops', '100')),
+                     '-s', str(self.params.setdefault('datasize', '100'))
                      ]
         self.err_sleep = 5.0
 
