@@ -19,4 +19,4 @@
 10. Create signed tag of the form v<major>.<minor> for the release:
     e.g.:  git tag -u williams@redhat.com  v1.10
 11. Push master branch back to origin
-    e.g.:  git push --tags origin
+    e.g.:  git push origin && git push --tags origin
