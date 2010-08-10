@@ -51,6 +51,7 @@ class CPUtopology:
 
         self.__cputop_n = libxml2.newNode('cpu_topology')
 
+        cpusockets = []
         for dirname in os.listdir(self.sysdir):
             # Only parse directories which starts with 'cpu'
             if (dirname.find('cpu', 0) == 0) and os.path.isdir(os.path.join(self.sysdir, dirname)):
@@ -79,9 +80,18 @@ class CPUtopology:
                             phys_pkg_id = self.__read(os.path.join(dirname, 'topology'),
                                                       'physical_package_id')
                             cpu_n.newProp('physical_package_id', str(phys_pkg_id))
-                            if phys_pkg_id > (self.__cpu_sockets - 1):
-                                self.__cpu_sockets = phys_pkg_id + 1
+                            cpusockets.append(phys_pkg_id)
                         break;
+
+        # Count unique CPU sockets
+        lastsock = None
+        sockcnt  = 0
+        cpusockets.sort()
+        for sck in cpusockets:
+            if sck != lastsock:
+                lastsock = sck
+                sockcnt += 1
+        self.__cpu_sockets = sockcnt
 
         # Summarise the core counts
         self.__cputop_n.newProp('num_cpu_cores', str(self.__cpu_cores))
@@ -115,8 +125,10 @@ def unit_test(rootdir):
                                                                 cputop.getCPUsockets())
         return 0
     except Exception, e:
+        # import traceback
+        # traceback.print_exc(file=sys.stdout)
         print "** EXCEPTION %s", str(e)
         return 1
 
 if __name__ == '__main__':
-    unit_test()
+    unit_test(None)
