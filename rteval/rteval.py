@@ -126,14 +126,6 @@ class RtEval(object):
 
         self.debug("workdir: %s" % self.workdir)
 
-        # create our report directory
-        try:
-            self.make_report_dir()
-        except:
-            print "Cannot create the report dir!"
-            print "(is this an NFS filesystem with rootsquash turned on?)"
-            sys.exit(-1)
-
         # prepare a mailer, if that's configured
         if self.config.HasSection('smtp'):
             self.mailer = rtevalMailer.rtevalMailer(self.config.GetSection('smtp'))
@@ -901,6 +893,14 @@ class RtEval(object):
 
         if not os.path.isdir(self.workdir):
             raise RuntimeError, "work directory %d does not exist" % self.workdir
+
+        # create our report directory
+        try:
+            self.make_report_dir()
+        except:
+            print "Cannot create the report dir!"
+            print "(is this an NFS filesystem with rootsquash turned on?)"
+            sys.exit(-1)
 
         self.measure()
 
