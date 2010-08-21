@@ -239,6 +239,7 @@ class Cyclictest(Thread):
             vals = line.split()
             index = int(vals[0])
             for i in range(0, len(self.data)-1):
+                if str(i) not in self.data: continue
                 self.data[str(i)].bucket(index, int(vals[i+1]))
                 self.data['system'].bucket(index, int(vals[i+1]))
         for n in self.data.keys():
@@ -252,6 +253,7 @@ class Cyclictest(Thread):
 
         self.data["system"].genxml(x)
         for t in range(0, self.numcores):
+            if str(t) not in self.data: continue
             self.data[str(t)].genxml(x)
         x.closeblock()
 
