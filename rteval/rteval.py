@@ -50,8 +50,8 @@ import ethtool
 import xmlrpclib
 from datetime import datetime
 from distutils import sysconfig
-
-sys.pathconf = "."
+sys.path.append("rteval")
+import util
 import load
 import cyclictest
 import xmlout
@@ -73,6 +73,7 @@ class RtEval(object):
         self.version = "1.31"
         self.load_modules = []
         self.workdir = os.getcwd()
+        self.reportdir = os.getcwd()
         self.inifile = None
         self.cmd_options = {}
         self.start = datetime.now()
@@ -211,19 +212,6 @@ class RtEval(object):
                 self.debug("Recieved greeting: %s" % res["greeting"])
 
 
-    def get_base_os(self):
-        '''record what userspace we're running on'''
-        distro = "unknown"
-        for f in ('redhat-release', 'fedora-release'):
-            p = os.path.join('/etc', f)
-            if os.path.exists(p):
-                f = open(p, 'r')
-                distro = f.readline().strip()
-                f.close()
-                break
-        self.debug("baseos: %s" % distro)
-        return distro
-
     def get_cpu_topology(self):
         ''' figure out how many processors we have available'''
 
@@ -236,45 +224,6 @@ class RtEval(object):
                     topology.getCPUsockets()))
         return topology.getXMLdata()
 
-
-    def get_num_nodes(self):
-        from glob import glob
-        nodes = len(glob('/sys/devices/system/node/node*'))
-        self.debug("counted %d numa nodes" % nodes)
-        return nodes
-        
-    def get_memory_size(self):
-        '''find out how much memory is installed'''
-        f = open('/proc/meminfo')
-        for l in f:
-            if l.startswith('MemTotal:'):
-                rawsize = int(l.split()[1])
-                f.close()
-
-                # Get a more readable result
-                units = ('KB', 'MB','GB','TB')
-                size = rawsize
-                for unit in units:
-                    if size < 1024:
-                        break
-                    size = float(size) / 1024
-
-                self.debug("memory size %d KB (%.3f %s)" % (rawsize, size, unit))
-                return (size, unit)
-        raise RuntimeError, "can't find memtotal in /proc/meminfo!"
-
-
-    def get_clocksources(self):
-        '''get the available and curent clocksources for this kernel'''
-        path = '/sys/devices/system/clocksource/clocksource0'
-        if not os.path.exists(path):
-            raise RuntimeError, "Can't find clocksource path in /sys"
-        f = open (os.path.join (path, "current_clocksource"))
-        current_clocksource = f.readline().strip()
-        f = open (os.path.join (path, "available_clocksource"))
-        available_clocksource = f.readline().strip()
-        f.close()
-        return (current_clocksource, available_clocksource)
 
 
     def get_services(self):
@@ -483,7 +432,7 @@ class RtEval(object):
                                              })
             self.xmlreport.closeblock()
 
-        modlist = self.get_modules()
+        modlist = util.get_modules()
         if len(modlist):
             self.xmlreport.openblock('kernelmodules')
             for mod in modlist:
@@ -648,11 +597,11 @@ class RtEval(object):
 
     def measure(self):
         # Collect misc system info
-        self.baseos = self.get_base_os()
+        self.baseos = util.get_base_os()
         self.cputopology = self.get_cpu_topology()
-        self.numanodes = self.get_num_nodes()
-        self.memsize = self.get_memory_size()
-        (self.current_clocksource, self.available_clocksource) = self.get_clocksources()
+        self.numanodes = util.get_num_nodes()
+        self.memsize = util.get_memory_size()
+        (self.current_clocksource, self.available_clocksource) = util.get_clocksources()
         self.services = self.get_services()
         self.kthreads = self.get_kthreads()
 
