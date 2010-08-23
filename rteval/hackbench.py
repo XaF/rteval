@@ -115,10 +115,7 @@ class Hackbench(load.Load):
             os.close(err)
 
     def genxml(self, x):
-        if self.jobs:
-            x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
-        else:
-            x.taggedvalue('command_line', "<not run>", {'name':'hackbench'})
+        x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench', 'run': self.jobs and '1' or '0'})
 
 def create(params = {}):
     return Hackbench(params)

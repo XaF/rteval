@@ -147,7 +147,7 @@ class Kcompile(load.Load):
             os.close(err)
 
     def genxml(self, x):
-        x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile'})
+        x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile', 'run':'1'})
 
 def create(params = {}):
     return Kcompile(params)
