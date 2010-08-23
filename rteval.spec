@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.31
+Version:	1.32
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,18 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Mon Aug 23 2010 Clark Williams <williams@redhat.com> - 1.32-1
+- update docs
+- refactor some RTEval methods to utility functions
+- modify hackbench.py not to run under low memory conditions
+- clean up XML generation to deal with new hackbench code
+- clean up XSL code to deal with new XML 'run' attribute
+- from David Sommerseth <davids@redhat.com>:
+  - improve CPU socket counting logic
+  - delay log directory creation until actually needed
+- from Gowrishankar <gowrishankar.m@in.ibm.com>:
+  - check if the core id really exists (multithreading fix)
+
 * Mon Jul 26 2010 Clark Williams <williams@redhat.com> - 1.31-1
 - from David Sommerseth <davids@redhat.com>:
   - Updated hackbench implementation to avoid overusing resources
