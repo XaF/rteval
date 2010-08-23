@@ -13,6 +13,7 @@ PYSRC	:=	rteval/rteval.py 	\
 		rteval/rtevalclient.py 	\
 		rteval/rtevalConfig.py 	\
 		rteval/rtevalMailer.py 	\
+		rteval/util.py		\
 		rteval/xmlout.py
 
 XSLSRC	:=	rteval/rteval_dmi.xsl 	\
