@@ -33,8 +33,8 @@ class Load(threading.Thread):
     def __init__(self, name="<unnamed>", params={}):
         threading.Thread.__init__(self)
         self.name = name
-        self.builddir = params.setdefault('builddir', None)	# abs path to top dir
-        self.srcdir = params.setdefault('srcdir', None)		# abs path to src dir
+        self.builddir = params.setdefault('builddir', os.path.abspath("../build"))	# abs path to top dir
+        self.srcdir = params.setdefault('srcdir', os.path.abspath("../loadsource"))	# abs path to src dir
         self.num_cpus = params.setdefault('numcores', 1)
         self.debugging = params.setdefault('debugging', False)
         self.source = params.setdefault('source', None)
