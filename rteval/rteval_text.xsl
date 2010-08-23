@@ -128,7 +128,7 @@
     <xsl:value-of select="@name"/>
     <xsl:text>: </xsl:text>
     <xsl:choose>
-      <xsl:when test="@run = '1'">
+      <xsl:when test="not(@run) or @run = '1'">
 	<xsl:value-of select="."/>
       </xsl:when>
       <xsl:otherwise>(Not run)</xsl:otherwise>
