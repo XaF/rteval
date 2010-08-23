@@ -115,3 +115,8 @@ class Hackbench(load.Load):
 
 def create(params = {}):
     return Hackbench(params)
+
+
+if __name__ == '__main__':
+    h = Hackbench(params={'debugging':True, 'verbose':True})
+    h.run()
