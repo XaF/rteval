@@ -13,9 +13,9 @@
 4. Merge any remote branch updates into 'work'
 5. Merge any local branch updates into 'work'
 6. Merge 'work' back into 'master'
-7. Update version number in rteval/rteval.py and rteval.spec
+7. Update version number in rteval/rteval.py, setup.py and rteval.spec
 8. Update %changelog info in rteval.spec
-9. Commit rteval/rteval.py and rteval.spec changes
+9. Commit rteval/rteval.py, setup.py and rteval.spec changes
 10. Create signed tag of the form v<major>.<minor> for the release:
     e.g.:  git tag -u williams@redhat.com  v1.10
 11. Push master branch back to origin
