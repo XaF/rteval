@@ -48,19 +48,19 @@ class Hackbench(load.Load):
 
     def setup(self):
         'calculate arguments based on input parameters'
-        mem = self.memsize[0]
-        if self.memsize[1] == 'KB':
+        (mem, units) = self.memsize
+        if units == 'KB':
             mem = mem / (1024.0 * 1024.0)
-        elif self.memsize[1] == 'MB':
+        elif units == 'MB':
             mem = mem / 1024.0
-        elif self.memsize[1] == 'TB':
+        elif units == 'TB':
             mem = mem * 1024
         ratio = float(mem) / float(self.num_cpus)
         if ratio >= 1.0:
             mult = int(self.params.setdefault('jobspercore', 2))
         else:
-            self.debug("low memory system (%f GB/core)! Dropping jobs to one-per-core\n" % ratio)
-            mult = 1
+            print "hackbench: low memory system (%f GB/core)! Not running\n" % ratio
+            mult = 0
         self.jobs = self.num_cpus * mult
 
         self.args = ['hackbench',  '-P',
@@ -74,6 +74,10 @@ class Hackbench(load.Load):
         self.ready = True
 
     def runload(self):
+        # if we don't have any jobs just wait for the stop event and return
+        if self.jobs == 0:
+            self.stopevent.wait()
+            return
         null = os.open("/dev/null", os.O_RDWR)
         if self.logging:
             out = self.open_logfile("hackbench.stdout")
@@ -111,7 +115,10 @@ class Hackbench(load.Load):
             os.close(err)
 
     def genxml(self, x):
-        x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
+        if self.jobs:
+            x.taggedvalue('command_line', ' '.join(self.args), {'name':'hackbench'})
+        else:
+            x.taggedvalue('command_line', "<not run>", {'name':'hackbench'})
 
 def create(params = {}):
     return Hackbench(params)
