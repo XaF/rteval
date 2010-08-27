@@ -48,3 +48,27 @@ def register_submission(config, clientid, filename, debug=False, noaction=False)
     dbc.COMMIT()
     return res[0]
 
+def database_status(config, debug=False, noaction=False):
+    dbc = Database(host=config.db_server, port=config.db_port, database=config.database,
+                   user=config.db_username, password=config.db_password,
+                   debug=debug, noaction=noaction)
+    if not dbc:
+        return {"status": "No connection to pgsql://%s:%s/%s" % (config.db_server,
+                                                                 config.db_port,
+                                                                 config.database)}
+
+    res = dbc.SELECT('rtevalruns',
+                     ["to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') AS server_time",
+                      "max(rterid) AS last_rterid",
+                      "max(submid) AS last_submid"]
+                     )
+    if len(res) != 3:
+        return {"status": "Could not query database pgsql://%s:%s/%s" % (config.db_server,
+                                                                         config.db_port,
+                                                                         config.database)}
+    return {"status": "OK",
+            "server_time": res['records'][0][0],
+            "last_rterid": res['records'][0][1],
+            "last_submid": res['records'][0][2]
+            }
+

@@ -46,6 +46,9 @@ class rtevalclient:
     def Hello(self):
         return self.srv.Hello(self.hostname)
 
+    def DatabaseStatus(self):
+        return self.srv.DatabaseStatus()
+
     def SendReport(self, xmldoc):
         if xmldoc.type != 'document_xml':
             raise Exception, "Input is not XML document"

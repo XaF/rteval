@@ -110,3 +110,7 @@ class XMLRPC_API1():
         return {"greeting": "Hello %s" % clientid,
                 "server": platform.node(),
                 "APIversion": self.apiversion}
+
+
+    def DatabaseStatus(self):
+        return rtevaldb.database_status(self.config)
