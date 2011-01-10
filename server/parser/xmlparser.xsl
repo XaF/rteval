@@ -132,13 +132,14 @@
             <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
-        <sqldata schemaver="1.2" table="rtevalruns_details">
+        <sqldata schemaver="1.3" table="rtevalruns_details">
           <fields>
             <field fid="0">rterid</field>
             <field fid="1">numa_nodes</field>
             <field fid="2">num_cpu_cores</field>
             <field fid="3">num_cpu_sockets</field>
             <field fid="4">xmldata</field>
+            <field fid="5">annotation</field>
           </fields>
           <records>
             <record>
@@ -159,12 +160,13 @@
               </value>
               <value fid="4" type="xmlblob">
                 <rteval_details>
-                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line|run_info/annotate"/>
+                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
                   <hardware>
                     <xsl:copy-of select="hardware/memory_size|hardware/cpu_topology"/>
                   </hardware>
                 </rteval_details>
               </value>
+              <value fid="5"><xsl:value-of select="run_info/annotate"/></value>
             </record>
           </records>
         </sqldata>
