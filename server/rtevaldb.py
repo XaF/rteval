@@ -66,9 +66,11 @@ def database_status(config, debug=False, noaction=False):
         return {"status": "Could not query database pgsql://%s:%s/%s" % (config.db_server,
                                                                          config.db_port,
                                                                          config.database)}
+    last_rterid = res['records'][0][1] and res['records'][0][1] or "(None)"
+    last_submid = res['records'][0][1] and res['records'][0][2] or "(None)"
     return {"status": "OK",
             "server_time": res['records'][0][0],
-            "last_rterid": res['records'][0][1],
-            "last_submid": res['records'][0][2]
+            "last_rterid": last_rterid,
+            "last_submid": last_submid
             }
 
