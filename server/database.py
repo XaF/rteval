@@ -168,7 +168,7 @@ class Database(object):
                 # If no action is setup (mainly for debugging), return empty result set
                 return {"table": table, "fields": [], "records": []}
         except Exception, err:
-            raise Exception, "** SQL ERROR *** %s\n** SQL ERROR ** Message: %s" % ((sql % where), str(err))
+            raise Exception, "** SQL ERROR *** %s\n** SQL ERROR ** Message: %s" % (where and (sql % where) or sql, str(err))
 
         # Extract field names
         fields = []
