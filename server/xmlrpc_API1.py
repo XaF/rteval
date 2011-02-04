@@ -45,6 +45,8 @@ class XMLRPC_API1():
 
     def __mkdatadir(self, dirpath):
         startdir = os.getcwd()
+        if dirpath[0] == '/':
+            os.chdir('/')
         for dir in dirpath.split("/"):
             if dir is '':
                 continue
