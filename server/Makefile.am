@@ -40,7 +40,7 @@ clean-local:
 	-rm -f apache-rteval.conf *~
 
 dist-hook:
-	cp $(srcdir)/gen_config.sh $(srcdir)/apache-rteval.conf.tpl $(distdir)/
+	cp $(srcdir)/gen_config.sh $(srcdir)/apache-rteval.conf.tpl $(srcdir)/apache-rteval-wsgi.conf.tpl $(distdir)/
 	-rm -f $(distdir)/apache-rteval.conf
 
 if ENAB_XMLRPC
