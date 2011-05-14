@@ -19,5 +19,8 @@
    - AMQP latencytest/perftest (over loopback)
    - bonnie/bonnie++
    - iozone
+   - KVM running guest OS
 
-
+4. Add an option to run 'perf record' while  a run is in progress. This is
+   mainly a diagnostic option to debug *why* something is performing 
+   poorly.
