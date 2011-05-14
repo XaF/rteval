@@ -56,7 +56,7 @@ class Hackbench(load.Load):
         elif units == 'TB':
             mem = mem * 1024
         ratio = float(mem) / float(self.num_cpus)
-        if ratio >= 1.0:
+        if ratio >= 0.75:
             mult = int(self.params.setdefault('jobspercore', 2))
         else:
             print "hackbench: low memory system (%f GB/core)! Not running\n" % ratio
