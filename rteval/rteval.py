@@ -8,8 +8,8 @@
 #           latency while the loads are running. A report is generated
 #           to show the latencies encountered during the run.
 #
-#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
-#   Copyright 2009,2010   David Sommerseth <davids@redhat.com>
+#   Copyright 2009,2010,2011   Clark Williams <williams@redhat.com>
+#   Copyright 2009,2010,2011   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -50,7 +50,9 @@ import ethtool
 import xmlrpclib
 from datetime import datetime
 from distutils import sysconfig
-sys.path.append("rteval")
+
+# put local path at start of list to overide installed methods
+sys.path.insert(0, "./rteval")
 import util
 import load
 import cyclictest
@@ -67,6 +69,8 @@ def sigint_handler(signum, frame):
     sigint_received = True
     print "*** SIGINT received - stopping rteval run ***"
 
+def sigterm_handler(signum, frame):
+    raise RuntimeError,  "SIGTERM received!"
 
 class RtEval(object):
     def __init__(self, cmdargs):
@@ -94,7 +98,7 @@ class RtEval(object):
                 'report_interval': '600',
                 'logging'    : False,
                 },
-            'loads' : {
+           'loads' : {
                 'kcompile'   : 'module',
                 'hackbench'  : 'module',
                 },
@@ -323,6 +327,10 @@ class RtEval(object):
         parser.add_option("-L", "--logging", dest="logging",
                          action='store_true', default=False,
                          help='log the output of the loads in the report directory')
+
+        parser.add_option("-O", "--onlyload", dest="onlyload",
+                          action='store_true', default=False,
+                          help="only run the loads (don't run measurement threads)")
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
@@ -605,6 +613,8 @@ class RtEval(object):
         self.services = self.get_services()
         self.kthreads = self.get_kthreads()
 
+        onlyload = self.cmd_options.onlyload
+
         builddir = os.path.join(self.workdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
         self.reportfile = os.path.join(self.reportdir, "summary.rpt")
@@ -640,8 +650,9 @@ class RtEval(object):
             self.info("creating load instance for %s" % m.__name__)
             self.loads.append(m.create(self.config.GetSection(m.__name__)))
 
-        self.info("setting up cyclictest")
-        self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
+        if not onlyload:
+            self.info("setting up cyclictest")
+            self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
 
         nthreads = 0
         try:
@@ -658,9 +669,10 @@ class RtEval(object):
             
             start = datetime.now()
             
-            # start the cyclictest thread
-            self.info("starting cyclictest")
-            self.cyclictest.start()
+            if not onlyload:
+                # start the cyclictest thread
+                self.info("starting cyclictest")
+                self.cyclictest.start()
             
             # turn loose the loads
             self.info("sending start event to all loads")
@@ -668,49 +680,67 @@ class RtEval(object):
                 l.startevent.set()
                 nthreads += 1
                 
-            # open the loadavg /proc entry
-            p = open("/proc/loadavg")
             accum = 0.0
             samples = 0
 
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
             # wait for time to expire or thread to die
-            signal.signal(signal.SIGINT, sigint_handler)
+#            signal.signal(signal.SIGINT, sigint_handler)
+#            signal.signal(signal.SIGTERM, sigterm_handler)
             self.info("waiting for duration (%f)" % self.config.duration)
             stoptime = (time.time() + self.config.duration)
             currtime = time.time()
             rpttime = currtime + report_interval
+            loadcount = 5
             while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
-                if not self.cyclictest.isAlive():
+                if not onlyload and not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
                 if len(threading.enumerate()) < nthreads:
                     raise RuntimeError, "load thread died!"
-                p.seek(0)
-                accum += float(p.readline().split()[0])
-                samples += 1
+                if not loadcount:
+                    # open the loadavg /proc entry
+                    p = open("/proc/loadavg")
+                    load = float(p.readline().split()[0])
+                    p.close()
+                    accum += load
+                    samples += 1
+                    loadcount = 5
+                    #self.debug("current loadavg: %f, running avg: %f (load: %f, samples: %d)" % \
+                    #               (load, accum/samples, load, samples))
+                else:
+                    loadcount -= 1
                 if currtime >= rpttime:
                     left_to_run = stoptime - currtime
                     self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
+                    print "load average: %.2f" % (accum / samples)
                 currtime = time.time()
-            signal.signal(signal.SIGINT, signal.SIG_DFL)
+            self.debug("out of measurement loop")
+#            signal.signal(signal.SIGINT, signal.SIG_DFL)
+#            signal.signal(signal.SIGTERM, signal.SIG_DFL)
                 
+        except RuntimeError, e:
+            print "Runtime error during measurement: %s", e
+            raise
+
         finally:
-            # stop cyclictest
-            self.cyclictest.stopevent.set()
+            if not onlyload:
+                # stop cyclictest
+                self.cyclictest.stopevent.set()
             
             # stop the loads
             self.stop_loads()
 
         print "stopping run at %s" % time.asctime()
-        # wait for cyclictest to finish calculating stats
-        self.cyclictest.finished.wait()
-        self.genxml(datetime.now() - start, accum, samples)
-        self.report()
-        if self.config.sysreport:
-            self.run_sysreport()
+        if not onlyload:
+            # wait for cyclictest to finish calculating stats
+            self.cyclictest.finished.wait()
+            self.genxml(datetime.now() - start, accum, samples)
+            self.report()
+            if self.config.sysreport:
+                self.run_sysreport()
 
 
     def XMLRPC_Send(self):
@@ -871,6 +901,7 @@ if __name__ == '__main__':
 
         rteval = RtEval(sys.argv[1:])
         ec = rteval.rteval()
+        rteval.debug("exiting with exit code: %d" % ec)
         sys.exit(ec)
     except KeyboardInterrupt:
         sys.exit(0)
