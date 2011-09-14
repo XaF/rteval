@@ -90,7 +90,7 @@ class Kcompile(load.Load):
         err = self.open_logfile("kcompile-build.stderr")
         # clean up from potential previous run
         try:
-            ret = subprocess.call(["make", "-C", self.mydir, "distclean", "allmodconfig"], 
+            ret = subprocess.call(["make", "-C", self.mydir, "mrproper", "allmodconfig"], 
                                   stdin=null, stdout=out, stderr=err)
             if ret:
                 raise RuntimeError, "kcompile setup failed: %d" % ret
@@ -103,13 +103,7 @@ class Kcompile(load.Load):
         os.close(out)
         os.close(err)
 
-    def runload(self):
-        null = os.open("/dev/null", os.O_RDWR)
-        if self.logging:
-            out = self.open_logfile("kcompile.stdout")
-            err = self.open_logfile("kcompile.stderr")
-        else:
-            out = err = null
+    def calc_numjobs(self):
         mult = int(self.params.setdefault('jobspercore', 1))
         mem = self.memsize[0]
         if self.memsize[1] == 'KB':
@@ -124,21 +118,32 @@ class Kcompile(load.Load):
         else:
             self.debug("low memory system (%f GB/core)! Dropping jobs to one per core\n" % ratio)
             njobs = self.num_cpus
+        return njobs
+
+    def runload(self):
+        null = os.open("/dev/null", os.O_RDWR)
+        if self.logging:
+            out = self.open_logfile("kcompile.stdout")
+            err = self.open_logfile("kcompile.stderr")
+        else:
+            out = err = null
+
+        njobs = self.calc_numjobs()
         self.debug("starting loop (jobs: %d)" % njobs)
         self.args = ["make", "-C", self.mydir, 
-                     "-j%d" % njobs, 
-                     "clean", "bzImage", "modules"]
+                     "-j%d" % njobs ] 
         p = subprocess.Popen(self.args, 
                              stdin=null,stdout=out,stderr=err)
         while not self.stopevent.isSet():
             time.sleep(1.0)
             if p.poll() != None:
-                p.wait()
-                self.debug("restarting compile job")
+                r = p.wait()
+                self.debug("restarting compile job (exit status: %s)" % r)
                 p = subprocess.Popen(self.args,
                                      stdin=null,stdout=out,stderr=err)
-        self.debug("stopping")
+        self.debug("out of stopevent loop")
         if p.poll() == None:
+            self.debug("killing compile job with SIGTERM")
             os.kill(p.pid, SIGTERM)
         p.wait()
         os.close(null)
