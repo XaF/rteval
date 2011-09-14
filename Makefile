@@ -42,6 +42,9 @@ runit:
 	[ -d ./run ] || mkdir run
 	python rteval/rteval.py -D -L -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval
 
+load:
+	[ -d ./run ] || mkdir run
+	python rteval/rteval.py --onlyload -D -L -v --workdir=./run --loaddir=./loadsource -f ./rteval/rteval.conf -i ./rteval
 sysreport:
 	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
 
