@@ -84,6 +84,24 @@ static char *encapsInt(const unsigned int val) {
 
 
 /**
+ * Simple function to determine if the given string is a number or not
+ *
+ * @param str Pointer to the tring to be checked
+ *
+ * @returns Returns 0 if not a number and a non-null value if it is a number
+ */
+int isNumber(const char * str)
+{
+    char *ptr = NULL;
+
+    if (str == NULL || *str == '\0' || isspace(*str))
+      return 0;
+
+    strtod (str, &ptr);
+    return *ptr == '\0';
+}
+
+/**
  * Parses any XML input document into a sqldata XML format which can be used by pgsql_INSERT().
  * The transformation must be defined in the input XSLT template.
  *
@@ -170,16 +188,17 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
  * @return Returns a pointer to a new buffer containing the value on success, otherwise NULL.
  *         This memory buffer must be free'd after usage.
  */
-static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
+static char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 	const char *hash = NULL, *isnull = NULL;
 	SHA1Context shactx;
 	uint8_t shahash[SHA1_HASH_SIZE];
 	char *ret = NULL, *ptr = NULL;
 	int i;
 
-	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
-	    || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") != 0) ) {
-		    return NULL;
+	if( !(sql_n && (xmlStrcmp(sql_n->name, (xmlChar *) "value") == 0)
+              && (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") == 0)
+              || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "value") == 0)) ) {
+                return NULL;
 	}
 
 	isnull = xmlGetAttrValue(sql_n->properties, "isnull");
@@ -214,6 +233,70 @@ static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 
 
 /**
+ * Extract the content of a //sqldata/records/record/value[@type='array']/value node set
+ * and format it as an PostgreSQL array
+ *
+ * @param log    Log context
+ * @param sql_n sqldata values node containing the value to extract and format as an array.
+ *
+ * @return Returns a pointer to a new memory buffer containing the value as a string.
+ *         On errors, NULL is returned.  This memory buffer must be free'd after usage.
+ */
+static char * sqldataValueArray(LogContext *log, xmlNode *sql_n)
+{
+        char *ret = NULL, *ptr = NULL;
+        xmlNode *node = NULL;
+        size_t retlen = 0;
+
+        ret = malloc_nullsafe(log, 2);
+        if( ret == NULL ) {
+                writelog(log, LOG_ERR,
+                         "Failed to allocate memory for a new PostgreSQL array");
+                return NULL;
+        }
+        strncat(ret, "{", 1);
+
+        /* Iterate all ./value/value elements and build up a PostgreSQL specific array */
+        foreach_xmlnode(sql_n->children, node) {
+                if( (node->type != XML_ELEMENT_NODE)
+		    || xmlStrcmp(node->name, (xmlChar *) "value") != 0 ) {
+			// Skip uninteresting nodes
+			continue;
+		}
+                ptr = sqldataValueHash(log, node);
+                if( ptr ) {
+                        retlen += strlen(ptr) + 4;
+                        ret = realloc(ret, retlen);
+                        if( ret == NULL ) {
+                                writelog(log, LOG_ERR,
+                                         "Failed to allocate memory to expand "
+                                         "array to include '%s'", ptr);
+                                free_nullsafe(ret);
+                                free_nullsafe(ptr);
+                                return NULL;
+                        }
+                        /* Newer PostgreSQL servers expects numbers to be without quotes */
+                        if( isNumber(ptr) == 0 ) {
+                                /* Data is a string */
+                                strncat(ret, "'", 1);
+                                strncat(ret, ptr, strlen(ptr));
+                                strncat(ret, "',", 2);
+                        } else {
+                                /* Data is a number */
+                                strncat(ret, ptr, strlen(ptr));
+                                strncat(ret, ",", 1);
+                        }
+                        free_nullsafe(ptr);
+                }
+        }
+        /* Replace the last comma with a close-array marker */
+        ret[strlen(ret)-1] = '}';
+        ret[strlen(ret)] = 0;
+        return ret;
+}
+
+
+/**
  * Extract the content of a '//sqldata/records/record/value' node.  It will consider
  * both the 'hash' and 'type' attributes of the 'value' tag.
  *
@@ -239,6 +322,8 @@ char *sqldataExtractContent(LogContext *log, xmlNode *sql_n) {
 			chld_n = chld_n->next;
 		}
 		return xmlNodeToString(log, chld_n);
+        } else if( valtype && (strcmp(valtype, "array") == 0) ) {
+                return sqldataValueArray(log, sql_n);
 	} else {
 		return sqldataValueHash(log, sql_n);
 	}

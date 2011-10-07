@@ -1,6 +1,6 @@
 Name:		rteval-parser
-Version:	1.4
-%define sqlschemaver 1.3
+Version:	1.5
+%define sqlschemaver 1.4
 Release:	1%{?dist}
 Summary:	Report parser daemon for  rteval XML-RPC
 %define pkgname rteval-xmlrpc-%{version}
@@ -87,6 +87,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Oct  7 2011 David Sommerseth <dazo@users.sourceforge.net> - 1.5-1
+- Added support for storing data as arrays in PostgreSQL
+- Updated SQL schema to store CPU topology/core spread as an array in the database
+
 * Fri Feb  4 2011 David Sommerseth <dazo@users.sourceforge.net> - 1.4-1
 - Added support for mod_wsgi
 - Updated SQL schema, to add rteval annotations to an explicit database column
