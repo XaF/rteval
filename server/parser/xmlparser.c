@@ -108,7 +108,7 @@ int isNumber(const char * str)
  */
 void init_xmlparser(dbhelper_func const * dbhelpers)
 {
-        xmlparser_dbhelpers = dbhelpers;
+	xmlparser_dbhelpers = dbhelpers;
 }
 
 
@@ -204,7 +204,7 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
  * @return Returns a pointer to a new buffer containing the value on success, otherwise NULL.
  *         This memory buffer must be free'd after usage.
  */
-static char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
+char * sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 	const char *hash = NULL, *isnull = NULL;
 	SHA1Context shactx;
 	uint8_t shahash[SHA1_HASH_SIZE];
@@ -250,7 +250,7 @@ static char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 
 /**
  * Extract the content of a //sqldata/records/record/value[@type='array']/value node set
- * and format it as an PostgreSQL array
+ * and format it in suitable array format for the database backend.
  *
  * @param log    Log context
  * @param sql_n sqldata values node containing the value to extract and format as an array.
@@ -260,55 +260,12 @@ static char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
  */
 static char * sqldataValueArray(LogContext *log, xmlNode *sql_n)
 {
-        char *ret = NULL, *ptr = NULL;
-        xmlNode *node = NULL;
-        size_t retlen = 0;
+	if( xmlparser_dbhelpers == NULL ) {
+		writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+		return NULL;
+	}
 
-        ret = malloc_nullsafe(log, 2);
-        if( ret == NULL ) {
-                writelog(log, LOG_ERR,
-                         "Failed to allocate memory for a new PostgreSQL array");
-                return NULL;
-        }
-        strncat(ret, "{", 1);
-
-        /* Iterate all ./value/value elements and build up a PostgreSQL specific array */
-        foreach_xmlnode(sql_n->children, node) {
-                if( (node->type != XML_ELEMENT_NODE)
-		    || xmlStrcmp(node->name, (xmlChar *) "value") != 0 ) {
-			// Skip uninteresting nodes
-			continue;
-		}
-                ptr = sqldataValueHash(log, node);
-                if( ptr ) {
-                        retlen += strlen(ptr) + 4;
-                        ret = realloc(ret, retlen);
-                        if( ret == NULL ) {
-                                writelog(log, LOG_ERR,
-                                         "Failed to allocate memory to expand "
-                                         "array to include '%s'", ptr);
-                                free_nullsafe(ret);
-                                free_nullsafe(ptr);
-                                return NULL;
-                        }
-                        /* Newer PostgreSQL servers expects numbers to be without quotes */
-                        if( isNumber(ptr) == 0 ) {
-                                /* Data is a string */
-                                strncat(ret, "'", 1);
-                                strncat(ret, ptr, strlen(ptr));
-                                strncat(ret, "',", 2);
-                        } else {
-                                /* Data is a number */
-                                strncat(ret, ptr, strlen(ptr));
-                                strncat(ret, ",", 1);
-                        }
-                        free_nullsafe(ptr);
-                }
-        }
-        /* Replace the last comma with a close-array marker */
-        ret[strlen(ret)-1] = '}';
-        ret[strlen(ret)] = 0;
-        return ret;
+	return xmlparser_dbhelpers->dbh_FormatArray(log, sql_n);
 }
 
 
@@ -367,7 +324,7 @@ int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 
         if( xmlparser_dbhelpers == NULL ) {
                 writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
-                return NULL;
+                return -2;
         }
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "sqldata") != 0) ) {
@@ -546,7 +503,7 @@ int sqldataGetRequiredSchemaVer(LogContext *log, xmlNode *sqldata_root)
 
         if( xmlparser_dbhelpers == NULL ) {
                 writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
-                return NULL;
+                return -1;
         }
 
 	if( !sqldata_root || (xmlStrcmp(sqldata_root->name, (xmlChar *) "sqldata") != 0) ) {

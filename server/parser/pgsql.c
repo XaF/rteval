@@ -44,6 +44,14 @@
 #include <log.h>
 #include <statuses.h>
 
+/** forward declaration, to be able to setup dbhelper_func pointers */
+static char * pgsql_BuildArray(LogContext *log, xmlNode *sql_n);
+
+/** Helper functions the xmlparser might beed */
+static dbhelper_func pgsql_helpers = {
+        .dbh_FormatArray = &(pgsql_BuildArray)
+};
+
 /**
  * Connect to a database, based on the given configuration
  *
@@ -106,7 +114,7 @@ dbconn *db_connect(eurephiaVALUES *cfg, unsigned int id, LogContext *log) {
 	if( dbr ) {
 		PQclear(dbr);
 	}
-
+	init_xmlparser(&pgsql_helpers);
 	return ret;
 }
 
@@ -412,6 +420,61 @@ eurephiaVALUES *pgsql_INSERT(dbconn *dbc, xmlDoc *sqldoc) {
 	free_nullsafe(field_ar);
 	free_nullsafe(field_idx);
 	return res;
+}
+
+/**
+ * @copydoc sqldataValueArray()
+ */
+static char * pgsql_BuildArray(LogContext *log, xmlNode *sql_n) {
+	char *ret = NULL, *ptr = NULL;
+	xmlNode *node = NULL;
+	size_t retlen = 0;
+
+	ret = malloc_nullsafe(log, 2);
+	if( ret == NULL ) {
+		writelog(log, LOG_ERR,
+			 "Failed to allocate memory for a new PostgreSQL array");
+		return NULL;
+	}
+	strncat(ret, "{", 1);
+
+	/* Iterate all ./value/value elements and build up a PostgreSQL specific array */
+	foreach_xmlnode(sql_n->children, node) {
+		if( (node->type != XML_ELEMENT_NODE)
+		    || xmlStrcmp(node->name, (xmlChar *) "value") != 0 ) {
+			// Skip uninteresting nodes
+			continue;
+		}
+		ptr = sqldataValueHash(log, node);
+		if( ptr ) {
+			retlen += strlen(ptr) + 4;
+			ret = realloc(ret, retlen);
+			if( ret == NULL ) {
+				writelog(log, LOG_ERR,
+					 "Failed to allocate memory to expand "
+					 "array to include '%s'", ptr);
+				free_nullsafe(ret);
+				free_nullsafe(ptr);
+				return NULL;
+			}
+			/* Newer PostgreSQL servers expects numbers to be without quotes */
+			if( isNumber(ptr) == 0 ) {
+				/* Data is a string */
+				strncat(ret, "'", 1);
+				strncat(ret, ptr, strlen(ptr));
+				strncat(ret, "',", 2);
+			} else {
+				/* Data is a number */
+				strncat(ret, ptr, strlen(ptr));
+				strncat(ret, ",", 1);
+			}
+			free_nullsafe(ptr);
+		}
+	}
+	/* Replace the last comma with a close-array marker */
+	ret[strlen(ret)-1] = '}';
+	ret[strlen(ret)] = 0;
+	return ret;
 }
 
 
