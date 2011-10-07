@@ -26,7 +26,7 @@
 #
 
 AC_INIT([rteval-xmlrpc], [1.5], [davids@redhat.com])
-SQLSCHEMAVER=1.3
+SQLSCHEMAVER=1.4
 AC_SUBST(SQLSCHEMAVER)
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

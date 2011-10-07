@@ -27,6 +27,7 @@ dist_doc_DATA = parser/README.parser 	\
 	sql/delta-1.0_1.1.sql 		\
 	sql/delta-1.1_1.2.sql 		\
 	sql/delta-1.2_1.3.sql 		\
+	sql/delta-1.3_1.4.sql 		\
 	sql/rteval-$(SQLSCHEMAVER).sql
 
 apache-rteval.conf:
