@@ -73,6 +73,10 @@ class Hackbench(load.Load):
     def build(self):
         self.ready = True
 
+    def start_hackbench(self, inf, outf, errf):
+        self.debug("running: %s" % " ".join(self.args))
+        return subprocess.Popen(self.args, stdin=inf, stdout=outf, stderr=errf)
+
     def runload(self):
         # if we don't have any jobs just wait for the stop event and return
         if self.jobs == 0:
@@ -86,12 +90,13 @@ class Hackbench(load.Load):
             out = err = null
         self.debug("starting loop (jobs: %d)" % self.jobs)
 
+        p = self.start_hackbench(null, out, err)
         while not self.stopevent.isSet():
             try:
-                p = subprocess.Popen(self.args, stdin=out, stdout=out, stderr=err)
-                time.sleep(1.0)
+                # if poll() returns an exit status, restart
                 if p.poll() != None:
-                    p.wait()
+                    p = self.start_hackbench(null, out, err)
+                time.sleep(1.0)
             except OSError, e:
                 if e.errno != errno.ENOMEM:
                     raise
