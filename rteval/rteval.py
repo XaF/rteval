@@ -680,6 +680,7 @@ class RtEval(object):
             self.loads.append(m.create(self.config.GetSection(m.__name__)))
 
         if not onlyload:
+            self.config.AppendConfig('cyclictest', params)
             self.info("setting up cyclictest")
             self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
 
