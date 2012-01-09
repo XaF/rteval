@@ -34,7 +34,7 @@ MANDIR	:=	$(DESTDIR)/$(PREFIX)/share/man
 PYLIB	:= 	$(DESTDIR)$(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 LOADDIR	:=	loadsource
 
-KLOAD	:=	$(LOADDIR)/linux-2.6.26.1.tar.bz2
+KLOAD	:=	$(LOADDIR)/linux-2.6.39.tar.bz2
 BLOAD	:=	$(LOADDIR)/dbench-4.0.tar.gz
 LOADS	:=	$(KLOAD) $(BLOAD)
 
