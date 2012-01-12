@@ -39,6 +39,16 @@ typedef struct {
         unsigned int rterid;          /**< References rtevalruns.rterid */
 } parseParams;
 
+
+/**
+ *  Database specific helper functions
+ */
+typedef struct {
+        char *(*dbh_FormatArray)(LogContext *log, xmlNode *sql_n); /** Formats data as arrays */
+} dbhelper_func;
+
+void init_xmlparser(dbhelper_func const * dbhelpers);
+char * sqldataValueHash(LogContext *log, xmlNode *sql_n);
 xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params);
 char *sqldataExtractContent(LogContext *log, xmlNode *sql_n);
 int sqldataGetFid(LogContext *log, xmlNode *sqld, const char *fname);
@@ -46,4 +56,5 @@ char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int reci
 xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			   int syskey, char **hostname, char **ipaddr);
 int sqldataGetRequiredSchemaVer(LogContext *log, xmlNode *sqldata_root);
+
 #endif

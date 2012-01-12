@@ -23,6 +23,9 @@
 <xsl:stylesheet  version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes"/>
 
+  <!-- Used for iterating CPU topology information -->
+  <xsl:key name="pkgkey" match="cpu" use="@physical_package_id"/>
+
   <xsl:template match="/rteval">
     <xsl:choose>
       <!-- TABLE: systems -->
@@ -132,13 +135,15 @@
             <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
           </xsl:message>
         </xsl:if>
-        <sqldata schemaver="1.2" table="rtevalruns_details">
+        <sqldata schemaver="1.4" table="rtevalruns_details">
           <fields>
             <field fid="0">rterid</field>
             <field fid="1">numa_nodes</field>
             <field fid="2">num_cpu_cores</field>
             <field fid="3">num_cpu_sockets</field>
             <field fid="4">xmldata</field>
+            <field fid="5">annotation</field>
+            <field fid="6">cpu_core_spread</field>
           </fields>
           <records>
             <record>
@@ -159,11 +164,19 @@
               </value>
               <value fid="4" type="xmlblob">
                 <rteval_details>
-                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line|run_info/annotate"/>
+                  <xsl:copy-of select="clocksource|services|kthreads|network_config|loads|cyclictest/command_line"/>
                   <hardware>
                     <xsl:copy-of select="hardware/memory_size|hardware/cpu_topology"/>
                   </hardware>
                 </rteval_details>
+              </value>
+              <value fid="5"><xsl:value-of select="run_info/annotate"/></value>
+              <value fid="6" type="array">
+                <xsl:for-each select="hardware/cpu_topology/cpu[generate-id() = generate-id(key('pkgkey', @physical_package_id)[1])]">
+                  <xsl:call-template name="count_core_spread">
+                    <xsl:with-param name="pkgid" select="@physical_package_id"/>
+                  </xsl:call-template>
+                </xsl:for-each>
               </value>
             </record>
           </records>
@@ -287,5 +300,13 @@
 	<value fid="2"><xsl:value-of select="@index"/></value>
 	<value fid="3"><xsl:value-of select="@value"/></value>
       </record>
+  </xsl:template>
+
+  <!-- Helper "function" for generating a core per physical socket spread overview -->
+  <xsl:template name="count_core_spread">
+    <xsl:param name="pkgid"/>
+    <value>
+      <xsl:value-of select="count(/rteval/hardware/cpu_topology/cpu[@physical_package_id = $pkgid])"/>
+    </value>
   </xsl:template>
 </xsl:stylesheet>

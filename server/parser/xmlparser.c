@@ -42,6 +42,8 @@
 #include <sha1.h>
 #include <log.h>
 
+static dbhelper_func const * xmlparser_dbhelpers = NULL;
+
 /**
  * Simple strdup() function which encapsulates the string in single quotes,
  * which is needed for XSLT parameter values
@@ -84,6 +86,33 @@ static char *encapsInt(const unsigned int val) {
 
 
 /**
+ * Simple function to determine if the given string is a number or not
+ *
+ * @param str Pointer to the tring to be checked
+ *
+ * @returns Returns 0 if not a number and a non-null value if it is a number
+ */
+int isNumber(const char * str)
+{
+    char *ptr = NULL;
+
+    if (str == NULL || *str == '\0' || isspace(*str))
+      return 0;
+
+    strtod (str, &ptr);
+    return *ptr == '\0';
+}
+
+/**
+ * Initialise the XML parser, setting some global variables
+ */
+void init_xmlparser(dbhelper_func const * dbhelpers)
+{
+	xmlparser_dbhelpers = dbhelpers;
+}
+
+
+/**
  * Parses any XML input document into a sqldata XML format which can be used by pgsql_INSERT().
  * The transformation must be defined in the input XSLT template.
  *
@@ -99,6 +128,11 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
         char *xsltparams[10];
         unsigned int idx = 0, idx_table = 0, idx_submid = 0,
 		idx_syskey = 0, idx_rterid = 0, idx_repfname = 0;
+
+        if( xmlparser_dbhelpers == NULL ) {
+                writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+                return NULL;
+        }
 
         if( params->table == NULL ) {
                 writelog(log, LOG_ERR, "Table is not defined");
@@ -170,16 +204,17 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
  * @return Returns a pointer to a new buffer containing the value on success, otherwise NULL.
  *         This memory buffer must be free'd after usage.
  */
-static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
+char * sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 	const char *hash = NULL, *isnull = NULL;
 	SHA1Context shactx;
 	uint8_t shahash[SHA1_HASH_SIZE];
 	char *ret = NULL, *ptr = NULL;
 	int i;
 
-	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
-	    || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") != 0) ) {
-		    return NULL;
+	if( !(sql_n && (xmlStrcmp(sql_n->name, (xmlChar *) "value") == 0)
+              && (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") == 0)
+              || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "value") == 0)) ) {
+                return NULL;
 	}
 
 	isnull = xmlGetAttrValue(sql_n->properties, "isnull");
@@ -214,6 +249,27 @@ static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
 
 
 /**
+ * Extract the content of a //sqldata/records/record/value[@type='array']/value node set
+ * and format it in suitable array format for the database backend.
+ *
+ * @param log    Log context
+ * @param sql_n sqldata values node containing the value to extract and format as an array.
+ *
+ * @return Returns a pointer to a new memory buffer containing the value as a string.
+ *         On errors, NULL is returned.  This memory buffer must be free'd after usage.
+ */
+static char * sqldataValueArray(LogContext *log, xmlNode *sql_n)
+{
+	if( xmlparser_dbhelpers == NULL ) {
+		writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+		return NULL;
+	}
+
+	return xmlparser_dbhelpers->dbh_FormatArray(log, sql_n);
+}
+
+
+/**
  * Extract the content of a '//sqldata/records/record/value' node.  It will consider
  * both the 'hash' and 'type' attributes of the 'value' tag.
  *
@@ -225,6 +281,11 @@ static inline char *sqldataValueHash(LogContext *log, xmlNode *sql_n) {
  */
 char *sqldataExtractContent(LogContext *log, xmlNode *sql_n) {
 	const char *valtype = xmlGetAttrValue(sql_n->properties, "type");
+
+        if( xmlparser_dbhelpers == NULL ) {
+                writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+                return NULL;
+        }
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "value") != 0)
 	    || (xmlStrcmp(sql_n->parent->name, (xmlChar *) "record") != 0) ) {
@@ -239,6 +300,8 @@ char *sqldataExtractContent(LogContext *log, xmlNode *sql_n) {
 			chld_n = chld_n->next;
 		}
 		return xmlNodeToString(log, chld_n);
+        } else if( valtype && (strcmp(valtype, "array") == 0) ) {
+                return sqldataValueArray(log, sql_n);
 	} else {
 		return sqldataValueHash(log, sql_n);
 	}
@@ -258,6 +321,11 @@ char *sqldataExtractContent(LogContext *log, xmlNode *sql_n) {
  */
 int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 	xmlNode *f_n = NULL;
+
+        if( xmlparser_dbhelpers == NULL ) {
+                writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+                return -2;
+        }
 
 	if( !sql_n || (xmlStrcmp(sql_n->name, (xmlChar *) "sqldata") != 0) ) {
 		writelog(log, LOG_ERR,
@@ -309,6 +377,11 @@ int sqldataGetFid(LogContext *log, xmlNode *sql_n, const char *fname) {
 char *sqldataGetValue(LogContext *log, xmlDoc *sqld, const char *fname, int recid ) {
 	xmlNode *r_n = NULL;
 	int fid = -3, rc = 0;
+
+        if( xmlparser_dbhelpers == NULL ) {
+                writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+                return NULL;
+        }
 
 	if( recid < 0 ) {
 		writelog(log, LOG_ERR, "sqldataGetValue: Invalid recid");
@@ -384,6 +457,11 @@ xmlDoc *sqldataGetHostInfo(LogContext *log, xsltStylesheet *xslt, xmlDoc *summar
 	xmlDoc *hostinfo_d = NULL;
 	parseParams prms;
 
+        if( xmlparser_dbhelpers == NULL ) {
+                writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+                return NULL;
+        }
+
 	memset(&prms, 0, sizeof(parseParams));
 	prms.table = "systems_hostname";
 	prms.syskey = syskey;
@@ -422,6 +500,11 @@ int sqldataGetRequiredSchemaVer(LogContext *log, xmlNode *sqldata_root)
 {
 	char *schver = NULL, *cp = NULL, *ptr = NULL;
 	int majv = 0, minv = 0;
+
+        if( xmlparser_dbhelpers == NULL ) {
+                writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
+                return -1;
+        }
 
 	if( !sqldata_root || (xmlStrcmp(sqldata_root->name, (xmlChar *) "sqldata") != 0) ) {
 		writelog(log, LOG_ERR, "sqldataGetRequiredSchemaVer: Invalid document node");

@@ -1,6 +1,6 @@
 Name:		rteval-parser
-Version:	1.3
-%define sqlschemaver 1.2
+Version:	1.5
+%define sqlschemaver 1.4
 Release:	1%{?dist}
 Summary:	Report parser daemon for  rteval XML-RPC
 %define pkgname rteval-xmlrpc-%{version}
@@ -12,7 +12,7 @@ Source0:	%{pkgname}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:	postgresql-devel libxml2-devel libxslt-devel
-Requires:	postgresql httpd mod_python
+Requires:	postgresql httpd mod_wsgi
 Requires(post): chkconfig
 Requires(preun): chkconfig
 Requires(preun): /sbin/service
@@ -87,6 +87,14 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Oct  7 2011 David Sommerseth <dazo@users.sourceforge.net> - 1.5-1
+- Added support for storing data as arrays in PostgreSQL
+- Updated SQL schema to store CPU topology/core spread as an array in the database
+
+* Fri Feb  4 2011 David Sommerseth <dazo@users.sourceforge.net> - 1.4-1
+- Added support for mod_wsgi
+- Updated SQL schema, to add rteval annotations to an explicit database column
+
 * Fri Apr  9 2010 David Sommerseth <davids@redhat.com> - 1.3-1
 - Updated XML-RPC server, added Hello method
 

@@ -1,6 +1,6 @@
 #   configure.ac - autotools configuration file
 #
-#   Copyright 2009   David Sommerseth <davids@redhat.com>
+#   Copyright 2009-2011   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
 #   To create the ./configure script you need to run 'autoreconf --install'
 #
 
-AC_INIT([rteval-xmlrpc], [1.3], [davids@redhat.com])
-SQLSCHEMAVER=1.2
+AC_INIT([rteval-xmlrpc], [1.5], [davids@redhat.com])
+SQLSCHEMAVER=1.4
 AC_SUBST(SQLSCHEMAVER)
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
@@ -39,6 +39,14 @@ AC_ARG_WITH([xmlrpc-webroot],
 )
 AC_SUBST(XMLRPCROOT)
 AM_CONDITIONAL([ENAB_XMLRPC], [test ! -z $XMLRPCROOT])
+
+AC_ARG_ENABLE([mod-python],
+        [AS_HELP_STRING([--with-mod-python],
+                        [Enable the older mod_python support instead of mod_wsgi])],
+        [MODPYTHON="$enableval"]
+)
+AC_SUBST(MODPYTHON)
+AM_CONDITIONAL([ENAB_MODPYTHON], [test ! -z $MODPYTHON])
 
 # Simple macro to abort on missing functions in libraries
 AC_DEFUN([AX_msgMISSINGFUNC], AC_MSG_ERROR([Could not find function in library.  Aborting]))
