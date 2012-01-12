@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.33
+Version:	1.34
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,11 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Mon Jan 12 2012 Clark Williams <williams@redhat.com> - 1.34-1
+- fix missing config merge in rteval.py to pass parameters
+  down to cyclictest
+- modify hackbench to use helper function to start process
+
 * Sat May 14 2011 Clark Williams <williams@redhat.com> - 1.33-1
 - modify hackbench cutoff to be 0.75GB/core
 
