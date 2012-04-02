@@ -8,8 +8,8 @@
 #           latency while the loads are running. A report is generated
 #           to show the latencies encountered during the run.
 #
-#   Copyright 2009,2010,2011   Clark Williams <williams@redhat.com>
-#   Copyright 2009,2010,2011   David Sommerseth <davids@redhat.com>
+#   Copyright 2009,2010,2011,2012   Clark Williams <williams@redhat.com>
+#   Copyright 2009,2010,2011,2012   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -716,8 +716,8 @@ class RtEval(object):
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
             # wait for time to expire or thread to die
-#            signal.signal(signal.SIGINT, sigint_handler)
-#            signal.signal(signal.SIGTERM, sigterm_handler)
+            signal.signal(signal.SIGINT, sigint_handler)
+            signal.signal(signal.SIGTERM, sigterm_handler)
             self.info("waiting for duration (%f)" % self.config.duration)
             stoptime = (time.time() + self.config.duration)
             currtime = time.time()
@@ -748,8 +748,8 @@ class RtEval(object):
                     print "load average: %.2f" % (accum / samples)
                 currtime = time.time()
             self.debug("out of measurement loop")
-#            signal.signal(signal.SIGINT, signal.SIG_DFL)
-#            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
                 
         except RuntimeError, e:
             print "Runtime error during measurement: %s", e
