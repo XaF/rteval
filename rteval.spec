@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.34
+Version:	1.35
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Mon Apr  2 2012 Clark Williams <williams@redhat.com> - 1.35-1
+- fix thinko where SIGINT and SIGTERM handlers were commented out
+
 * Mon Jan 12 2012 Clark Williams <williams@redhat.com> - 1.34-1
 - fix missing config merge in rteval.py to pass parameters
   down to cyclictest

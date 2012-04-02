@@ -74,7 +74,7 @@ def sigterm_handler(signum, frame):
 
 class RtEval(object):
     def __init__(self, cmdargs):
-        self.version = "1.34"
+        self.version = "1.35"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.reportdir = os.getcwd()
