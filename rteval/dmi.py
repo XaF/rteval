@@ -31,10 +31,19 @@ sys.pathconf = "."
 import xmlout
 import libxml2
 import libxslt
-import dmidecode
+
+try:
+    import dmidecode
+except:
+    class dmidecode(object):
+        fake = 1
+        def __init__(self):
+            pass
+        
 
 def ProcessWarnings():
-    if not hasattr(dmidecode, 'get_warnings'):
+    
+    if hasattr(dmidecode, "fake") or not hasattr(dmidecode, 'get_warnings'):
         return
 
     warnings = dmidecode.get_warnings()
@@ -63,6 +72,9 @@ class DMIinfo(object):
         self.smbios = None
         self.sharedir = config.installdir
 
+        if hasattr(dmidecode, "fake"):
+            return
+
         self.dmixml = dmidecode.dmidecodeXML()
         self.smbios = dmidecode.dmi.replace('SMBIOS ', '').replace(' present', '')
 
@@ -79,6 +91,8 @@ class DMIinfo(object):
             raise RuntimeError, 'Could not locate XSLT template for DMI data (%s)' % fname
 
     def genxml(self, xml):
+        if hasattr(dmidecode, "fake"):
+            return
         self.dmixml.SetResultType(dmidecode.DMIXML_DOC)
         resdoc = self.xsltparser.applyStylesheet(self.dmixml.QuerySection('all'), None)
         node = resdoc.getRootElement().copyNode(1)
