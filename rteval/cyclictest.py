@@ -40,7 +40,7 @@ class RunData(object):
     def __init__(self, id, type, priority):
         self.id = id
         self.type = type
-        self.priority = priority
+        self.priority = int(priority)
         self.description = ''
         # histogram of data
         self.samples = {}
@@ -213,12 +213,12 @@ class Cyclictest(Thread):
                     '-qm', 
                     '-d0', 
                     '-h %d' % buckets,
-                    "-p%d" % self.priority,
+                    "-p%d" % int(self.priority),
                     self.getmode(),
                     ]
 
         if self.threads:
-            self.cmd.append("-t%d" % self.threads)
+            self.cmd.append("-t%d" % int(self.threads))
 
         self.debug("starting with cmd: %s" % " ".join(self.cmd))
         null = os.open('/dev/null', os.O_RDWR)
