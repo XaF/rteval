@@ -63,6 +63,17 @@ import rtevalMailer
 from cputopology import CPUtopology
 
 
+pathSave={}
+def getcmdpath(which):
+    if not pathSave.has_key(which):
+        cmd = '/usr/bin/which %s' % which
+        c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        pathSave[which] = c.stdout.read().strip()
+        if not pathSave[which]:
+            raise RuntimeError, "Command '%s' is unknown on this system" % which
+    return pathSave[which]
+
+
 sigint_received = False
 def sigint_handler(signum, frame):
     global sigint_received
@@ -249,7 +260,7 @@ class RtEval(object):
         policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
         ret_kthreads = {}
         self.debug("getting kthread status")
-        cmd = '/bin/ps -eocommand,pid,policy,rtprio,comm'
+        cmd = '%s -eocommand,pid,policy,rtprio,comm' % getcmdpath('ps')
         self.debug("cmd: %s" % cmd)
         c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         for p in c.stdout:
