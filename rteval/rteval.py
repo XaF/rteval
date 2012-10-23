@@ -48,6 +48,9 @@ import signal
 import rtevalclient
 import ethtool
 import xmlrpclib
+import platform
+import fnmatch
+import glob
 from datetime import datetime
 from distutils import sysconfig
 
@@ -92,6 +95,7 @@ class RtEval(object):
         self.inifile = None
         self.cmd_options = {}
         self.start = datetime.now()
+        self.init = 'unknown'
 
         default_config = {
             'rteval': {
@@ -239,22 +243,61 @@ class RtEval(object):
                     topology.getCPUsockets()))
         return topology.getXMLdata()
 
-
+    def __get_services_sysvinit(self):
+        reject = ('functions', 'halt', 'killall', 'single', 'linuxconf', 'kudzu',
+                  'skeleton', 'README', '*.dpkg-dist', '*.dpkg-old', 'rc', 'rcS',
+                  'single', 'reboot', 'bootclean.sh')
+        for sdir in ('/etc/init.d', '/etc/rc.d/init.d'):
+            if os.path.isdir(sdir):
+                servicesdir = sdir
+                break
+        if not servicesdir:
+            raise RuntimeError, "No services dir (init.d) found on your system"
+        self.debug("Services located in %s, going through each service file to check status" % servicesdir)
+        ret_services = {}
+        for service in glob.glob(os.path.join(servicesdir, '*')):
+            servicename = os.path.basename(service)
+            if not [1 for p in reject if fnmatch.fnmatch(servicename, p)] and os.access(service, os.X_OK):
+                cmd = '%s -qs "\(^\|\W\)status)" %s' % (getcmdpath('grep'), service)
+                c = subprocess.Popen(cmd, shell=True)
+                c.wait()
+                if c.returncode == 0:
+                    cmd = ['env', '-i', 'LANG="%s"' % os.environ['LANG'], 'PATH="%s"' % os.environ['PATH'], 'TERM="%s"' % os.environ['TERM'], service, 'status']
+                    c = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    c.wait()
+                    if c.returncode == 0 and (c.stdout.read() or c.stderr.read()):
+                        ret_services[servicename] = 'running'
+                    else:
+                        ret_services[servicename] = 'not running'
+                else:
+                    ret_services[servicename] = 'unknown'
+        return ret_services
+        
+    def __get_services_systemd(self):
+        ret_services = {}
+        cmd = '%s list-unit-files -t service --no-legend' % getcmdpath('systemctl')
+        self.debug("cmd: %s" % cmd)
+        c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for p in c.stdout:
+            # p are lines like "servicename.service status"
+            v = p.strip().split()
+            ret_services[v[0].split('.')[0]] = v[1]
+        return ret_services
 
     def get_services(self):
-        rejects = ('capi', 'firstboot', 'functions', 'halt', 'iptables', 'ip6tables', 
-                   'killall', 'lm_sensors', 'microcode_ctl', 'network', 'ntpdate', 
-                   'rtctl', 'udev-post')
-        service_list = filter(lambda x: x not in rejects, os.listdir('/etc/rc.d/init.d'))
-        ret_services = {}
-        self.debug("getting services status")
-        for s in service_list:
-            cmd = ['/sbin/service', s, 'status']
-            c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-            status = c.stdout.read().strip().translate(self.transtable, self.junk)
-            ret_services[s] = status
-        return ret_services
-            
+        cmd = [getcmdpath('ps'), '-ocomm=',  '1']
+        c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        self.init = c.stdout.read().strip()
+        if self.init == 'systemd':
+            self.debug("Using systemd to get services status")
+            return self.__get_services_systemd()
+        elif self.init == 'init':
+            self.init = 'sysvinit'
+            self.debug("Using sysvinit to get services status")
+            return self.__get_services_sysvinit()
+        else:
+            raise RuntimeError, "Unknown init system (%s)" % self.init
+        return {}
 
     def get_kthreads(self):
         policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
@@ -434,7 +477,7 @@ class RtEval(object):
         self.xmlreport.taggedvalue('memory_size', "%.3f" % self.memsize[0], {"unit": self.memsize[1]})
         self.xmlreport.closeblock()
 
-        self.xmlreport.openblock('services')
+        self.xmlreport.openblock('services', {'init': self.init})
         for s in self.services:
             self.xmlreport.taggedvalue("service", self.services[s], {"name": s})
         self.xmlreport.closeblock()
