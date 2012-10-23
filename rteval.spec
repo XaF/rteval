@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.35
+Version:	1.36
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -71,6 +71,14 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Tue Oct 23 2012 Clark Williams <williams@redhat.com> - 1.36-1
+- deal with system not having dmidecode python module
+- make sure to cast priority parameter to int
+- from Raphaël Beamonte <raphael.beamonte@gmail.com>:
+  - Rewrite of the get_kthreads method to make it cross-distribution
+  - Adds getcmdpath method to use which to locate the used commands
+  - Rewrite of the get_services method to make it cross-distribution
+
 * Mon Apr  2 2012 Clark Williams <williams@redhat.com> - 1.35-1
 - fix thinko where SIGINT and SIGTERM handlers were commented out
 
