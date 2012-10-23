@@ -248,16 +248,15 @@ class RtEval(object):
     def get_kthreads(self):
         policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
         ret_kthreads = {}
-        if not os.path.exists('/etc/rc.d/init.d/rtctl'):
-            return ret_kthreads
         self.debug("getting kthread status")
-        cmd = '/sbin/service rtctl status'
+        cmd = '/bin/ps -eocommand,pid,policy,rtprio,comm'
         self.debug("cmd: %s" % cmd)
         c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         for p in c.stdout:
             v = p.strip().split()
+            kcmd = v.pop(0)
             try:
-                if int(v[0]) > 0:
+                if int(v[0]) > 0 and kcmd.startswith('[') and kcmd.endswith(']'):
                     ret_kthreads[v[0]] = {'policy' : policies[v[1]], 
                                           'priority' : v[2], 'name' : v[3] }
             except ValueError:
