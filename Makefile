@@ -5,6 +5,7 @@ D	:=	10
 PYSRC	:=	rteval/rteval.py 	\
 		rteval/cputopology.py	\
 		rteval/cyclictest.py 	\
+		rteval/HWLatDetect.py 	\
 		rteval/dmi.py 		\
 		rteval/hackbench.py 	\
 		rteval/__init__.py 	\

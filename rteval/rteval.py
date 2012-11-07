@@ -59,6 +59,7 @@ sys.path.insert(0, "./rteval")
 import util
 import load
 import cyclictest
+import HWLatDetect
 import xmlout
 import dmi
 import rtevalConfig
@@ -385,6 +386,10 @@ class RtEval(object):
                           action='store_true', default=False,
                           help="only run the loads (don't run measurement threads)")
 
+        parser.add_option("--hwlatdetect", dest="hwlatdetect",
+                          action='store_true', default=False,
+                          help="Run hardware latency detect afterwards")
+
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
             mult = 1.0
@@ -557,7 +562,7 @@ class RtEval(object):
                                              {'ipaddr': ip6.address,
                                               'netmask': ip6.netmask,
                                               'scope': ip6.scope}
-                                             )
+                                           )
                     self.xmlreport.closeblock()
                 self.xmlreport.closeblock()
         else: # Fall back to older python-ethtool API (version < 0.4)
@@ -584,6 +589,8 @@ class RtEval(object):
             load.genxml(self.xmlreport)
         self.xmlreport.closeblock()
         self.cyclictest.genxml(self.xmlreport)
+        if self.cmd_options.hwlatdetect:
+            self.__hwlat.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
         d = dmi.DMIinfo(self.config.GetSection('rteval'))
@@ -816,7 +823,13 @@ class RtEval(object):
             # stop the loads
             self.stop_loads()
 
+        if self.cmd_options.hwlatdetect:
+            self.__hwlat = HWLatDetect.HWLatDetectRunner(self.config.GetSection('hwlatdetect'))
+            self.info("Running hwlatdetect")
+            self.__hwlat.run()
+
         print "stopping run at %s" % time.asctime()
+
         if not onlyload:
             # wait for cyclictest to finish calculating stats
             self.cyclictest.finished.wait()
@@ -824,6 +837,7 @@ class RtEval(object):
             self.report()
             if self.config.sysreport:
                 self.run_sysreport()
+
 
 
     def XMLRPC_Send(self):

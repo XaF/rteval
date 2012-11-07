@@ -114,7 +114,7 @@
    <!--                                                                        -->
    <!--       select="cyclictest|new_foo_section|another_section"              -->
    <!--                                                                        -->
-   <xsl:apply-templates select="cyclictest"/>
+   <xsl:apply-templates select="cyclictest|hwlatdetect[@format='1.0']"/>
    <xsl:text>  ===================================================================&#10;</xsl:text>
 </xsl:template>
   <!--                              -->
@@ -225,4 +225,36 @@
 
   </xsl:template>
 
+
+  <!-- Format the hwlatdetect test section of the report -->
+  <xsl:template match="/rteval/hwlatdetect[@format='1.0']">
+    <xsl:text>  Hardware latency detector&#10;</xsl:text>
+
+    <xsl:text>       Run duration: </xsl:text>
+    <xsl:value-of select="RunParams/@duration"/>
+    <xsl:text> seconds&#10;</xsl:text>
+
+    <xsl:text>       Threshold:    </xsl:text>
+    <xsl:value-of select="RunParams/@threshold"/>
+    <xsl:text>ms&#10;</xsl:text>
+
+    <xsl:text>       Width:       </xsl:text>
+    <xsl:value-of select="RunParams/@width"/>
+    <xsl:text>ms&#10;</xsl:text>
+
+    <xsl:text>       Window size: </xsl:text>
+    <xsl:value-of select="RunParams/@window"/>
+    <xsl:text>ms&#10;&#10;</xsl:text>
+
+    <xsl:text>       Threshold exceeded </xsl:text>
+    <xsl:value-of select="samples/@count"/>
+    <xsl:text> times&#10;</xsl:text>
+    <xsl:apply-templates select="samples/sample"/>
+  </xsl:template>
+
+  <xsl:template match="/rteval/hwlatdetect[@format='1.0']/samples/sample">
+    <xsl:text>         - </xsl:text>
+    <xsl:value-of select="."/>
+    <xsl:text>&#10;</xsl:text>
+  </xsl:template>
 </xsl:stylesheet>
