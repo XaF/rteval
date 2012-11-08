@@ -39,6 +39,28 @@ typedef struct {
         unsigned int rterid;          /**< References rtevalruns.rterid */
 } parseParams;
 
+/**
+ * Container for string arrays
+ */
+typedef struct {
+        unsigned int size;
+        char **data;
+} array_str_t;
+
+array_str_t * strSplit(const char * str, const char * sep);
+inline char * strGet(array_str_t * ar, unsigned int el);
+inline unsigned int strSize(array_str_t * ar);
+void strFree(array_str_t * ar);
+
+/** Simple for-loop iterator for array_str_t objects
+ *
+ * @param ptr Return pointer (char *) where the element data is returned
+ * @param idx Element index counter, declares where it should start and can be used
+ *            to track the iteration process.  Must be an int variable
+ * @param ar  The array_str_t object to iterate
+ */
+#define for_array_str(ptr, idx, ar) for( ptr = ar->data[idx]; idx++ < ar->size; \
+                                         ptr=(idx < ar->size ? ar->data[idx] : NULL) )
 
 /**
  *  Database specific helper functions

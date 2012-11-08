@@ -103,6 +103,92 @@ int isNumber(const char * str)
     return *ptr == '\0';
 }
 
+
+/**
+ * Split a string into an array.
+ * Use strGet() to extract the results and strFree() to free the memory
+ * allocated by strSplit()
+ *
+ * @param str Input string
+ * @param sep Separator list (string)
+ *
+ * @returns Returns a pointer to a array_str_t struct on success, otherwise NULL
+ */
+array_str_t * strSplit(const char * str, const char * sep)
+{
+        array_str_t * ret = calloc(1, sizeof(array_str_t));
+        char * p = NULL, *cp = strdup(str);
+
+        if( !ret || !cp ) {
+                fprintf(stderr, "Memory allocation error in strSplit()\n");
+                return NULL;
+        }
+
+        p = strtok(cp, sep);
+        while( p ) {
+                ret->data = realloc(ret->data, sizeof(char *) * ++(ret->size));
+                if( !ret->data ) {
+                        fprintf(stderr, "Memory allocation error in strSplit() while parsing\n");
+                        free(ret);
+                        return NULL;
+                }
+                ret->data[ret->size-1] = strdup(p);
+                p = strtok(NULL, sep);
+        }
+        free(cp);
+        return ret;
+}
+
+/**
+ * Retrieve an array memeber
+ *
+ * @param ar Pointer holding the array_str_t data
+ * @param el Element number to retrive
+ *
+ * @returns Returns a pointer to the array member.  This value must never be freed.
+ * On failure NULL is returned.  Only possible failures are out-of-range or a NULL
+ * array input.
+ */
+inline char * strGet(array_str_t * ar, unsigned int el)
+{
+        return (!ar && (el > ar->size) ? NULL : ar->data[el]);
+}
+
+/**
+ * Retrive number of accessible array members
+ *
+ * @param ar Pointer holding the array_str_t data
+ *
+ * @returns Returns the number of elements in the array_str_t struct.
+ *          If a NULL pointer is given, it will return 0.
+ */
+inline unsigned int strSize(array_str_t * ar)
+{
+        return (!ar ? 0 : ar->size);
+}
+
+/**
+ * Frees up the memory held by an array_str_t struct.
+ *
+ * @params ar Pointer holding the array_str_t data to be freed
+ *
+ */
+void strFree(array_str_t * ar)
+{
+        int i = 0;
+
+        if( !ar ) {
+                return;
+        }
+
+        for( i = 0; i < ar->size; i++ ) {
+                free(ar->data[i]);
+                ar->data[i] = NULL;
+        }
+        free(ar->data); ar->data = NULL;
+        free(ar);
+}
+
 /**
  * Initialise the XML parser, setting some global variables
  */
