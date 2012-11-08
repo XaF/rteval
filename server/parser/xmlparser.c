@@ -211,9 +211,11 @@ void init_xmlparser(dbhelper_func const * dbhelpers)
  */
 xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, parseParams *params) {
         xmlDoc *result_d = NULL;
-        char *xsltparams[10];
+        char **xsltparams = NULL;
         unsigned int idx = 0, idx_table = 0, idx_submid = 0,
 		idx_syskey = 0, idx_rterid = 0, idx_repfname = 0;
+
+        xsltparams = calloc(10, sizeof(char *));
 
         if( xmlparser_dbhelpers == NULL ) {
                 writelog(log, LOG_ERR, "Programming error: xmlparser is not initialised");
@@ -276,6 +278,7 @@ xmlDoc *parseToSQLdata(LogContext *log, xsltStylesheet *xslt, xmlDoc *indata_d, 
                 free(xsltparams[idx_repfname]);
         }
 
+        free(xsltparams);
         return result_d;
 }
 
