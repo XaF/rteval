@@ -71,7 +71,8 @@ class HWLatDetectRunner(object):
                        'duration': self.__hwlat.testduration}
                       )
         sn = libxml2.newNode('samples')
-        sn.newProp('count', str(self.__exceeding))
+        sn.newProp('exceeding', str(self.__exceeding))
+        sn.newProp('count', str(len(self.__samples)))
         for s in self.__samples:
             n = libxml2.newNode('sample')
             n.newProp('timestamp', s[0])
