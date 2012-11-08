@@ -59,7 +59,7 @@ class HWLatDetectRunner(object):
         # Copy out the results
         self.__exceeding = self.__hwlat.get("count")
         for s in self.__hwlat.samples:
-            self.__samples.append(s)
+            self.__samples.append(s.split('\t'))
 
 
     def genxml(self, x):
@@ -74,7 +74,8 @@ class HWLatDetectRunner(object):
         sn.newProp('count', str(self.__exceeding))
         for s in self.__samples:
             n = libxml2.newNode('sample')
-            n.addContent(str(s))
+            n.newProp('timestamp', s[0])
+            n.newProp('duration', s[1])
             sn.addChild(n)
         x.AppendXMLnodes(sn)
         x.closeblock()

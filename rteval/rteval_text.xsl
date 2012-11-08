@@ -253,8 +253,10 @@
   </xsl:template>
 
   <xsl:template match="/rteval/hwlatdetect[@format='1.0']/samples/sample">
-    <xsl:text>         - </xsl:text>
-    <xsl:value-of select="."/>
-    <xsl:text>&#10;</xsl:text>
+    <xsl:text>         - @</xsl:text>
+    <xsl:value-of select="@timestamp"/>
+    <xsl:text>  </xsl:text>
+    <xsl:value-of select="@duration"/>
+    <xsl:text>us&#10;</xsl:text>
   </xsl:template>
 </xsl:stylesheet>
