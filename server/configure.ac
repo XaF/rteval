@@ -83,6 +83,7 @@ if test "$XSLTCFG" = :; then
 else
    AC_SUBST([LIBXSLT_INC], [$(xslt-config --cflags)])
    CPPFLAGS="$CPPFLAGS $LIBXSLT_INC"
+   LDFLAGS="$LDFLAGS -lexslt"
 fi
 AC_CHECK_HEADERS([libxslt/xsltInternals.h])
 AC_CHECK_HEADERS([libxslt/transform.h])
@@ -92,6 +93,7 @@ AC_CHECK_LIB([xslt], [xsltCleanupGlobals], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CHECK_LIB([xslt], [xsltParseStylesheetFile], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CHECK_LIB([xslt], [xsltApplyStylesheet], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CHECK_LIB([xslt], [xsltFreeStylesheet], [DUMMY=], AX_msgMISSINGFUNC())
+AC_CHECK_LIB([exslt], [exsltRegisterAll], [DUMMY=], AX_msgMISSINGFUNC())
 
 # Check for libpq
 AC_CHECK_PROGS([PGSQLCFG], [pg_config], [:])

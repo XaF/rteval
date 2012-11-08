@@ -35,6 +35,7 @@
 #include <libxslt/xsltInternals.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
+#include <libexslt/exslt.h>
 
 #include <eurephia_nullsafe.h>
 #include <eurephia_xml.h>
@@ -195,6 +196,10 @@ void strFree(array_str_t * ar)
 void init_xmlparser(dbhelper_func const * dbhelpers)
 {
 	xmlparser_dbhelpers = dbhelpers;
+
+        /* Init libxml2 and load all exslt functions */
+        xmlInitMemory();
+        exsltRegisterAll();
 }
 
 
