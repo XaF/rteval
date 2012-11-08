@@ -747,7 +747,7 @@ int db_update_submissionqueue(dbconn *dbc, unsigned int submid, int status) {
 	case STAT_SYSREG:
 	case STAT_GENDB:
 	case STAT_RTEVRUNS:
-	case STAT_CYCLIC:
+	case STAT_MEASURE:
 		snprintf(sql, 4096,
 			 "UPDATE submissionqueue SET status = %i, parseend = NOW() WHERE submid = %i",
 			 status, submid);
@@ -1041,53 +1041,54 @@ int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 
 
 /**
- * Registers data returned from cyclictest into the database.
+ * Registers data returned from measurement results into the database.
  *
- * @param dbc      Database handler where to perform the SQL queries
+ * @param dbc        Database handler where to perform the SQL queries
  * @param xslt       A pointer to a parsed 'xmlparser.xsl' XSLT template
  * @param summaryxml The XML report from rteval
  * @param rterid     A positive integer referencing the rteval run ID, returned from db_register_rtevalrun()
  *
  * @return Returns 1 on success, otherwise -1
  */
-int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid) {
+int db_register_measurements(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid) {
 	int result = -1;
-	xmlDoc *cyclic_d = NULL;
+	xmlDoc *meas_d = NULL;
 	parseParams prms;
 	eurephiaVALUES *dbdata = NULL;
-	int cyclicdata = 0;
-	const char *cyclictables[] = { "cyclic_statistics", "cyclic_histogram", "cyclic_rawdata", NULL };
+	int measrecs = 0;
+        char *tbl = NULL;
 	int i;
 
 	memset(&prms, 0, sizeof(parseParams));
 	prms.rterid = rterid;
 
-	// Register the cyclictest data
-	for( i = 0; cyclictables[i]; i++ ) {
-		prms.table = cyclictables[i];
-		cyclic_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
-		if( cyclic_d && cyclic_d->children ) {
+	// Loop through all configured measurement tables and process each table
+        i = 0;
+        for_array_str(tbl, i, dbc->measurement_tbls) {
+                writelog(dbc->log, LOG_DEBUG, "Processing measurement table '%s'", tbl);
+		prms.table = tbl;
+		meas_d = parseToSQLdata(dbc->log, xslt, summaryxml, &prms);
+		if( meas_d && meas_d->children ) {
 			// Insert SQL data which was found and generated
-			dbdata = pgsql_INSERT(dbc, cyclic_d);
+			dbdata = pgsql_INSERT(dbc, meas_d);
 			if( !dbdata ) {
 				result = -1;
-				xmlFreeDoc(cyclic_d);
+				xmlFreeDoc(meas_d);
 				goto exit;
 			}
 
 			if (eCount(dbdata) > 0) {
-				cyclicdata++;
+				measrecs++;
 			}
 			eFree_values(dbdata);
-			cyclicdata = 1;
 		}
-		if( cyclic_d ) {
-			xmlFreeDoc(cyclic_d);
+		if( meas_d ) {
+			xmlFreeDoc(meas_d);
 		}
 	}
 
 	// Report error if not enough cyclictest data is registered.
-	if( cyclicdata > 1 ) {
+	if( measrecs < 1 ) {
 		writelog(dbc->log, LOG_ALERT,
 			 "[Connection %i] No cyclictest raw data or histogram data registered", dbc->id);
 		result = -1;

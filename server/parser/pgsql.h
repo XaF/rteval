@@ -31,6 +31,7 @@
 #include <log.h>
 #include <eurephia_values.h>
 #include <parsethread.h>
+#include <xmlparser.h>
 
 /**
  *  A unified database abstraction layer, providing log support
@@ -40,6 +41,7 @@ typedef struct {
 	LogContext *log;           /**< Initialised log context */
 	PGconn *db;                /**< Database connection handler */
 	unsigned int sqlschemaver; /**< SQL schema version, retrieved from rteval_info table */
+	array_str_t *measurement_tbls; /**< Measurement tables to process */
 } dbconn;
 
 /* Generic database function */
@@ -58,6 +60,6 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml);
 int db_get_new_rterid(dbconn *dbc);
 int db_register_rtevalrun(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml,
 			  unsigned int submid, int syskey, int rterid, const char *report_fname);
-int db_register_cyclictest(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid);
+int db_register_measurements(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml, int rterid);
 
 #endif

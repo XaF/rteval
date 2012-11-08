@@ -98,6 +98,13 @@ The default values are:
     many worker threads, your system might become unresponsive for a while
     and the parser might be killed by the kernel (OOM).
 
+  - measurement_tables: cyclic_statistics, cyclic_histogram, cyclic_rawdata
+    Declares which measurement results will be parsed and stored in the
+    database.  These names are referring to table definitions in the
+    xmlparser.xsl XSLT template.  The definitions in this template tells
+    rteval-parsed which data to extract from the rteval summary.xml report
+    and where and how to store it in the database.
+
 
 ** rteval-parserd arguments
 

@@ -33,7 +33,7 @@
 #define STAT_RTERIDREG 7         /**< Failed to get a new rterid value for the rteval run */
 #define STAT_GENDB     8         /**< General database error */
 #define STAT_RTEVRUNS  9         /**< Registering rteval run information failed */
-#define STAT_CYCLIC    10        /**< Registering cyclictest results failed */
+#define STAT_MEASURE   10        /**< Registering measurement results failed */
 #define STAT_REPMOVE   11        /**< Failed to move the report file */
 #define STAT_FTOOBIG   12        /**< Report is too big (see config parameter: max_report_size) */
 

@@ -409,6 +409,15 @@ int main(int argc, char **argv) {
 			goto exit;
 		}
 
+		// Parse the measurement_tables config variable, split it up into an array
+		thrdata[i]->dbc->measurement_tbls = strSplit(eGet_value(config, "measurement_tables"), ", ");
+		if( !thrdata[i]->dbc->measurement_tbls ) {
+			writelog(dbc->log, LOG_CRIT, "Failed to parse measurement_tables configuration");
+			rc = 2;
+			shutdown = 1;
+			goto exit;
+		}
+
 		thrdata[i]->shutdown = &shutdown;
 		thrdata[i]->threadcount = &activethreads;
 		thrdata[i]->mtx_thrcnt = &mtx_thrcnt;
@@ -492,6 +501,7 @@ int main(int argc, char **argv) {
 
 		// Disconnect threads database connection
 		if( thrdata && thrdata[i] ) {
+			strFree(thrdata[i]->dbc->measurement_tbls);
 			db_disconnect(thrdata[i]->dbc);
 			free_nullsafe(thrdata[i]);
 		}
