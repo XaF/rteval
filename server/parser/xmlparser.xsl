@@ -20,7 +20,9 @@
      *
 -->
 
-<xsl:stylesheet  version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:stylesheet  version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                 xmlns:math="http://exslt.org/math"
+                 extension-element-prefixes="math">
   <xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes"/>
 
   <!-- Used for iterating CPU topology information -->
@@ -284,6 +286,50 @@
 	</sqldata>
       </xsl:when>
 
+      <!-- TABLE: hwlatdetect_summary -->
+      <xsl:when test="$table = 'hwlatdetect_summary'">
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+	<sqldata schemaver="1.5" table="hwlatdetect_summary">
+	  <fields>
+            <field fid="0">rterid</field>
+            <field fid="1">duration</field>
+            <field fid="2">threshold</field>
+            <field fid="3">timewindow</field>
+            <field fid="4">width</field>
+            <field fid="5">samplecount</field>
+            <field fid="6">hwlat_min</field>
+            <field fid="7">hwlat_avg</field>
+            <field fid="8">hwlat_max</field>
+	  </fields>
+	  <records>
+            <xsl:apply-templates select="/rteval/hwlatdetect[@format='1.0']" mode="summary"/>
+	  </records>
+	</sqldata>
+      </xsl:when>
+
+      <!-- TABLE: hwlatdetect_samples -->
+      <xsl:when test="$table = 'hwlatdetect_samples'">
+        <xsl:if test="string(number($rterid)) = 'NaN'">
+          <xsl:message terminate="yes">
+            <xsl:text>Invalid 'rterid' parameter value: </xsl:text><xsl:value-of select="$rterid"/>
+          </xsl:message>
+        </xsl:if>
+	<sqldata schemaver="1.5" table="hwlatdetect_samples">
+	  <fields>
+            <field fid="0">rterid</field>
+            <field fid="1">timestamp</field>
+            <field fid="2">latency</field>
+	  </fields>
+	  <records>
+            <xsl:apply-templates select="/rteval/hwlatdetect[@format='1.0']/samples/sample" mode="samples"/>
+	  </records>
+	</sqldata>
+      </xsl:when>
+
       <xsl:otherwise>
         <xsl:message terminate="yes">
           <xsl:text>Invalid 'table' parameter value: </xsl:text><xsl:value-of select="$table"/>
@@ -302,6 +348,28 @@
       </record>
   </xsl:template>
 
+  <xsl:template match="/rteval/hwlatdetect[@format='1.0']" mode="summary">
+    <record>
+      <value fid="0"><xsl:value-of select="$rterid"/></value>
+      <value fid="1"><xsl:value-of select="RunParams/@duration"/></value>
+      <value fid="2"><xsl:value-of select="RunParams/@threshold"/></value>
+      <value fid="3"><xsl:value-of select="RunParams/@window"/></value>
+      <value fid="4"><xsl:value-of select="RunParams/@width"/></value>
+      <value fid="5"><xsl:value-of select="samples/@count"/></value>
+      <value fid="6"><xsl:value-of select="math:min(samples/sample/@duration)"/></value>
+      <value fid="7"><xsl:value-of select="sum(samples/sample/@duration) div samples/@count"/></value>
+      <value fid="8"><xsl:value-of select="math:max(samples/sample/@duration)"/></value>
+    </record>
+  </xsl:template>
+
+  <xsl:template match="/rteval/hwlatdetect[@format='1.0']/samples/sample" mode="samples">
+    <record>
+      <value fid="0"><xsl:value-of select="$rterid"/></value>
+      <value fid="1"><xsl:value-of select="@timestamp"/></value>
+      <value fid="2"><xsl:value-of select="@duration"/></value>
+    </record>
+  </xsl:template>
+
   <!-- Helper "function" for generating a core per physical socket spread overview -->
   <xsl:template name="count_core_spread">
     <xsl:param name="pkgid"/>
@@ -309,4 +377,5 @@
       <xsl:value-of select="count(/rteval/hardware/cpu_topology/cpu[@physical_package_id = $pkgid])"/>
     </value>
   </xsl:template>
+
 </xsl:stylesheet>
