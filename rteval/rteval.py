@@ -53,6 +53,7 @@ import fnmatch
 import glob
 from datetime import datetime
 from distutils import sysconfig
+from Log import Log
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
@@ -132,8 +133,12 @@ class RtEval(object):
                 }
             }
 
+        # Prepare logging
+        self.__logger = Log()
+        self.__logger.SetLogVerbosity(Log.INFO)
+
         # setup initial configuration
-        self.config = rtevalConfig.rtevalConfig(default_config, logfunc=self.info)
+        self.config = rtevalConfig.rtevalConfig(default_config, logger=self.__logger)
 
         # parse command line options
         self.parse_options(cmdargs)
@@ -145,7 +150,11 @@ class RtEval(object):
         # (cmd line overrides config file values)
         self.config.AppendConfig('rteval', self.cmd_options)
 
-        self.debug("workdir: %s" % self.workdir)
+        # Update log level, based on config/command line args
+        loglev = (self.config.verbose and Log.INFO) | (self.config.debugging and Log.DEBUG)
+        self.__logger.SetLogVerbosity(loglev)
+
+        self.__logger.log(Log.DEBUG, "workdir: %s" % self.workdir)
 
         # prepare a mailer, if that's configured
         if self.config.HasSection('smtp'):
@@ -185,7 +194,7 @@ class RtEval(object):
         # If --xmlrpc-submit is given, check that we can access the server
         res = None
         if self.config.xmlrpc:
-            self.debug("Checking if XML-RPC server '%s' is reachable" % self.config.xmlrpc)
+            self.__logger.log(Log.DEBUG, "Checking if XML-RPC server '%s' is reachable" % self.config.xmlrpc)
             attempt = 0
             warning_sent = False
             ping_failed = False
@@ -197,11 +206,11 @@ class RtEval(object):
                     ping_failed = False
                 except xmlrpclib.ProtocolError:
                     # Server do not support Hello(), but is reachable
-                    self.info("Got XML-RPC connection with %s but it did not support Hello()"
+                    self.__logger.log(Log.INFO, "Got XML-RPC connection with %s but it did not support Hello()"
                               % self.config.xmlrpc)
                     res = None
                 except socket.error, err:
-                    self.info("Could not establish XML-RPC contact with %s\n%s"
+                    self.__logger.log(Log.INFO, "Could not establish XML-RPC contact with %s\n%s"
                               % (self.config.xmlrpc, str(err)))
 
                     if (self.mailer is not None) and (not warning_sent):
@@ -227,9 +236,9 @@ class RtEval(object):
                     print "WARNING: Could not ping the XML-RPC server.  Will continue anyway."
 
             if res:
-                self.info("Verified XML-RPC connection with %s (XML-RPC API version: %i)"
+                self.__logger.log(Log.INFO, "Verified XML-RPC connection with %s (XML-RPC API version: %i)"
                           % (res["server"], res["APIversion"]))
-                self.debug("Recieved greeting: %s" % res["greeting"])
+                self.__logger.log(Log.DEBUG, "Recieved greeting: %s" % res["greeting"])
 
 
     def get_cpu_topology(self):
@@ -239,7 +248,7 @@ class RtEval(object):
         topology.parse()
 
         self.numcores = topology.getCPUcores(True)
-        self.debug("counted %d cores (%d online) and %d sockets" %
+        self.__logger.log(Log.DEBUG, "counted %d cores (%d online) and %d sockets" %
                    (topology.getCPUcores(False), self.numcores,
                     topology.getCPUsockets()))
         return topology.getXMLdata()
@@ -254,7 +263,7 @@ class RtEval(object):
                 break
         if not servicesdir:
             raise RuntimeError, "No services dir (init.d) found on your system"
-        self.debug("Services located in %s, going through each service file to check status" % servicesdir)
+        self.__logger.log(Log.DEBUG, "Services located in %s, going through each service file to check status" % servicesdir)
         ret_services = {}
         for service in glob.glob(os.path.join(servicesdir, '*')):
             servicename = os.path.basename(service)
@@ -277,7 +286,7 @@ class RtEval(object):
     def __get_services_systemd(self):
         ret_services = {}
         cmd = '%s list-unit-files -t service --no-legend' % getcmdpath('systemctl')
-        self.debug("cmd: %s" % cmd)
+        self.__logger.log(Log.DEBUG, "cmd: %s" % cmd)
         c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for p in c.stdout:
             # p are lines like "servicename.service status"
@@ -290,11 +299,11 @@ class RtEval(object):
         c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         self.init = c.stdout.read().strip()
         if self.init == 'systemd':
-            self.debug("Using systemd to get services status")
+            self.__logger.log(Log.DEBUG, "Using systemd to get services status")
             return self.__get_services_systemd()
         elif self.init == 'init':
             self.init = 'sysvinit'
-            self.debug("Using sysvinit to get services status")
+            self.__logger.log(Log.DEBUG, "Using sysvinit to get services status")
             return self.__get_services_sysvinit()
         else:
             raise RuntimeError, "Unknown init system (%s)" % self.init
@@ -303,9 +312,9 @@ class RtEval(object):
     def get_kthreads(self):
         policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
         ret_kthreads = {}
-        self.debug("getting kthread status")
+        self.__logger.log(Log.DEBUG, "getting kthread status")
         cmd = '%s -eocommand,pid,policy,rtprio,comm' % getcmdpath('ps')
-        self.debug("cmd: %s" % cmd)
+        self.__logger.log(Log.DEBUG, "cmd: %s" % cmd)
         c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         for p in c.stdout:
             v = p.strip().split()
@@ -409,14 +418,6 @@ class RtEval(object):
         self.workdir = os.path.abspath(self.cmd_options.workdir)
 
 
-    def debug(self, str):
-        if self.config.debugging is True:
-            print "rteval: %s" % str
-
-    def info(self, str):
-        if self.config.verbose is True:
-            print str
-
     def run_sysreport(self):
         import glob
         if os.path.exists('/usr/sbin/sosreport'):
@@ -426,17 +427,17 @@ class RtEval(object):
         else:
             raise RuntimeError, "Can't find sosreport/sysreport"
 
-        self.debug("report tool: %s" % exe)
+        self.__logger.log(Log.DEBUG, "report tool: %s" % exe)
         options =  ['-k', 'rpm.rpmva=off',
                     '--name=rteval', 
                     '--batch',
                     '--no-progressbar']
 
-        self.info("Generating SOS report")
-        self.info("using command %s" % " ".join([exe]+options))
+        self.__logger.log(Log.INFO, "Generating SOS report")
+        self.__logger.log(Log.INFO, "using command %s" % " ".join([exe]+options))
         subprocess.call([exe] + options)
         for s in glob.glob('/tmp/s?sreport-rteval-*'):
-            self.debug("moving %s to %s" % (s, self.reportdir))
+            self.__logger.log(Log.DEBUG, "moving %s to %s" % (s, self.reportdir))
             shutil.move(s, self.reportdir)
     
 
@@ -631,11 +632,11 @@ class RtEval(object):
     def start_loads(self):
         if len(self.loads) == 0:
             raise RuntimeError, "start_loads: No loads defined!"
-        self.info ("starting loads:")
+        self.__logger.log(Log.INFO, "starting loads:")
         for l in self.loads:
             l.start()
         # now wait until they're all ready
-        self.info("waiting for ready from all loads")
+        self.__logger.log(Log.INFO, "waiting for ready from all loads")
         ready=False
         while not ready:
             busy = 0
@@ -644,7 +645,7 @@ class RtEval(object):
                     raise RuntimeError, "%s died" % l.name
                 if not l.isReady():
                     busy += 1
-                    self.debug("waiting for %s" % l.name)
+                    self.__logger.log(Log.DEBUG, "waiting for %s" % l.name)
             if busy:
                 time.sleep(1.0)
             else:
@@ -653,9 +654,9 @@ class RtEval(object):
     def stop_loads(self):
         if len(self.loads) == 0:
             raise RuntimeError, "stop_loads: No loads defined!"
-        self.info("stopping loads: ")
+        self.__logger.log(Log.INFO, "stopping loads: ")
         for l in self.loads:
-            self.info("\t%s" % l.name)
+            self.__logger.log(Log.INFO, "\t%s" % l.name)
             l.stopevent.set()
             l.join(2.0)
 
@@ -716,10 +717,10 @@ class RtEval(object):
             # hope to eventually have different kinds but module is only on
             # for now (jcw)
             if l[1].lower() == 'module':
-                self.info("importing load module %s" % l[0])
+                self.__logger.log(Log.INFO, "importing load module %s" % l[0])
                 self.load_modules.append(__import__(l[0]))
 
-        self.info("setting up loads")
+        self.__logger.log(Log.INFO, "setting up loads")
         self.loads = []
         params = {'workdir':self.workdir, 
                   'reportdir':self.reportdir,
@@ -736,12 +737,12 @@ class RtEval(object):
         
         for m in self.load_modules:
             self.config.AppendConfig(m.__name__, params)
-            self.info("creating load instance for %s" % m.__name__)
+            self.__logger.log(Log.INFO, "creating load instance for %s" % m.__name__)
             self.loads.append(m.create(self.config.GetSection(m.__name__)))
 
         if not onlyload:
             self.config.AppendConfig('cyclictest', params)
-            self.info("setting up cyclictest")
+            self.__logger.log(Log.INFO, "setting up cyclictest")
             self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
 
         nthreads = 0
@@ -761,11 +762,11 @@ class RtEval(object):
             
             if not onlyload:
                 # start the cyclictest thread
-                self.info("starting cyclictest")
+                self.__logger.log(Log.INFO, "starting cyclictest")
                 self.cyclictest.start()
             
             # turn loose the loads
-            self.info("sending start event to all loads")
+            self.__logger.log(Log.INFO, "sending start event to all loads")
             for l in self.loads:
                 l.startevent.set()
                 nthreads += 1
@@ -778,7 +779,7 @@ class RtEval(object):
             # wait for time to expire or thread to die
             signal.signal(signal.SIGINT, sigint_handler)
             signal.signal(signal.SIGTERM, sigterm_handler)
-            self.info("waiting for duration (%f)" % self.config.duration)
+            self.__logger.log(Log.INFO, "waiting for duration (%f)" % self.config.duration)
             stoptime = (time.time() + self.config.duration)
             currtime = time.time()
             rpttime = currtime + report_interval
@@ -797,7 +798,7 @@ class RtEval(object):
                     accum += load
                     samples += 1
                     loadcount = 5
-                    #self.debug("current loadavg: %f, running avg: %f (load: %f, samples: %d)" % \
+                    #self.__logger.log(Log.DEBUG, "current loadavg: %f, running avg: %f (load: %f, samples: %d)" % \
                     #               (load, accum/samples, load, samples))
                 else:
                     loadcount -= 1
@@ -807,7 +808,7 @@ class RtEval(object):
                     rpttime = currtime + report_interval
                     print "load average: %.2f" % (accum / samples)
                 currtime = time.time()
-            self.debug("out of measurement loop")
+            self.__logger.log(Log.DEBUG, "out of measurement loop")
             signal.signal(signal.SIGINT, signal.SIG_DFL)
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
                 
@@ -825,7 +826,7 @@ class RtEval(object):
 
         if self.cmd_options.hwlatdetect:
             self.__hwlat = HWLatDetect.HWLatDetectRunner(self.config.GetSection('hwlatdetect'))
-            self.info("Running hwlatdetect")
+            self.__logger.log(Log.INFO, "Running hwlatdetect")
             self.__hwlat.run()
 
         print "stopping run at %s" % time.asctime()
@@ -922,7 +923,7 @@ class RtEval(object):
                 print "No summary.xml found in tar archive %s" % file
                 return
             tmp = tempfile.gettempdir()
-            self.debug("extracting %s from %s for summarizing" % (element, file))
+            self.__logger.log(Log.DEBUG, "extracting %s from %s for summarizing" % (element, file))
             t.extract(element, path=tmp)
             summary = os.path.join(tmp, element)
             isarchive = True
@@ -954,7 +955,7 @@ class RtEval(object):
             print "Must be root to run rteval!"
             sys.exit(-1)
 
-        self.debug('''rteval options: 
+        self.__logger.log(Log.DEBUG, '''rteval options:
         workdir: %s
         loaddir: %s
         reportdir: %s
