@@ -32,6 +32,7 @@
 #
 import os
 import ConfigParser
+from Log import Log
 
 class rtevalCfgSection(object):
 
@@ -85,7 +86,7 @@ class rtevalCfgSection(object):
 class rtevalConfig(rtevalCfgSection):
     "Config parser for rteval"
 
-    def __init__(self, initvars = None, logfunc = None):
+    def __init__(self, initvars = None, logger = None):
         self.__config_data = initvars or {}
         self.__config_files = []
 
@@ -97,7 +98,7 @@ class rtevalConfig(rtevalCfgSection):
         except Exception, err:
             raise err # All other errors will be passed on
 
-        self.__info = logfunc or self.__nolog
+        self.__logger = logger
 
 
     def __str__(self):
@@ -105,9 +106,9 @@ class rtevalConfig(rtevalCfgSection):
         return str(self.__config_data)
 
 
-    def __nolog(self, str):
-        "Dummy log function, used when no log function is configured"
-        pass
+    def __info(self, str):
+        if self.__logger:
+            self.__logger.log(Log.INFO, str)
 
 
     def __find_config(self):
@@ -197,8 +198,10 @@ class rtevalConfig(rtevalCfgSection):
 
 def unit_test(rootdir):
     try:
-        cfg = rtevalConfig()
-        cfg.Load(rootdir + '/rteval/rteval.conf')
+        l = Log()
+        l.SetLogVerbosity(Log.INFO)
+        cfg = rtevalConfig(logger=l)
+        cfg.Load(rootdir + '/rteval.conf')
         print cfg
         return 0
     except Exception, e:
