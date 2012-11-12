@@ -57,15 +57,13 @@ from Log import Log
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
-import util
-import load
-import cyclictest
-import HWLatDetect
+from modules import loads
+from modules.measurement import cyclictest, HWLatDetect
 import xmlout
-import dmi
+from sysinfo import dmi, util
+from sysinfo.cputopology import CPUtopology
 import rtevalConfig
 import rtevalMailer
-from cputopology import CPUtopology
 
 
 pathSave={}
@@ -718,7 +716,8 @@ class RtEval(object):
             # for now (jcw)
             if l[1].lower() == 'module':
                 self.__logger.log(Log.INFO, "importing load module %s" % l[0])
-                self.load_modules.append(__import__(l[0]))
+                self.load_modules.append(__import__("modules.loads.%s" % l[0],
+                                                    fromlist="modules.loads"))
 
         self.__logger.log(Log.INFO, "setting up loads")
         self.loads = []
@@ -736,9 +735,11 @@ class RtEval(object):
                   }
         
         for m in self.load_modules:
-            self.config.AppendConfig(m.__name__, params)
-            self.__logger.log(Log.INFO, "creating load instance for %s" % m.__name__)
-            self.loads.append(m.create(self.config.GetSection(m.__name__)))
+            mbname = m.__name__.split('.')[-1]
+            self.config.AppendConfig(mbname, params)
+            self.__logger.log(Log.INFO, "creating load instance for %s" % mbname)
+            c = self.config.GetSection(mbname)
+            self.loads.append(m.create(self.config.GetSection(mbname)))
 
         if not onlyload:
             self.config.AppendConfig('cyclictest', params)
@@ -988,6 +989,8 @@ class RtEval(object):
         self.get_dmesg()
         self.tar_results()
 
+        self.__logger.log(Log.DEBUG, "exiting with exit code: %d" % retval)
+
         return retval
 
 if __name__ == '__main__':
@@ -999,7 +1002,6 @@ if __name__ == '__main__':
 
         rteval = RtEval(sys.argv[1:])
         ec = rteval.rteval()
-        rteval.debug("exiting with exit code: %d" % ec)
         sys.exit(ec)
     except KeyboardInterrupt:
         sys.exit(0)
