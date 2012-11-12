@@ -34,11 +34,12 @@ import errno
 from signal import SIGTERM
 from signal import SIGKILL
 sys.pathconf = "."
-import load
+from modules import loads
+from Log import Log
 
-class Hackbench(load.Load):
-    def __init__(self, params={}):
-        load.Load.__init__(self, "hackbench", params)
+class Hackbench(loads.Load):
+    def __init__(self, params={}, logger=None):
+        loads.Load.__init__(self, "hackbench", params, logger)
 
     def __del__(self):
         null = open("/dev/null", "w")
@@ -74,7 +75,7 @@ class Hackbench(load.Load):
         self.ready = True
 
     def start_hackbench(self, inf, outf, errf):
-        self.debug("running: %s" % " ".join(self.args))
+        self._log(Log.DEBUG, "running: %s" % " ".join(self.args))
         return subprocess.Popen(self.args, stdin=inf, stdout=outf, stderr=errf)
 
     def runload(self):
@@ -88,7 +89,7 @@ class Hackbench(load.Load):
             err = self.open_logfile("hackbench.stderr")
         else:
             out = err = null
-        self.debug("starting loop (jobs: %d)" % self.jobs)
+        self._log(Log.DEBUG, "starting loop (jobs: %d)" % self.jobs)
 
         p = self.start_hackbench(null, out, err)
         while not self.stopevent.isSet():
@@ -109,11 +110,11 @@ class Hackbench(load.Load):
                 if self.err_sleep > 60.0:
                     self.err_sleep = 60.0
 
-        self.debug("stopping")
+        self._log(Log.DEBUG, "stopping")
         if p.poll() == None:
             os.kill(p.pid, SIGKILL)
         p.wait()
-        self.debug("returning from runload()")
+        self._log(Log.DEBUG, "returning from runload()")
         os.close(null)
         if self.logging:
             os.close(out)

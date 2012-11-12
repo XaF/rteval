@@ -28,14 +28,16 @@ import glob
 import subprocess
 from signal import SIGTERM
 sys.pathconf = "."
-import load
+from modules import loads
 import xmlout
+from Log import Log
 
 kernel_prefix="linux-2.6"
 
-class Kcompile(load.Load):
-    def __init__(self, params={}):
-        load.Load.__init__(self, "kcompile", params)
+class Kcompile(loads.Load):
+    def __init__(self, params={}, logger=None):
+        loads.Load.__init__(self, "kcompile", params, logger)
+
 
     def setup(self):
         # find our source tarball
@@ -59,7 +61,7 @@ class Kcompile(load.Load):
                 kdir=d
                 break
         if kdir == None:
-            self.debug("unpacking kernel tarball")
+            self._log(Log.DEBUG, "unpacking kernel tarball")
             tarargs = ['tar', '-C', self.builddir, '-x']
             if self.source.endswith(".bz2"):
                 tarargs.append("-j")
@@ -70,21 +72,21 @@ class Kcompile(load.Load):
             try:
                 subprocess.call(tarargs)
             except:
-                self.debug("untar'ing kernel self.source failed!")
+                self._log(Log.DEBUG, "untar'ing kernel self.source failed!")
                 sys.exit(-1)
             names = os.listdir(self.builddir)
             for d in names:
-                self.debug("checking %s" % d)
+                self._log(Log.DEBUG, "checking %s" % d)
                 if d.startswith(kernel_prefix):
                     kdir=d
                     break
         if kdir == None:
             raise RuntimeError, "Can't find kernel directory!"
         self.mydir = os.path.join(self.builddir, kdir)
-        self.debug("mydir = %s" % self.mydir)
+        self._log(Log.DEBUG, "mydir = %s" % self.mydir)
 
     def build(self):
-        self.debug("setting up all module config file in %s" % self.mydir)
+        self._log(Log.DEBUG, "setting up all module config file in %s" % self.mydir)
         null = os.open("/dev/null", os.O_RDWR)
         out = self.open_logfile("kcompile-build.stdout")
         err = self.open_logfile("kcompile-build.stderr")
@@ -95,9 +97,9 @@ class Kcompile(load.Load):
             if ret:
                 raise RuntimeError, "kcompile setup failed: %d" % ret
         except KeyboardInterrupt, m:
-            self.debug("keyboard interrupt, aborting")
+            self._log(Log.DEBUG, "keyboard interrupt, aborting")
             return
-        self.debug("ready to run")
+        self._log(Log.DEBUG, "ready to run")
         self.ready = True
         os.close(null)
         os.close(out)
@@ -116,7 +118,7 @@ class Kcompile(load.Load):
         if ratio > 1.0:
             njobs = self.num_cpus * mult
         else:
-            self.debug("low memory system (%f GB/core)! Dropping jobs to one per core\n" % ratio)
+            self._log(Log.DEBUG, "low memory system (%f GB/core)! Dropping jobs to one per core\n" % ratio)
             njobs = self.num_cpus
         return njobs
 
@@ -129,7 +131,7 @@ class Kcompile(load.Load):
             out = err = null
 
         njobs = self.calc_numjobs()
-        self.debug("starting loop (jobs: %d)" % njobs)
+        self._log(Log.DEBUG, "starting loop (jobs: %d)" % njobs)
         self.args = ["make", "-C", self.mydir, 
                      "-j%d" % njobs ] 
         p = subprocess.Popen(self.args, 
@@ -138,12 +140,12 @@ class Kcompile(load.Load):
             time.sleep(1.0)
             if p.poll() != None:
                 r = p.wait()
-                self.debug("restarting compile job (exit status: %s)" % r)
+                self._log(Log.DEBUG, "restarting compile job (exit status: %s)" % r)
                 p = subprocess.Popen(self.args,
                                      stdin=null,stdout=out,stderr=err)
-        self.debug("out of stopevent loop")
+        self._log(Log.DEBUG, "out of stopevent loop")
         if p.poll() == None:
-            self.debug("killing compile job with SIGTERM")
+            self._log(Log.DEBUG, "killing compile job with SIGTERM")
             os.kill(p.pid, SIGTERM)
         p.wait()
         os.close(null)

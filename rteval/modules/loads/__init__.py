@@ -30,8 +30,9 @@ import subprocess
 import threading
 
 class Load(threading.Thread):
-    def __init__(self, name="<unnamed>", params={}):
+    def __init__(self, name="<unnamed>", params={}, logger=None):
         threading.Thread.__init__(self)
+        self.__logger = logger
         self.name = name
         self.builddir = params.setdefault('builddir', os.path.abspath("../build"))	# abs path to top dir
         self.srcdir = params.setdefault('srcdir', os.path.abspath("../loadsource"))	# abs path to src dir
@@ -49,6 +50,10 @@ class Load(threading.Thread):
 
         if not os.path.exists(self.builddir):
             os.makedirs(self.builddir)
+
+    def _log(self, logtype, msg):
+        if self.__logger:
+            self.__logger.log(logtype, msg)
 
     def debug(self, str):
         if self.debugging: print "%s: %s" % (self.name, str)
