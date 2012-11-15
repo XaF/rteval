@@ -1,6 +1,6 @@
 Name:		rteval-parser
-Version:	1.5
-%define sqlschemaver 1.4
+Version:	1.6
+%define sqlschemaver 1.5
 Release:	1%{?dist}
 Summary:	Report parser daemon for  rteval XML-RPC
 %define pkgname rteval-xmlrpc-%{version}
@@ -87,6 +87,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Nov 15 2012 David Sommerseth <davids@redhat.com> - 1.6-1
+- Make rteval-parserd have no hard coded measurement data table restrictions
+- Added support for hwlatdetect data
+
 * Fri Oct  7 2011 David Sommerseth <dazo@users.sourceforge.net> - 1.5-1
 - Added support for storing data as arrays in PostgreSQL
 - Updated SQL schema to store CPU topology/core spread as an array in the database
