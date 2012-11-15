@@ -25,8 +25,8 @@
 #   To create the ./configure script you need to run 'autoreconf --install'
 #
 
-AC_INIT([rteval-xmlrpc], [1.5], [davids@redhat.com])
-SQLSCHEMAVER=1.4
+AC_INIT([rteval-xmlrpc], [1.6], [davids@redhat.com])
+SQLSCHEMAVER=1.5
 AC_SUBST(SQLSCHEMAVER)
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
