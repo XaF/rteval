@@ -141,5 +141,7 @@ AC_CHECK_LIB([pthread], [pthread_mutex_unlock], [DUMMY=], AX_msgMISSINGFUNC())
 AC_CONFIG_SRCDIR([parser/rteval-parserd.c])
 AC_CONFIG_HEADERS([parser/config.h])
 AC_CONFIG_FILES([Makefile parser/Makefile])
+AC_SUBST([AM_CXXFLAGS], [$CFLAGS])
+AC_SUBST([AM_LDFLAGS], [$LDFLAGS])
 
 AC_OUTPUT
