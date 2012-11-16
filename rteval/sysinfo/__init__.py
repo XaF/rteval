@@ -27,11 +27,13 @@
 import ethtool, os, shutil
 from Log import Log
 from glob import glob
+from kernel import KernelInfo
 
 
 class SystemInfo(object):
     def __init__(self, config, logger=None):
         self.__logger = logger
+        self.__kernel = KernelInfo(logger=logger)
 
 
     def __log(self, logtype, msg):
@@ -91,6 +93,22 @@ class SystemInfo(object):
         shutil.copyfile(dpath, os.path.join(repdir, "dmesg"))
 
 
+    def get_kthreads(self):
+        # Temporary wrapper
+        return self.__kernel.get_kthreads()
+
+
+    def get_modules(self):
+        # Temporary wrapper
+        return self.__kernel.get_modules()
+
+
+    def get_clocksources(self):
+        # Temporary wrapper
+        return self.__kernel.get_clocksources()
+
+
+
 if __name__ == "__main__":
     l = Log()
     l.SetLogVerbosity(Log.INFO|Log.DEBUG)
@@ -100,3 +118,9 @@ if __name__ == "__main__":
     print "\tNUMA nodes: %d" % si.get_num_nodes()
     print "\tMemory available: %03.2f %s" % si.get_memory_size()
 
+    (curr, avail) = si.get_clocksources()
+    print "\tCurrent clocksource: %s" % curr
+    print "\tAvailable clocksources: %s" % avail
+    print "\tModules:"
+    for m in si.get_modules():
+        print "\t\t%s: %s" % (m['modname'], m['modstate'])

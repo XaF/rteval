@@ -61,21 +61,10 @@ sys.path.insert(0, "./rteval")
 from modules import loads
 from modules.measurement import cyclictest, HWLatDetect
 import xmlout
-from sysinfo import dmi, util
+from sysinfo import dmi
 from sysinfo.cputopology import CPUtopology
 import rtevalConfig
 import rtevalMailer
-
-
-pathSave={}
-def getcmdpath(which):
-    if not pathSave.has_key(which):
-        cmd = '/usr/bin/which %s' % which
-        c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        pathSave[which] = c.stdout.read().strip()
-        if not pathSave[which]:
-            raise RuntimeError, "Command '%s' is unknown on this system" % which
-    return pathSave[which]
 
 
 sigint_received = False
@@ -309,41 +298,6 @@ class RtEval(object):
             raise RuntimeError, "Unknown init system (%s)" % self.init
         return {}
 
-    def get_kthreads(self):
-        policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
-        ret_kthreads = {}
-        self.__logger.log(Log.DEBUG, "getting kthread status")
-        cmd = '%s -eocommand,pid,policy,rtprio,comm' % getcmdpath('ps')
-        self.__logger.log(Log.DEBUG, "cmd: %s" % cmd)
-        c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        for p in c.stdout:
-            v = p.strip().split()
-            kcmd = v.pop(0)
-            try:
-                if int(v[0]) > 0 and kcmd.startswith('[') and kcmd.endswith(']'):
-                    ret_kthreads[v[0]] = {'policy' : policies[v[1]], 
-                                          'priority' : v[2], 'name' : v[3] }
-            except ValueError:
-                pass    # Ignore lines which don't have a number in the first row
-        return ret_kthreads
-
-    def get_modules(self):
-        modlist = []
-        try:
-            fp = open('/proc/modules', 'r')
-            line = fp.readline()
-            while line:
-                mod = line.split()
-                modlist.append({"modname": mod[0],
-                                "modsize": mod[1],
-                                "numusers": mod[2],
-                                "usedby": mod[3],
-                                "modstate": mod[4]})
-                line = fp.readline()
-            fp.close()
-        except Exception, err:
-            raise err
-        return modlist
 
     def parse_options(self, cmdargs):
         '''parse the command line arguments'''
@@ -499,7 +453,7 @@ class RtEval(object):
                                              })
             self.xmlreport.closeblock()
 
-        modlist = util.get_modules()
+        modlist = self.__sysinfo.get_modules()
         if len(modlist):
             self.xmlreport.openblock('kernelmodules')
             for mod in modlist:
@@ -692,9 +646,9 @@ class RtEval(object):
         self.cputopology = self.get_cpu_topology()
         self.numanodes = self.__sysinfo.get_num_nodes()
         self.memsize = self.__sysinfo.get_memory_size()
-        (self.current_clocksource, self.available_clocksource) = util.get_clocksources()
+        (self.current_clocksource, self.available_clocksource) = self.__sysinfo.get_clocksources()
         self.services = self.get_services()
-        self.kthreads = self.get_kthreads()
+        self.kthreads = self.__sysinfo.get_kthreads()
 
         onlyload = self.cmd_options.onlyload
 
