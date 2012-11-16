@@ -54,6 +54,7 @@ import glob
 from datetime import datetime
 from distutils import sysconfig
 from Log import Log
+from sysinfo import SystemInfo
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
@@ -160,6 +161,7 @@ class RtEval(object):
         else:
             self.mailer = None
 
+        self.__sysinfo = SystemInfo(self.config, logger=self.__logger)
         self.loads = []
         self.cputopology = None
         self.numcores = None
@@ -672,13 +674,6 @@ class RtEval(object):
             os.mkdir(os.path.join(self.reportdir, "logs"))
         return self.reportdir
 
-    def get_dmesg(self):
-        dpath = "/var/log/dmesg"
-        if not os.path.exists(dpath):
-            print "dmesg file not found at %s" % dpath
-            return
-        shutil.copyfile(dpath, os.path.join(self.reportdir, "dmesg"))
-
 
     def show_remaining_time(self, remaining):
         r = int(remaining)
@@ -693,10 +688,10 @@ class RtEval(object):
 
     def measure(self):
         # Collect misc system info
-        self.baseos = util.get_base_os()
+        self.baseos = self.__sysinfo.get_base_os()
         self.cputopology = self.get_cpu_topology()
-        self.numanodes = util.get_num_nodes()
-        self.memsize = util.get_memory_size()
+        self.numanodes = self.__sysinfo.get_num_nodes()
+        self.memsize = self.__sysinfo.get_memory_size()
         (self.current_clocksource, self.available_clocksource) = util.get_clocksources()
         self.services = self.get_services()
         self.kthreads = self.get_kthreads()
@@ -986,7 +981,7 @@ class RtEval(object):
         if self.config.xmlrpc:
             retval = self.XMLRPC_Send()
 
-        self.get_dmesg()
+        self.__sysinfo.copy_dmesg(self.reportdir)
         self.tar_results()
 
         self.__logger.log(Log.DEBUG, "exiting with exit code: %d" % retval)
