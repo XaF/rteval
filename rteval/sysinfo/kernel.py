@@ -28,6 +28,7 @@ import sys, subprocess, os
 from sysinfo.tools import getcmdpath
 from Log import Log
 
+
 class KernelInfo(object):
     def __init__(self, logger = None):
         self.__logger = logger
