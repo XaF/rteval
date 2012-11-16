@@ -242,62 +242,6 @@ class RtEval(object):
                     topology.getCPUsockets()))
         return topology.getXMLdata()
 
-    def __get_services_sysvinit(self):
-        reject = ('functions', 'halt', 'killall', 'single', 'linuxconf', 'kudzu',
-                  'skeleton', 'README', '*.dpkg-dist', '*.dpkg-old', 'rc', 'rcS',
-                  'single', 'reboot', 'bootclean.sh')
-        for sdir in ('/etc/init.d', '/etc/rc.d/init.d'):
-            if os.path.isdir(sdir):
-                servicesdir = sdir
-                break
-        if not servicesdir:
-            raise RuntimeError, "No services dir (init.d) found on your system"
-        self.__logger.log(Log.DEBUG, "Services located in %s, going through each service file to check status" % servicesdir)
-        ret_services = {}
-        for service in glob.glob(os.path.join(servicesdir, '*')):
-            servicename = os.path.basename(service)
-            if not [1 for p in reject if fnmatch.fnmatch(servicename, p)] and os.access(service, os.X_OK):
-                cmd = '%s -qs "\(^\|\W\)status)" %s' % (getcmdpath('grep'), service)
-                c = subprocess.Popen(cmd, shell=True)
-                c.wait()
-                if c.returncode == 0:
-                    cmd = ['env', '-i', 'LANG="%s"' % os.environ['LANG'], 'PATH="%s"' % os.environ['PATH'], 'TERM="%s"' % os.environ['TERM'], service, 'status']
-                    c = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    c.wait()
-                    if c.returncode == 0 and (c.stdout.read() or c.stderr.read()):
-                        ret_services[servicename] = 'running'
-                    else:
-                        ret_services[servicename] = 'not running'
-                else:
-                    ret_services[servicename] = 'unknown'
-        return ret_services
-        
-    def __get_services_systemd(self):
-        ret_services = {}
-        cmd = '%s list-unit-files -t service --no-legend' % getcmdpath('systemctl')
-        self.__logger.log(Log.DEBUG, "cmd: %s" % cmd)
-        c = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        for p in c.stdout:
-            # p are lines like "servicename.service status"
-            v = p.strip().split()
-            ret_services[v[0].split('.')[0]] = v[1]
-        return ret_services
-
-    def get_services(self):
-        cmd = [getcmdpath('ps'), '-ocomm=',  '1']
-        c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        self.init = c.stdout.read().strip()
-        if self.init == 'systemd':
-            self.__logger.log(Log.DEBUG, "Using systemd to get services status")
-            return self.__get_services_systemd()
-        elif self.init == 'init':
-            self.init = 'sysvinit'
-            self.__logger.log(Log.DEBUG, "Using sysvinit to get services status")
-            return self.__get_services_sysvinit()
-        else:
-            raise RuntimeError, "Unknown init system (%s)" % self.init
-        return {}
-
 
     def parse_options(self, cmdargs):
         '''parse the command line arguments'''
@@ -647,7 +591,7 @@ class RtEval(object):
         self.numanodes = self.__sysinfo.get_num_nodes()
         self.memsize = self.__sysinfo.get_memory_size()
         (self.current_clocksource, self.available_clocksource) = self.__sysinfo.get_clocksources()
-        self.services = self.get_services()
+        self.services = self.__sysinfo.get_services()
         self.kthreads = self.__sysinfo.get_kthreads()
 
         onlyload = self.cmd_options.onlyload
