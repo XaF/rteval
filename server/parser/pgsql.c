@@ -878,7 +878,7 @@ int db_register_system(dbconn *dbc, xsltStylesheet *xslt, xmlDoc *summaryxml) {
 			append_str(sqlq, ipaddr, 4092);
 			append_str(sqlq, "'", 4096);
 		} else {
-			append_str(sqlq, "%s AND ipaddr IS NULL", 4096);
+			append_str(sqlq, "AND ipaddr IS NULL", 4096);
 		}
 
 		dbres = PQexec(dbc->db, sqlq);
