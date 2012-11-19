@@ -212,15 +212,18 @@ inline int parse_report(threadData_t *thrdata, parseJob_t *job)
 			 "[Thread %i] Failed to register system (submid: %i, XML file: %s)",
 			 thrdata->id, job->submid, job->filename);
 		rc = STAT_SYSREG;
+		pthread_mutex_unlock(thrdata->mtx_sysreg);
 		goto exit;
 
 	}
+
 	rterid = db_get_new_rterid(thrdata->dbc);
 	if( rterid < 0 ) {
 		writelog(thrdata->dbc->log, LOG_ERR,
 			 "[Thread %i] Failed to register rteval run (submid: %i, XML file: %s)",
 			 thrdata->id, job->submid, job->filename);
 		rc = STAT_RTERIDREG;
+		pthread_mutex_unlock(thrdata->mtx_sysreg);
 		goto exit;
 	}
 	pthread_mutex_unlock(thrdata->mtx_sysreg);
