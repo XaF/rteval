@@ -30,6 +30,7 @@ from glob import glob
 from kernel import KernelInfo
 from services import SystemServices
 from cputopology import CPUtopology
+import dmi
 
 
 class SystemInfo(object):
@@ -37,6 +38,10 @@ class SystemInfo(object):
         self.__logger = logger
         self.__kernel = KernelInfo(logger=logger)
         self.__services = SystemServices(logger=logger)
+        self.__dmi = dmi.DMIinfo(config)
+
+        # Parse initial DMI decoding errors
+        dmi.ProcessWarnings()
 
 
     def __log(self, logtype, msg):
@@ -127,6 +132,11 @@ class SystemInfo(object):
                    (topology.getCPUcores(False), numcores,
                     topology.getCPUsockets()))
         return (numcores, topology.getXMLdata())
+
+
+    def gen_dmi_info(self, x):
+        # Temporary wrapper
+        self.__dmi.genxml(x)
 
 
 

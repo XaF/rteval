@@ -61,7 +61,6 @@ sys.path.insert(0, "./rteval")
 from modules import loads
 from modules.measurement import cyclictest, HWLatDetect
 import xmlout
-from sysinfo import dmi
 import rtevalConfig
 import rtevalMailer
 
@@ -478,8 +477,7 @@ class RtEval(object):
             self.__hwlat.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
-        d = dmi.DMIinfo(self.config.GetSection('rteval'))
-        d.genxml(self.xmlreport)
+        self.__sysinfo.gen_dmi_info(self.xmlreport)
         
         # Close the report - prepare for return the result
         self.xmlreport.close()
@@ -815,9 +813,6 @@ class RtEval(object):
         ''' main function for rteval'''
         retval = 0;
 
-        # Parse initial DMI decoding errors
-        dmi.ProcessWarnings()
-
         # if --summarize was specified then just parse the XML, print it and exit
         if self.cmd_options.summarize or self.cmd_options.rawhistogram:
             if len(self.cmd_arguments) < 1:
@@ -876,9 +871,6 @@ if __name__ == '__main__':
     import pwd, grp
 
     try:
-        # Parse initial DMI decoding errors
-        dmi.ProcessWarnings()
-
         rteval = RtEval(sys.argv[1:])
         ec = rteval.rteval()
         sys.exit(ec)
