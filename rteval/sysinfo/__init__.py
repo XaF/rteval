@@ -24,7 +24,7 @@
 #   are deemed to be part of the source code.
 #
 
-import ethtool, os, shutil
+import ethtool, os, shutil, subprocess
 from Log import Log
 from glob import glob
 from kernel import KernelInfo
@@ -99,6 +99,27 @@ class SystemInfo(object):
             print "dmesg file not found at %s" % dpath
             return
         shutil.copyfile(dpath, os.path.join(repdir, "dmesg"))
+
+
+    def run_sysreport(self, repdir):
+        if os.path.exists('/usr/sbin/sosreport'):
+            exe = '/usr/sbin/sosreport'
+        elif os.path.exists('/usr/sbin/sysreport'):
+            exe = '/usr/sbin/sysreport'
+        else:
+            raise RuntimeError, "Can't find sosreport/sysreport"
+
+        self.__logger.log(Log.DEBUG, "report tool: %s" % exe)
+        options =  ['-k', 'rpm.rpmva=off',
+                    '--name=rteval',
+                    '--batch']
+
+        self.__logger.log(Log.INFO, "Generating SOS report")
+        self.__logger.log(Log.INFO, "using command %s" % " ".join([exe]+options))
+        subprocess.call([exe] + options)
+        for s in glob('/tmp/s?sreport-rteval-*'):
+            self.__logger.log(Log.DEBUG, "moving %s to %s" % (s, repdir))
+            shutil.move(s, repdir)
 
 
     def get_services(self):

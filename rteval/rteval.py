@@ -299,29 +299,6 @@ class RtEval(object):
                 mult = 3600.0 * 24.0
             self.cmd_options.duration = float(v) * mult
         self.workdir = os.path.abspath(self.cmd_options.workdir)
-
-
-    def run_sysreport(self):
-        import glob
-        if os.path.exists('/usr/sbin/sosreport'):
-            exe = '/usr/sbin/sosreport'
-        elif os.path.exists('/usr/sbin/sysreport'):
-            exe = '/usr/sbin/sysreport'
-        else:
-            raise RuntimeError, "Can't find sosreport/sysreport"
-
-        self.__logger.log(Log.DEBUG, "report tool: %s" % exe)
-        options =  ['-k', 'rpm.rpmva=off',
-                    '--name=rteval', 
-                    '--batch',
-                    '--no-progressbar']
-
-        self.__logger.log(Log.INFO, "Generating SOS report")
-        self.__logger.log(Log.INFO, "using command %s" % " ".join([exe]+options))
-        subprocess.call([exe] + options)
-        for s in glob.glob('/tmp/s?sreport-rteval-*'):
-            self.__logger.log(Log.DEBUG, "moving %s to %s" % (s, self.reportdir))
-            shutil.move(s, self.reportdir)
     
 
     def genxml(self, duration, accum, samples, xslt = None):
@@ -715,7 +692,7 @@ class RtEval(object):
             self.genxml(datetime.now() - start, accum, samples)
             self.report()
             if self.config.sysreport:
-                self.run_sysreport()
+                self.__sysinfo.run_sysreport(self.reportdir)
 
 
 
