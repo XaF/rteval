@@ -62,7 +62,6 @@ from modules import loads
 from modules.measurement import cyclictest, HWLatDetect
 import xmlout
 from sysinfo import dmi
-from sysinfo.cputopology import CPUtopology
 import rtevalConfig
 import rtevalMailer
 
@@ -228,19 +227,6 @@ class RtEval(object):
                 self.__logger.log(Log.INFO, "Verified XML-RPC connection with %s (XML-RPC API version: %i)"
                           % (res["server"], res["APIversion"]))
                 self.__logger.log(Log.DEBUG, "Recieved greeting: %s" % res["greeting"])
-
-
-    def get_cpu_topology(self):
-        ''' figure out how many processors we have available'''
-
-        topology = CPUtopology()
-        topology.parse()
-
-        self.numcores = topology.getCPUcores(True)
-        self.__logger.log(Log.DEBUG, "counted %d cores (%d online) and %d sockets" %
-                   (topology.getCPUcores(False), self.numcores,
-                    topology.getCPUsockets()))
-        return topology.getXMLdata()
 
 
     def parse_options(self, cmdargs):
@@ -587,7 +573,7 @@ class RtEval(object):
     def measure(self):
         # Collect misc system info
         self.baseos = self.__sysinfo.get_base_os()
-        self.cputopology = self.get_cpu_topology()
+        (self.numcores, self.cputopology) = self.__sysinfo.get_cpu_topology()
         self.numanodes = self.__sysinfo.get_num_nodes()
         self.memsize = self.__sysinfo.get_memory_size()
         (self.current_clocksource, self.available_clocksource) = self.__sysinfo.get_clocksources()

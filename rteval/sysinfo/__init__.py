@@ -29,6 +29,7 @@ from Log import Log
 from glob import glob
 from kernel import KernelInfo
 from services import SystemServices
+from cputopology import CPUtopology
 
 
 class SystemInfo(object):
@@ -113,6 +114,19 @@ class SystemInfo(object):
     def get_clocksources(self):
         # Temporary wrapper
         return self.__kernel.get_clocksources()
+
+
+    def get_cpu_topology(self):
+        ''' figure out how many processors we have available'''
+
+        topology = CPUtopology()
+        topology.parse()
+
+        numcores = topology.getCPUcores(True)
+        self.__logger.log(Log.DEBUG, "counted %d cores (%d online) and %d sockets" %
+                   (topology.getCPUcores(False), numcores,
+                    topology.getCPUsockets()))
+        return (numcores, topology.getXMLdata())
 
 
 
