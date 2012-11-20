@@ -1,7 +1,8 @@
 #
 #   dmi.py - class to wrap DMI Table information
 #
-#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2012   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2012   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -24,26 +25,17 @@
 #   are deemed to be part of the source code.
 #
 
-import sys
-import os
-import subprocess
-sys.pathconf = "."
-import xmlout
-import libxml2
-import libxslt
+import sys, os
+import libxml2, libxslt
 
 try:
     import dmidecode
 except:
-    class dmidecode(object):
-        fake = 1
-        def __init__(self):
-            pass
-        
+    pass
 
 def ProcessWarnings():
     
-    if hasattr(dmidecode, "fake") or not hasattr(dmidecode, 'get_warnings'):
+    if not hasattr(dmidecode, 'get_warnings'):
         return
 
     warnings = dmidecode.get_warnings()
@@ -69,14 +61,14 @@ class DMIinfo(object):
 
     def __init__(self, config):
         self.version = '0.3'
-        self.smbios = None
         self.sharedir = config.installdir
 
-        if hasattr(dmidecode, "fake"):
+        if hasattr(dmidecode, "dmidecodeXML"):
+            self.__fake = True
             return
 
+        self.__fake = False
         self.dmixml = dmidecode.dmidecodeXML()
-        self.smbios = dmidecode.dmi.replace('SMBIOS ', '').replace(' present', '')
 
         xsltdoc = self.__load_xslt('rteval_dmi.xsl')
         self.xsltparser = libxslt.parseStylesheetDoc(xsltdoc)
@@ -91,7 +83,7 @@ class DMIinfo(object):
             raise RuntimeError, 'Could not locate XSLT template for DMI data (%s)' % fname
 
     def genxml(self, xml):
-        if hasattr(dmidecode, "fake"):
+        if self.__fake:
             return
         self.dmixml.SetResultType(dmidecode.DMIXML_DOC)
         resdoc = self.xsltparser.applyStylesheet(self.dmixml.QuerySection('all'), None)
@@ -102,6 +94,7 @@ class DMIinfo(object):
 
 def unit_test(rootdir):
     from pprint import pprint
+    import xmlout
 
     class unittest_ConfigDummy(object):
         def __init__(self, rootdir):
