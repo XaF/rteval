@@ -27,10 +27,13 @@
 
 import sys, os
 import libxml2, libxslt
+from Log import Log
 
 try:
     import dmidecode
+    dmidecode_loaded = True
 except:
+    dmidecode_loaded = False
     pass
 
 def ProcessWarnings():
@@ -59,11 +62,12 @@ def ProcessWarnings():
 class DMIinfo(object):
     '''class used to obtain DMI info via python-dmidecode'''
 
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.version = '0.3'
         self.sharedir = config.installdir
 
-        if hasattr(dmidecode, "dmidecodeXML"):
+        if not dmidecode_loaded:
+            logger.log(Log.DEBUG|Log.WARN, "No dmidecode module found, ignoring DMI tables")
             self.__fake = True
             return
 
@@ -84,6 +88,10 @@ class DMIinfo(object):
 
     def genxml(self, xml):
         if self.__fake:
+            fake = libxml2.newNode("HardwareInfo")
+            fake.addContent("No DMI tables available")
+            fake.newProp("not_available", "true")
+            xml.AppendXMLnodes(fake)
             return
         self.dmixml.SetResultType(dmidecode.DMIXML_DOC)
         resdoc = self.xsltparser.applyStylesheet(self.dmixml.QuerySection('all'), None)
@@ -111,8 +119,10 @@ def unit_test(rootdir):
             print "** ERROR **  Must be root to run this unit_test()"
             return 1
 
+        log = Log()
+        log.SetLogVerbosity(Log.DEBUG|Log.INFO)
         cfg = unittest_ConfigDummy(rootdir)
-        d = DMIinfo(cfg)
+        d = DMIinfo(cfg, log)
         x = xmlout.XMLOut('dmi_test', "0.0")
         x.NewReport()
         d.genxml(x)
