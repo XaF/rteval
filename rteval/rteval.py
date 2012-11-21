@@ -150,13 +150,7 @@ class RtEval(object):
 
         self.__sysinfo = SystemInfo(self.config, logger=self.__logger)
         self.loads = []
-        self.cputopology = None
-        self.numcores = None
         self.memsize = None
-        self.current_clocksource = None
-        self.available_clocksource = None
-        self.services = None
-        self.kthreads = None
         self.xml = None
         self.baseos = "unknown"
         self.annotate = self.cmd_options.annotate
@@ -333,33 +327,36 @@ class RtEval(object):
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock("clocksource")
-        self.xmlreport.taggedvalue('current', self.current_clocksource)
-        self.xmlreport.taggedvalue('available', self.available_clocksource)
+        clksrc = self.__sysinfo.kernel_get_clocksources()
+        self.xmlreport.taggedvalue('current', clksrc[0])
+        self.xmlreport.taggedvalue('available', clksrc[1])
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock('hardware')
-        self.xmlreport.AppendXMLnodes(self.cputopology)
+        self.xmlreport.AppendXMLnodes(self.__sysinfo.cpu_getXMLdata())
         self.xmlreport.taggedvalue('numa_nodes', self.numanodes)
         self.xmlreport.taggedvalue('memory_size', "%.3f" % self.memsize[0], {"unit": self.memsize[1]})
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock('services', {'init': self.init})
-        for s in self.services:
-            self.xmlreport.taggedvalue("service", self.services[s], {"name": s})
+        srvs = self.__sysinfo.services_get()
+        for s in srvs:
+            self.xmlreport.taggedvalue("service", srvs[s], {"name": s})
         self.xmlreport.closeblock()
 
-        keys = self.kthreads.keys()
+        kthreads = self.__sysinfo.kernel_get_kthreads()
+        keys = kthreads.keys()
         if len(keys):
             keys.sort()
             self.xmlreport.openblock('kthreads')
             for pid in keys:
-                self.xmlreport.taggedvalue('thread', self.kthreads[pid]['name'], 
-                                           { 'policy' : self.kthreads[pid]['policy'],
-                                             'priority' : self.kthreads[pid]['priority'],
+                self.xmlreport.taggedvalue('thread', kthreads[pid]['name'],
+                                           { 'policy' : kthreads[pid]['policy'],
+                                             'priority' : kthreads[pid]['priority'],
                                              })
             self.xmlreport.closeblock()
 
-        modlist = self.__sysinfo.get_modules()
+        modlist = self.__sysinfo.kernel_get_modules()
         if len(modlist):
             self.xmlreport.openblock('kernelmodules')
             for mod in modlist:
@@ -454,7 +451,7 @@ class RtEval(object):
             self.__hwlat.genxml(self.xmlreport)
 
         # now generate the dmidecode data for this host
-        self.__sysinfo.gen_dmi_info(self.xmlreport)
+        self.__sysinfo.dmi_genxml(self.xmlreport)
         
         # Close the report - prepare for return the result
         self.xmlreport.close()
@@ -548,12 +545,8 @@ class RtEval(object):
     def measure(self):
         # Collect misc system info
         self.baseos = self.__sysinfo.get_base_os()
-        (self.numcores, self.cputopology) = self.__sysinfo.get_cpu_topology()
         self.numanodes = self.__sysinfo.get_num_nodes()
         self.memsize = self.__sysinfo.get_memory_size()
-        (self.current_clocksource, self.available_clocksource) = self.__sysinfo.get_clocksources()
-        self.services = self.__sysinfo.get_services()
-        self.kthreads = self.__sysinfo.get_kthreads()
 
         onlyload = self.cmd_options.onlyload
 
@@ -581,7 +574,7 @@ class RtEval(object):
                   'srcdir':self.config.srcdir,
                   'verbose': self.config.verbose,
                   'debugging': self.config.debugging,
-                  'numcores':self.numcores,
+                  'numcores':self.__sysinfo.cpu_getCores(True),
                   'logging':self.config.logging,
                   'memsize':self.memsize,
                   'numanodes':self.numanodes,
@@ -606,7 +599,7 @@ class RtEval(object):
             self.start_loads()
             
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
-            print "started %d loads on %d cores" % (len(self.loads), self.numcores),
+            print "started %d loads on %d cores" % (len(self.loads), self.__sysinfo.cpu_getCores(True)),
             if self.numanodes > 1:
                 print " with %d numa nodes" % self.numanodes
             else:
