@@ -46,7 +46,7 @@ class CPUtopology:
         fp.close()
         return ret
 
-    def parse(self):
+    def _parse(self):
         "Parses the cpu topology information from /sys/devices/system/cpu/cpu*"
 
         self.__cputop_n = libxml2.newNode('cpu_topology')
@@ -100,14 +100,18 @@ class CPUtopology:
 
         return self.__cputop_n
 
-    def getXMLdata(self):
+
+    def cpu_getXMLdata(self):
         return self.__cputop_n
 
-    def getCPUcores(self, only_online):
+
+    def cpu_getCores(self, only_online):
         return only_online and self.__online_cores or self.__cpu_cores
 
-    def getCPUsockets(self):
+
+    def cpu_getSockets(self):
         return self.__cpu_sockets
+
 
 def unit_test(rootdir):
     try:

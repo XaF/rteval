@@ -84,7 +84,7 @@ class SystemServices(object):
         return ret_services
 
 
-    def get_services(self):
+    def services_get(self):
         cmd = [getcmdpath('ps'), '-ocomm=',  '1']
         c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         self.init = c.stdout.read().strip()

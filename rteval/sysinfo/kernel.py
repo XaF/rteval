@@ -39,7 +39,7 @@ class KernelInfo(object):
             self.__logger.log(logtype, msg)
 
 
-    def get_kthreads(self):
+    def kernel_get_kthreads(self):
         policies = {'FF':'fifo', 'RR':'rrobin', 'TS':'other', '?':'unknown' }
         ret_kthreads = {}
         self.__log(Log.DEBUG, "getting kthread status")
@@ -58,7 +58,7 @@ class KernelInfo(object):
         return ret_kthreads
 
 
-    def get_modules(self):
+    def kernel_get_modules(self):
         modlist = []
         try:
             fp = open('/proc/modules', 'r')
@@ -77,7 +77,7 @@ class KernelInfo(object):
         return modlist
 
 
-    def get_clocksources(self):
+    def kernel_get_clocksources(self):
         '''get the available and curent clocksources for this kernel'''
         path = '/sys/devices/system/clocksource/clocksource0'
         if not os.path.exists(path):
@@ -98,9 +98,9 @@ def unit_test(rootdir):
         log.SetLogVerbosity(Log.INFO|Log.DEBUG)
 
         ki = KernelInfo(logger=log)
-        pprint(ki.get_kthreads())
-        pprint(ki.get_modules())
-        pprint(ki.get_clocksources())
+        pprint(ki.kernel_get_kthreads())
+        pprint(ki.kernel_get_modules())
+        pprint(ki.kernel_get_clocksources())
     except Exception, e:
         import traceback
         traceback.print_exc(file=sys.stdout)

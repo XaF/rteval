@@ -86,7 +86,7 @@ class DMIinfo(object):
         else:
             raise RuntimeError, 'Could not locate XSLT template for DMI data (%s)' % fname
 
-    def genxml(self, xml):
+    def dmi_genxml(self, xml):
         if self.__fake:
             fake = libxml2.newNode("HardwareInfo")
             fake.addContent("No DMI tables available")
@@ -125,7 +125,7 @@ def unit_test(rootdir):
         d = DMIinfo(cfg, log)
         x = xmlout.XMLOut('dmi_test', "0.0")
         x.NewReport()
-        d.genxml(x)
+        d.dmi_genxml(x)
         x.close()
         x.Write('-')
         return 0

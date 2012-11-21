@@ -33,15 +33,19 @@ from cputopology import CPUtopology
 import dmi
 
 
-class SystemInfo(object):
+class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology):
     def __init__(self, config, logger=None):
         self.__logger = logger
-        self.__kernel = KernelInfo(logger=logger)
-        self.__services = SystemServices(logger=logger)
-        self.__dmi = dmi.DMIinfo(config)
+        KernelInfo.__init__(self, logger=logger)
+        SystemServices.__init__(self, logger=logger)
+        dmi.DMIinfo.__init__(self, config, logger=logger)
+        CPUtopology.__init__(self)
 
         # Parse initial DMI decoding errors
         dmi.ProcessWarnings()
+
+        # Parse CPU info
+        CPUtopology._parse(self)
 
 
     def __log(self, logtype, msg):
@@ -122,58 +126,44 @@ class SystemInfo(object):
             shutil.move(s, repdir)
 
 
-    def get_services(self):
-        # Temporary wrapper
-        return self.__services.get_services()
-
-
-    def get_kthreads(self):
-        # Temporary wrapper
-        return self.__kernel.get_kthreads()
-
-
-    def get_modules(self):
-        # Temporary wrapper
-        return self.__kernel.get_modules()
-
-
-    def get_clocksources(self):
-        # Temporary wrapper
-        return self.__kernel.get_clocksources()
-
-
-    def get_cpu_topology(self):
+    def cpu_getXMLdata(self):
         ''' figure out how many processors we have available'''
 
-        topology = CPUtopology()
-        topology.parse()
-
-        numcores = topology.getCPUcores(True)
         self.__logger.log(Log.DEBUG, "counted %d cores (%d online) and %d sockets" %
-                   (topology.getCPUcores(False), numcores,
-                    topology.getCPUsockets()))
-        return (numcores, topology.getXMLdata())
-
-
-    def gen_dmi_info(self, x):
-        # Temporary wrapper
-        self.__dmi.genxml(x)
-
+                   (CPUtopology.cpu_getCores(self, False), CPUtopology.cpu_getCores(self, True),
+                    CPUtopology.cpu_getSockets(self)))
+        return CPUtopology.cpu_getXMLdata(self)
 
 
 if __name__ == "__main__":
+    from rtevalConfig import rtevalConfig
     l = Log()
     l.SetLogVerbosity(Log.INFO|Log.DEBUG)
-    si = SystemInfo(None, logger=l)
+    cfg = rtevalConfig(logger=l)
+    cfg.Load("../rteval.conf")
+    cfg.installdir = "."
+    si = SystemInfo(cfg, logger=l)
 
     print "\tRunning on %s" % si.get_base_os()
     print "\tNUMA nodes: %d" % si.get_num_nodes()
-    print "\tMemory available: %03.2f %s" % si.get_memory_size()
+    print "\tMemory available: %03.2f %s\n" % si.get_memory_size()
 
-    print "\tServices: %s" % si.get_services()
-    (curr, avail) = si.get_clocksources()
+    print "\tServices: "
+    for (s, r) in si.services_get().items():
+        print "\t\t%s: %s" % (s, r)
+    (curr, avail) = si.kernel_get_clocksources()
+
     print "\tCurrent clocksource: %s" % curr
     print "\tAvailable clocksources: %s" % avail
     print "\tModules:"
-    for m in si.get_modules():
+    for m in si.kernel_get_modules():
         print "\t\t%s: %s" % (m['modname'], m['modstate'])
+    print "\tKernel threads:"
+    for (p, i) in si.kernel_get_kthreads().items():
+        print "\t\t%-30.30s pid: %-5.5s policy: %-7.7s prio: %-3.3s" % (
+            i["name"]+":", p, i["policy"], i["priority"]
+            )
+
+    print "\n\tCPU topology info - cores: %i  online: %i  sockets: %i" % (
+        si.cpu_getCores(False), si.cpu_getCores(True), si.cpu_getSockets()
+        )
