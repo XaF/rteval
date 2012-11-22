@@ -24,7 +24,6 @@
 #   are deemed to be part of the source code.
 #
 
-import ethtool, os, shutil, subprocess
 import sys
 sys.path.append(".")
 from Log import Log
@@ -33,69 +32,24 @@ from kernel import KernelInfo
 from services import SystemServices
 from cputopology import CPUtopology
 from memory import MemoryInfo
+from osinfo import OSInfo
 import dmi
 
 
-class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology, MemoryInfo):
+class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology, MemoryInfo, OSInfo):
     def __init__(self, config, logger=None):
         self.__logger = logger
         KernelInfo.__init__(self, logger=logger)
         SystemServices.__init__(self, logger=logger)
         dmi.DMIinfo.__init__(self, config, logger=logger)
         CPUtopology.__init__(self)
+        OSInfo.__init__(self, logger=logger)
 
         # Parse initial DMI decoding errors
         dmi.ProcessWarnings()
 
         # Parse CPU info
         CPUtopology._parse(self)
-
-
-    def __log(self, logtype, msg):
-        if self.__logger:
-            self.__logger.log(logtype, msg)
-
-
-    def get_base_os(self):
-        '''record what userspace we're running on'''
-        distro = "unknown"
-        for f in ('redhat-release', 'fedora-release'):
-            p = os.path.join('/etc', f)
-            if os.path.exists(p):
-                f = open(p, 'r')
-                distro = f.readline().strip()
-                f.close()
-                break
-        return distro
-
-
-    def copy_dmesg(self, repdir):
-        dpath = "/var/log/dmesg"
-        if not os.path.exists(dpath):
-            print "dmesg file not found at %s" % dpath
-            return
-        shutil.copyfile(dpath, os.path.join(repdir, "dmesg"))
-
-
-    def run_sysreport(self, repdir):
-        if os.path.exists('/usr/sbin/sosreport'):
-            exe = '/usr/sbin/sosreport'
-        elif os.path.exists('/usr/sbin/sysreport'):
-            exe = '/usr/sbin/sysreport'
-        else:
-            raise RuntimeError, "Can't find sosreport/sysreport"
-
-        self.__logger.log(Log.DEBUG, "report tool: %s" % exe)
-        options =  ['-k', 'rpm.rpmva=off',
-                    '--name=rteval',
-                    '--batch']
-
-        self.__logger.log(Log.INFO, "Generating SOS report")
-        self.__logger.log(Log.INFO, "using command %s" % " ".join([exe]+options))
-        subprocess.call([exe] + options)
-        for s in glob('/tmp/s?sreport-rteval-*'):
-            self.__logger.log(Log.DEBUG, "moving %s to %s" % (s, repdir))
-            shutil.move(s, repdir)
 
 
     def cpu_getXMLdata(self):

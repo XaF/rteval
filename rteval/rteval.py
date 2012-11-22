@@ -151,7 +151,6 @@ class RtEval(object):
         self.__sysinfo = SystemInfo(self.config, logger=self.__logger)
         self.loads = []
         self.xml = None
-        self.baseos = "unknown"
         self.annotate = self.cmd_options.annotate
 
         if not self.config.xslt_report.startswith(self.config.installdir):
@@ -322,7 +321,7 @@ class RtEval(object):
             isrt = 0
         self.xmlreport.taggedvalue('kernel', release, {'is_RT':isrt})
         self.xmlreport.taggedvalue('arch', machine)
-        self.xmlreport.taggedvalue('baseos', self.baseos)
+        self.xmlreport.taggedvalue('baseos', self.__sysinfo.get_base_os())
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock("clocksource")
@@ -543,9 +542,6 @@ class RtEval(object):
 
 
     def measure(self):
-        # Collect misc system info
-        self.baseos = self.__sysinfo.get_base_os()
-
         onlyload = self.cmd_options.onlyload
 
         builddir = os.path.join(self.workdir, 'rteval-build')
