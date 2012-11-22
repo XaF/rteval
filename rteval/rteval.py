@@ -162,14 +162,6 @@ class RtEval(object):
         # Add rteval directory into module search path
         sys.path.insert(0, '%s/rteval' % sysconfig.get_python_lib())
 
-        # generate a set of "junk" characters to use for filtering later
-        self.junk = ""
-        for c in range(0, 0xff):
-            s = chr(c)
-            if s not in string.printable:
-                self.junk += s
-        self.transtable = string.maketrans("", "")
-
         # If --xmlrpc-submit is given, check that we can access the server
         res = None
         if self.config.xmlrpc:
