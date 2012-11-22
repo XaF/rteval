@@ -150,7 +150,6 @@ class RtEval(object):
 
         self.__sysinfo = SystemInfo(self.config, logger=self.__logger)
         self.loads = []
-        self.memsize = None
         self.xml = None
         self.baseos = "unknown"
         self.annotate = self.cmd_options.annotate
@@ -334,8 +333,9 @@ class RtEval(object):
 
         self.xmlreport.openblock('hardware')
         self.xmlreport.AppendXMLnodes(self.__sysinfo.cpu_getXMLdata())
-        self.xmlreport.taggedvalue('numa_nodes', self.numanodes)
-        self.xmlreport.taggedvalue('memory_size', "%.3f" % self.memsize[0], {"unit": self.memsize[1]})
+        self.xmlreport.taggedvalue('numa_nodes', self.__sysinfo.mem_get_numa_nodes())
+        memsize = self.__sysinfo.mem_get_size()
+        self.xmlreport.taggedvalue('memory_size', "%.3f" % memsize[0], {"unit": memsize[1]})
         self.xmlreport.closeblock()
 
         self.xmlreport.openblock('services', {'init': self.init})
@@ -545,8 +545,6 @@ class RtEval(object):
     def measure(self):
         # Collect misc system info
         self.baseos = self.__sysinfo.get_base_os()
-        self.numanodes = self.__sysinfo.get_num_nodes()
-        self.memsize = self.__sysinfo.get_memory_size()
 
         onlyload = self.cmd_options.onlyload
 
@@ -576,8 +574,8 @@ class RtEval(object):
                   'debugging': self.config.debugging,
                   'numcores':self.__sysinfo.cpu_getCores(True),
                   'logging':self.config.logging,
-                  'memsize':self.memsize,
-                  'numanodes':self.numanodes,
+                  'memsize':self.__sysinfo.mem_get_size(),
+                  'numanodes':self.__sysinfo.mem_get_numa_nodes(),
                   'duration':self.config.duration,
                   }
         
@@ -600,8 +598,8 @@ class RtEval(object):
             
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
             print "started %d loads on %d cores" % (len(self.loads), self.__sysinfo.cpu_getCores(True)),
-            if self.numanodes > 1:
-                print " with %d numa nodes" % self.numanodes
+            if self.__sysinfo.mem_get_numa_nodes() > 1:
+                print " with %d numa nodes" % self.__sysinfo.mem_get_numa_nodes()
             else:
                 print ""
             print "Run duration: %d seconds" % self.config.duration

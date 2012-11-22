@@ -25,15 +25,18 @@
 #
 
 import ethtool, os, shutil, subprocess
+import sys
+sys.path.append(".")
 from Log import Log
 from glob import glob
 from kernel import KernelInfo
 from services import SystemServices
 from cputopology import CPUtopology
+from memory import MemoryInfo
 import dmi
 
 
-class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology):
+class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology, MemoryInfo):
     def __init__(self, config, logger=None):
         self.__logger = logger
         KernelInfo.__init__(self, logger=logger)
@@ -51,37 +54,6 @@ class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology):
     def __log(self, logtype, msg):
         if self.__logger:
             self.__logger.log(logtype, msg)
-
-
-    def get_num_nodes(self):
-        nodes = len(glob('/sys/devices/system/node/node*'))
-        return nodes
-
-
-    def get_memory_size(self):
-        '''find out how much memory is installed'''
-        f = open('/proc/meminfo')
-        rawsize = 0
-        for l in f:
-            if l.startswith('MemTotal:'):
-                parts = l.split()
-                if parts[2].lower() != 'kb':
-                    raise RuntimeError, "Units changed from kB! (%s)" % parts[2]
-                rawsize = int(parts[1])
-                f.close()
-                break
-        if rawsize == 0:
-            raise RuntimeError, "can't find memtotal in /proc/meminfo!"
-
-        # Get a more readable result
-        # Note that this depends on  /proc/meminfo starting in Kb
-        units = ('KB', 'MB','GB','TB')
-        size = rawsize
-        for unit in units:
-            if size < 1024:
-                break
-            size = float(size) / 1024
-        return (size, unit)
 
 
     def get_base_os(self):
@@ -145,8 +117,8 @@ if __name__ == "__main__":
     si = SystemInfo(cfg, logger=l)
 
     print "\tRunning on %s" % si.get_base_os()
-    print "\tNUMA nodes: %d" % si.get_num_nodes()
-    print "\tMemory available: %03.2f %s\n" % si.get_memory_size()
+    print "\tNUMA nodes: %d" % si.mem_get_numa_nodes()
+    print "\tMemory available: %03.2f %s\n" % si.mem_get_size()
 
     print "\tServices: "
     for (s, r) in si.services_get().items():
