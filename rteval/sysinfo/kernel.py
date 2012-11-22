@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/python -tt
 #
 #   Copyright 2009-2012   Clark Williams <williams@redhat.com>
 #   Copyright 2009-2012   David Sommerseth <davids@redhat.com>
+#   Copyright 2012        Raphaël Beamonte <raphael.beamonte@gmail.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
