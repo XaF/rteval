@@ -46,7 +46,6 @@ import statvfs
 import shutil
 import signal
 import rtevalclient
-import ethtool
 import xmlrpclib
 import platform
 import fnmatch
@@ -365,73 +364,8 @@ class RtEval(object):
                 self.xmlreport.closeblock()
             self.xmlreport.closeblock()
 
-        #
-        # Retrieve configured IP addresses
-        #
-        self.xmlreport.openblock('network_config')
-
-        # Get the interface name for the IPv4 default gw
-        route = open('/proc/net/route')
-        defgw4 = None
-        if route:
-            rl = route.readline()
-            while rl != '' :
-                rl = route.readline()
-                splt = rl.split("\t")
-                # Only catch default route
-                if len(splt) > 2 and splt[2] != '00000000' and splt[1] == '00000000':
-                    defgw4 = splt[0]
-                    break
-            route.close()
-
-        # Make an interface tag for each device found
-        if hasattr(ethtool, 'get_interfaces_info'):
-            # Using the newer python-ethtool API (version >= 0.4)
-            for dev in ethtool.get_interfaces_info(ethtool.get_devices()):
-                if cmp(dev.device,'lo') == 0:
-                    continue
-
-                self.xmlreport.openblock('interface',
-                                         {'device': dev.device,
-                                          'hwaddr': dev.mac_address}
-                                         )
-
-                # Protcol configurations
-                if dev.ipv4_address:
-                    self.xmlreport.openblock('IPv4',
-                                             {'ipaddr': dev.ipv4_address,
-                                              'netmask': dev.ipv4_netmask,
-                                              'broadcast': dev.ipv4_broadcast,
-                                              'defaultgw': (defgw4 == dev.device) and '1' or '0'}
-                                             )
-                    self.xmlreport.closeblock()
-
-                for ip6 in dev.get_ipv6_addresses():
-                    self.xmlreport.openblock('IPv6',
-                                             {'ipaddr': ip6.address,
-                                              'netmask': ip6.netmask,
-                                              'scope': ip6.scope}
-                                           )
-                    self.xmlreport.closeblock()
-                self.xmlreport.closeblock()
-        else: # Fall back to older python-ethtool API (version < 0.4)
-            ifdevs = ethtool.get_active_devices()
-            ifdevs.remove('lo')
-            ifdevs.sort()
-
-            for dev in ifdevs:
-                self.xmlreport.openblock('interface',
-                                         {'device': dev,
-                                          'hwaddr': ethtool.get_hwaddr(dev)}
-                                         )
-                self.xmlreport.openblock('IPv4',
-                                         {'ipaddr': ethtool.get_ipaddr(dev),
-                                          'netmask': ethtool.get_netmask(dev),
-                                          'defaultgw': (defgw4 == dev) and '1' or '0'}
-                                         )
-                self.xmlreport.closeblock()
-                self.xmlreport.closeblock()
-        self.xmlreport.closeblock()
+        # Retrieve configured network adapters
+        self.xmlreport.AppendXMLnodes(self.__sysinfo.net_GetConfigXML())
 
         self.xmlreport.openblock('loads', {'load_average':str(accum / samples)})
         for load in self.loads:
