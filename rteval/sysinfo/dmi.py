@@ -63,8 +63,8 @@ class DMIinfo(object):
     '''class used to obtain DMI info via python-dmidecode'''
 
     def __init__(self, config, logger):
-        self.version = '0.3'
-        self.sharedir = config.installdir
+        self.__version = '0.4'
+        self.__sharedir = config.installdir
 
         if not dmidecode_loaded:
             logger.log(Log.DEBUG|Log.WARN, "No dmidecode module found, ignoring DMI tables")
@@ -72,7 +72,7 @@ class DMIinfo(object):
             return
 
         self.__fake = False
-        self.dmixml = dmidecode.dmidecodeXML()
+        self.__dmixml = dmidecode.dmidecodeXML()
 
         xsltdoc = self.__load_xslt('rteval_dmi.xsl')
         self.xsltparser = libxslt.parseStylesheetDoc(xsltdoc)
@@ -81,28 +81,29 @@ class DMIinfo(object):
     def __load_xslt(self, fname):
         if os.path.exists(fname):
             return libxml2.parseFile(fname)
-        elif os.path.exists(self.sharedir + '/' + fname):
-            return libxml2.parseFile(self.sharedir + '/' + fname)
+        elif os.path.exists(self.__sharedir + '/' + fname):
+            return libxml2.parseFile(self.__sharedir + '/' + fname)
         else:
             raise RuntimeError, 'Could not locate XSLT template for DMI data (%s)' % fname
 
-    def dmi_genxml(self, xml):
+
+    def MakeReport(self):
+        rep_n = libxml2.newNode("DMIinfo")
+        rep_n.newProp("version", self.__version)
         if self.__fake:
-            fake = libxml2.newNode("HardwareInfo")
-            fake.addContent("No DMI tables available")
-            fake.newProp("not_available", "true")
-            xml.AppendXMLnodes(fake)
-            return
-        self.dmixml.SetResultType(dmidecode.DMIXML_DOC)
-        resdoc = self.xsltparser.applyStylesheet(self.dmixml.QuerySection('all'), None)
-        node = resdoc.getRootElement().copyNode(1)
-        node.newProp("DMIinfo_version", self.version)
-        xml.AppendXMLnodes(node)
+            rep_n.addContent("No DMI tables available")
+            rep_n.newProp("not_available", "1")
+        else:
+            self.__dmixml.SetResultType(dmidecode.DMIXML_DOC)
+            resdoc = self.xsltparser.applyStylesheet(self.__dmixml.QuerySection('all'), None)
+            dmi_n = resdoc.getRootElement().copyNode(1)
+            rep_n.addChild(dmi_n)
+        return rep_n
+
 
 
 def unit_test(rootdir):
     from pprint import pprint
-    import xmlout
 
     class unittest_ConfigDummy(object):
         def __init__(self, rootdir):
@@ -123,11 +124,10 @@ def unit_test(rootdir):
         log.SetLogVerbosity(Log.DEBUG|Log.INFO)
         cfg = unittest_ConfigDummy(rootdir)
         d = DMIinfo(cfg, log)
-        x = xmlout.XMLOut('dmi_test', "0.0")
-        x.NewReport()
-        d.dmi_genxml(x)
-        x.close()
-        x.Write('-')
+        dx = d.MakeReport()
+        x = libxml2.newDoc("1.0")
+        x.setRootElement(dx)
+        x.saveFormatFileEnc("-", "UTF-8", 1)
         return 0
     except Exception, e:
         print "** EXCEPTION: %s" % str(e)
