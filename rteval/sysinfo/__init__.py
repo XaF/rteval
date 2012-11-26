@@ -62,6 +62,7 @@ class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology, MemoryInf
         report_n.addChild(NetworkInfo.MakeReport(self))
         report_n.addChild(SystemServices.MakeReport(self))
         report_n.addChild(CPUtopology.MakeReport(self))
+        report_n.addChild(MemoryInfo.MakeReport(self))
         report_n.addChild(dmi.DMIinfo.MakeReport(self))
 
         return report_n

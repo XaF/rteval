@@ -25,6 +25,7 @@
 #   are deemed to be part of the source code.
 #
 
+import libxml2
 from glob import glob
 
 class MemoryInfo(object):
@@ -64,6 +65,23 @@ class MemoryInfo(object):
                 break
             size = float(size) / 1024
         return (size, unit)
+
+
+    def MakeReport(self):
+        rep_n = libxml2.newNode("Memory")
+
+        numa_n = libxml2.newNode("numa_nodes")
+        numa_n.addContent(str(self.mem_get_numa_nodes()))
+        rep_n.addChild(numa_n)
+
+        memsize = self.mem_get_size()
+        mem_n = libxml2.newNode("memory_size")
+        mem_n.addContent("%.3f" % memsize[0])
+        mem_n.newProp("unit", memsize[1])
+        rep_n.addChild(mem_n)
+
+        return rep_n
+
 
 
 def unit_test(rootdir):
