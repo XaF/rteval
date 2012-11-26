@@ -24,8 +24,7 @@
 #   are deemed to be part of the source code.
 #
 
-import sys
-sys.path.append(".")
+import sys, libxml2
 from Log import Log
 from glob import glob
 from kernel import KernelInfo
@@ -53,13 +52,18 @@ class SystemInfo(KernelInfo, SystemServices, dmi.DMIinfo, CPUtopology, MemoryInf
         CPUtopology._parse(self)
 
 
-    def cpu_getXMLdata(self):
-        ''' figure out how many processors we have available'''
+    def MakeReport(self):
+        report_n = libxml2.newNode("SystemInfo");
+        report_n.newProp("version", "1.0")
 
-        self.__logger.log(Log.DEBUG, "counted %d cores (%d online) and %d sockets" %
-                   (CPUtopology.cpu_getCores(self, False), CPUtopology.cpu_getCores(self, True),
-                    CPUtopology.cpu_getSockets(self)))
-        return CPUtopology.cpu_getXMLdata(self)
+        # Populate the report
+        report_n.addChild(OSInfo.MakeReport(self))
+        report_n.addChild(KernelInfo.MakeReport(self))
+        report_n.addChild(NetworkInfo.MakeReport(self))
+        report_n.addChild(SystemServices.MakeReport(self))
+        report_n.addChild(CPUtopology.MakeReport(self))
+
+        return report_n
 
 
 if __name__ == "__main__":
@@ -94,3 +98,8 @@ if __name__ == "__main__":
     print "\n\tCPU topology info - cores: %i  online: %i  sockets: %i" % (
         si.cpu_getCores(False), si.cpu_getCores(True), si.cpu_getSockets()
         )
+
+    xml = si.MakeReport()
+    xml_d = libxml2.newDoc("1.0")
+    xml_d.setRootElement(xml)
+    xml_d.saveFormatFileEnc("-", "UTF-8", 1)

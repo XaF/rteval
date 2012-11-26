@@ -25,7 +25,7 @@
 #   are deemed to be part of the source code.
 #
 
-import os, shutil, subprocess
+import os, shutil, subprocess, libxml2
 from glob import glob
 from Log import Log
 
@@ -76,6 +76,35 @@ class OSInfo(object):
             shutil.move(s, repdir)
 
 
+    def MakeReport(self):
+        rep_n = libxml2.newNode("uname")
+
+        baseos_n = libxml2.newNode("baseos")
+        baseos_n.addContent(self.get_base_os())
+        rep_n.addChild(baseos_n)
+
+        (sys, node, release, ver, machine) = os.uname()
+        isrt = 1
+        if ver.find(' RT ') == -1:
+            isrt = 0
+
+        node_n = libxml2.newNode("node")
+        node_n.addContent(node)
+        rep_n.addChild(node_n)
+
+        arch_n = libxml2.newNode("arch")
+        arch_n.addContent(machine)
+        rep_n.addChild(arch_n)
+
+        kernel_n = libxml2.newNode("kernel")
+        kernel_n.newProp("is_RT", str(isrt))
+        kernel_n.addContent(release)
+        rep_n.addChild(kernel_n)
+
+        return rep_n
+
+
+
 def unit_test(rootdir):
     import sys
 
@@ -100,6 +129,11 @@ def unit_test(rootdir):
 
         print "Running sysreport/sosreport with output to current dir"
         osi.run_sysreport(".")
+
+        osinfo_xml = osi.MakeReport()
+        xml_d = libxml2.newDoc("1.0")
+        xml_d.setRootElement(osinfo_xml)
+        xml_d.saveFormatFileEnc("-", "UTF-8", 1)
 
     except Exception, e:
         import traceback

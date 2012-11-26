@@ -26,7 +26,7 @@
 #   are deemed to be part of the source code.
 #
 
-import sys, subprocess, os
+import sys, subprocess, os, libxml2
 from sysinfo.tools import getcmdpath
 from Log import Log
 
@@ -92,6 +92,59 @@ class KernelInfo(object):
         return (current_clocksource, available_clocksource)
 
 
+    def MakeReport(self):
+        rep_n = libxml2.newNode("Kernel")
+
+        clksrc = self.kernel_get_clocksources()
+        clock_n = libxml2.newNode("ClockSource")
+        rep_n.addChild(clock_n)
+        for avail in clksrc[1].split():
+            avail_n = libxml2.newNode("source")
+            avail_n.addContent(avail)
+            if avail == clksrc[0]:
+                avail_n.newProp("current", "1")
+            clock_n.addChild(avail_n)
+
+        mods_n = libxml2.newNode("Modules")
+        rep_n.addChild(mods_n)
+
+        for mod in self.kernel_get_modules():
+            mod_n = libxml2.newNode("Module")
+            mods_n.addChild(mod_n)
+
+            mod_n.newProp("name", mod["modname"])
+
+            mod_n.newProp("size", str(mod["modsize"]))
+            mod_n.newProp("state", mod["modstate"])
+            mod_n.newProp("numusers", str(mod["numusers"]))
+
+            if mod["usedby"] != "-":
+                usedby_n = libxml2.newNode("usedby")
+                mod_n.addChild(usedby_n)
+                for ub in mod["usedby"].split(","):
+                    if len(ub):
+                        ub_n = libxml2.newNode("module")
+                        ub_n.addContent(ub)
+                        usedby_n.addChild(ub_n)
+
+
+        kthreads_n = libxml2.newNode("kthreads")
+        rep_n.addChild(kthreads_n)
+
+        kthreads = self.kernel_get_kthreads()
+        keys = kthreads.keys()
+        if len(keys):
+            keys.sort()
+            for pid in keys:
+                kthri_n = libxml2.newNode("thread")
+                kthreads_n.addChild(kthri_n)
+                kthri_n.addContent(kthreads[pid]["name"])
+                kthri_n.newProp("policy", kthreads[pid]["policy"])
+                kthri_n.newProp("priority", kthreads[pid]["priority"])
+
+        return rep_n
+
+
 
 def unit_test(rootdir):
     try:
@@ -103,6 +156,12 @@ def unit_test(rootdir):
         pprint(ki.kernel_get_kthreads())
         pprint(ki.kernel_get_modules())
         pprint(ki.kernel_get_clocksources())
+
+        ki_xml = ki.MakeReport()
+        xml_d = libxml2.newDoc("1.0")
+        xml_d.setRootElement(ki_xml)
+        xml_d.saveFormatFileEnc("-", "UTF-8", 1)
+
     except Exception, e:
         import traceback
         traceback.print_exc(file=sys.stdout)

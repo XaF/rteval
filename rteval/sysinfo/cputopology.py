@@ -49,7 +49,7 @@ class CPUtopology:
     def _parse(self):
         "Parses the cpu topology information from /sys/devices/system/cpu/cpu*"
 
-        self.__cputop_n = libxml2.newNode('cpu_topology')
+        self.__cputop_n = libxml2.newNode('CPUtopology')
 
         cpusockets = []
         for dirname in os.listdir(self.sysdir):
@@ -101,7 +101,7 @@ class CPUtopology:
         return self.__cputop_n
 
 
-    def cpu_getXMLdata(self):
+    def MakeReport(self):
         return self.__cputop_n
 
 

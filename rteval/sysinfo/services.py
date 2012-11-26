@@ -26,7 +26,7 @@
 #   are deemed to be part of the source code.
 #
 
-import sys, subprocess, os, glob, fnmatch
+import sys, subprocess, os, glob, fnmatch, libxml2
 from sysinfo.tools import getcmdpath
 from Log import Log
 
@@ -34,7 +34,7 @@ from Log import Log
 class SystemServices(object):
     def __init__(self, logger=None):
         self.__logger = logger
-
+        self.__init = "unknown"
 
     def __log(self, logtype, msg):
         if self.__logger:
@@ -87,26 +87,45 @@ class SystemServices(object):
     def services_get(self):
         cmd = [getcmdpath('ps'), '-ocomm=',  '1']
         c = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        self.init = c.stdout.read().strip()
-        if self.init == 'systemd':
+        self.__init = c.stdout.read().strip()
+        if self.__init == 'systemd':
             self.__log(Log.DEBUG, "Using systemd to get services status")
             return self.__get_services_systemd()
-        elif self.init == 'init':
-            self.init = 'sysvinit'
+        elif self.__init == 'init':
+            self.__init = 'sysvinit'
             self.__log(Log.DEBUG, "Using sysvinit to get services status")
             return self.__get_services_sysvinit()
         else:
-            raise RuntimeError, "Unknown init system (%s)" % self.init
+            raise RuntimeError, "Unknown init system (%s)" % self.__init
         return {}
 
 
+    def MakeReport(self):
+        srvs = self.services_get()
+
+        rep_n = libxml2.newNode("Services")
+        rep_n.newProp("init", self.__init)
+
+        for s in srvs:
+            srv_n = libxml2.newNode("Service")
+            srv_n.newProp("state", srvs[s])
+            srv_n.addContent(s)
+            rep_n.addChild(srv_n)
+
+        return rep_n
 
 def unit_test(rootdir):
     from pprint import pprint
 
     try:
         syssrv = SystemServices()
-        pprint(syssrv.get_services())
+        pprint(syssrv.services_get())
+
+        srv_xml = syssrv.MakeReport()
+        xml_d = libxml2.newDoc("1.0")
+        xml_d.setRootElement(srv_xml)
+        xml_d.saveFormatFileEnc("-", "UTF-8", 1)
+
         return 0
     except Exception, e:
         print "** EXCEPTION: %s" % str(e)

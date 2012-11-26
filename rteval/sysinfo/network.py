@@ -46,8 +46,8 @@ class NetworkInfo(object):
             route.close()
         return (defgw4, None) # IPv6 gw not yet implemented
 
-    def net_GetConfigXML(self):
-        ncfg_n = libxml2.newNode("network_config")
+    def MakeReport(self):
+        ncfg_n = libxml2.newNode("NetworkConfig")
         (defgw4, defgw6) = self.net_GetDefaultGW()
 
         # Make an interface tag for each device found
@@ -103,7 +103,7 @@ def unit_test(rootdir):
     try:
         net = NetworkInfo()
         doc = libxml2.newDoc('1.0')
-        cfg = net.net_GetConfigXML()
+        cfg = net.MakeReport()
         doc.setRootElement(cfg)
         doc.saveFormatFileEnc('-', 'UTF-8', 1)
 
