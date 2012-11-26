@@ -27,16 +27,14 @@ import time
 import glob
 import subprocess
 from signal import SIGTERM
-sys.pathconf = "."
-from modules import loads
-import xmlout
+from modules.loads import CommandLineLoad
 from Log import Log
 
 kernel_prefix="linux-2.6"
 
-class Kcompile(loads.Load):
+class Kcompile(CommandLineLoad):
     def __init__(self, params={}, logger=None):
-        loads.Load.__init__(self, "kcompile", params, logger)
+        CommandLineLoad.__init__(self, "kcompile", params, logger)
 
 
     def setup(self):
@@ -82,6 +80,7 @@ class Kcompile(loads.Load):
                     break
         if kdir == None:
             raise RuntimeError, "Can't find kernel directory!"
+        self.jobs = 1 # We only run one instance of the kcompile job
         self.mydir = os.path.join(self.builddir, kdir)
         self._log(Log.DEBUG, "mydir = %s" % self.mydir)
 
@@ -153,8 +152,6 @@ class Kcompile(loads.Load):
             os.close(out)
             os.close(err)
 
-    def genxml(self, x):
-        x.taggedvalue('command_line', ' '.join(self.args), {'name':'kcompile', 'run':'1'})
 
 def create(params = {}):
     return Kcompile(params)

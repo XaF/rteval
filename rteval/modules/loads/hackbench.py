@@ -33,13 +33,13 @@ import subprocess
 import errno
 from signal import SIGTERM
 from signal import SIGKILL
-sys.pathconf = "."
-from modules import loads
+from modules.loads import CommandLineLoad
 from Log import Log
 
-class Hackbench(loads.Load):
+
+class Hackbench(CommandLineLoad):
     def __init__(self, params={}, logger=None):
-        loads.Load.__init__(self, "hackbench", params, logger)
+        CommandLineLoad.__init__(self, "hackbench", params, logger)
 
     def __del__(self):
         null = open("/dev/null", "w")
@@ -119,10 +119,6 @@ class Hackbench(loads.Load):
         if self.logging:
             os.close(out)
             os.close(err)
-
-    def genxml(self, x):
-        x.taggedvalue('command_line', self.jobs and ' '.join(self.args) or None, 
-                      {'name':'hackbench', 'run': self.jobs and '1' or '0'})
 
 def create(params = {}):
     return Hackbench(params)

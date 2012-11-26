@@ -302,7 +302,7 @@ class RtEval(object):
         # Add load info
         self.xmlreport.openblock('loads', {'load_average':str(accum / samples)})
         for load in self.loads:
-            load.genxml(self.xmlreport)
+            self.xmlreport.AppendXMLnodes(load.MakeReport())
         self.xmlreport.closeblock()
         self.cyclictest.genxml(self.xmlreport)
         if self.cmd_options.hwlatdetect:
