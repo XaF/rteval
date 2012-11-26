@@ -82,7 +82,6 @@ class RtEval(object):
         self.inifile = None
         self.cmd_options = {}
         self.start = datetime.now()
-        self.init = 'unknown'
 
         default_config = {
             'rteval': {
@@ -290,7 +289,6 @@ class RtEval(object):
         if hours: seconds -= (hours * 3600)
         minutes = seconds / 60
         if minutes: seconds -= (minutes * 60)
-        (sys, node, release, ver, machine) = os.uname()
 
         # Start new XML report
         self.xmlreport = xmlout.XMLOut('rteval', self.version)
@@ -305,68 +303,11 @@ class RtEval(object):
         if self.annotate:
             self.xmlreport.taggedvalue('annotate', self.annotate)
         self.xmlreport.closeblock()
-        self.xmlreport.openblock('uname')
-        self.xmlreport.taggedvalue('node', node)
-        isrt = 1
-        if ver.find(' RT ') == -1:
-            isrt = 0
-        self.xmlreport.taggedvalue('kernel', release, {'is_RT':isrt})
-        self.xmlreport.taggedvalue('arch', machine)
-        self.xmlreport.taggedvalue('baseos', self.__sysinfo.get_base_os())
-        self.xmlreport.closeblock()
 
-        self.xmlreport.openblock("clocksource")
-        clksrc = self.__sysinfo.kernel_get_clocksources()
-        self.xmlreport.taggedvalue('current', clksrc[0])
-        self.xmlreport.taggedvalue('available', clksrc[1])
-        self.xmlreport.closeblock()
+        # Collect and add info about the system
+        self.xmlreport.AppendXMLnodes(self.__sysinfo.MakeReport())
 
-        self.xmlreport.openblock('hardware')
-        self.xmlreport.AppendXMLnodes(self.__sysinfo.cpu_getXMLdata())
-        self.xmlreport.taggedvalue('numa_nodes', self.__sysinfo.mem_get_numa_nodes())
-        memsize = self.__sysinfo.mem_get_size()
-        self.xmlreport.taggedvalue('memory_size', "%.3f" % memsize[0], {"unit": memsize[1]})
-        self.xmlreport.closeblock()
-
-        self.xmlreport.openblock('services', {'init': self.init})
-        srvs = self.__sysinfo.services_get()
-        for s in srvs:
-            self.xmlreport.taggedvalue("service", srvs[s], {"name": s})
-        self.xmlreport.closeblock()
-
-        kthreads = self.__sysinfo.kernel_get_kthreads()
-        keys = kthreads.keys()
-        if len(keys):
-            keys.sort()
-            self.xmlreport.openblock('kthreads')
-            for pid in keys:
-                self.xmlreport.taggedvalue('thread', kthreads[pid]['name'],
-                                           { 'policy' : kthreads[pid]['policy'],
-                                             'priority' : kthreads[pid]['priority'],
-                                             })
-            self.xmlreport.closeblock()
-
-        modlist = self.__sysinfo.kernel_get_modules()
-        if len(modlist):
-            self.xmlreport.openblock('kernelmodules')
-            for mod in modlist:
-                self.xmlreport.openblock('module')
-                self.xmlreport.taggedvalue('info', mod['modname'],
-                                           {'size': mod['modsize'],
-                                            'state': mod['modstate'],
-                                            'numusers': mod['numusers']})
-                if mod['usedby'] != '-':
-                    self.xmlreport.openblock('usedby')
-                    for ub in mod['usedby'].split(','):
-                        if len(ub):
-                            self.xmlreport.taggedvalue('module', ub, None)
-                    self.xmlreport.closeblock()
-                self.xmlreport.closeblock()
-            self.xmlreport.closeblock()
-
-        # Retrieve configured network adapters
-        self.xmlreport.AppendXMLnodes(self.__sysinfo.net_GetConfigXML())
-
+        # Add load info
         self.xmlreport.openblock('loads', {'load_average':str(accum / samples)})
         for load in self.loads:
             load.genxml(self.xmlreport)
@@ -375,9 +316,6 @@ class RtEval(object):
         if self.cmd_options.hwlatdetect:
             self.__hwlat.genxml(self.xmlreport)
 
-        # now generate the dmidecode data for this host
-        self.__sysinfo.dmi_genxml(self.xmlreport)
-        
         # Close the report - prepare for return the result
         self.xmlreport.close()
 
