@@ -26,22 +26,22 @@
     <xsl:text>&#10;&#10;</xsl:text>
 
     <xsl:text>   Tested node:  </xsl:text>
-    <xsl:value-of select="SystemInfo/uname/node"/>
+    <xsl:value-of select="SystemInfo/uname/node|uname/node"/>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Model:        </xsl:text>
-    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/GeneralInfo/Manufacturer"/>
-    <xsl:text> - </xsl:text><xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/GeneralInfo/ProductName"/>
+    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/GeneralInfo/Manufacturer|HardwareInfo/GeneralInfo/ProductName"/>
+    <xsl:text> - </xsl:text><xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/GeneralInfo/ProductName|HardwareInfo/GeneralInfo/ProductName"/>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   BIOS version: </xsl:text>
-    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS"/>
+    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS|HardwareInfo/BIOS"/>
     <xsl:text> (ver: </xsl:text>
-    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS/@Version"/>
+    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS/@Version|HardwareInfo/BIOS/@Version"/>
     <xsl:text>, rev :</xsl:text>
-    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS/@BIOSrevision"/>
+    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS/@BIOSrevision|HardwareInfo/BIOS/@BIOSrevision"/>
     <xsl:text>, release date: </xsl:text>
-    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS/@ReleaseDate"/>
+    <xsl:value-of select="SystemInfo/DMIinfo/HardwareInfo/BIOS/@ReleaseDate|HardwareInfo/BIOS/@ReleaseDate"/>
     <xsl:text>)</xsl:text>
     <xsl:text>&#10;&#10;</xsl:text>
 
@@ -53,6 +53,12 @@
 	<xsl:value-of select="SystemInfo/CPUtopology/@num_cpu_cores_online"/>
 	<xsl:text>)</xsl:text>
       </xsl:when>
+      <xsl:when test="hardware/cpu_topology">
+        <xsl:value-of select="hardware/cpu_topology/@num_cpu_cores"/>
+	<xsl:text> (online: </xsl:text>
+	<xsl:value-of select="hardware/cpu_topology/@num_cpu_cores_online"/>
+	<xsl:text>)</xsl:text>
+      </xsl:when>
       <xsl:when test="hardware/cpu_cores">
 	<xsl:value-of select="hardware/cpu_cores"/>
       </xsl:when>
@@ -60,17 +66,26 @@
     </xsl:choose>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:if test="SystemInfo/Memory/numa_nodes">
-      <xsl:text>   NUMA Nodes:   </xsl:text>
-      <xsl:value-of select="SystemInfo/Memory/numa_nodes"/>
-      <xsl:text>&#10;</xsl:text>
-    </xsl:if>
+    <xsl:text>   NUMA Nodes:   </xsl:text>
+    <xsl:choose>
+      <xsl:when test="SystemInfo/Memory/numa_nodes">
+        <xsl:value-of select="SystemInfo/Memory/numa_nodes"/>
+      </xsl:when>
+      <xsl:when test="hardware/numa_nodes">
+        <xsl:value-of select="hardware/numa_nodes"/>
+      </xsl:when>
+      <xsl:otherwise>(unknown)</xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Memory:       </xsl:text>
-    <xsl:value-of select="SystemInfo/Memory/memory_size"/>
+    <xsl:value-of select="SystemInfo/Memory/memory_size|hardware/memory_size"/>
     <xsl:choose>
       <xsl:when test="SystemInfo/Memory/memory_size/@unit">
 	<xsl:value-of select="concat(' ',SystemInfo/Memory/memory_size/@unit)"/>
+      </xsl:when>
+      <xsl:when test="hardware/memory_size/@unit">
+	<xsl:value-of select="concat(' ',hardware/memory_size/@unit)"/>
       </xsl:when>
       <xsl:otherwise>
 	<xsl:text> kB</xsl:text>
@@ -79,28 +94,35 @@
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Kernel:       </xsl:text>
-    <xsl:value-of select="SystemInfo/uname/kernel"/>
-    <xsl:if test="SystemInfo/uname/kernel/@is_RT = '1'">  (RT enabled)</xsl:if>
+    <xsl:value-of select="SystemInfo/uname/kernel|uname/kernel"/>
+    <xsl:if test="SystemInfo/uname/kernel/@is_RT = '1' or uname/kernel/@is_RT = '1'">  (RT enabled)</xsl:if>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Base OS:      </xsl:text>
-    <xsl:value-of select="SystemInfo/uname/baseos"/>
+    <xsl:value-of select="SystemInfo/uname/baseos|uname/baseos"/>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Architecture: </xsl:text>
-    <xsl:value-of select="SystemInfo/uname/arch"/>
+    <xsl:value-of select="SystemInfo/uname/arch|uname/arch"/>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Clocksource:  </xsl:text>
-    <xsl:value-of select="SystemInfo/Kernel/ClockSource/source[@current='1']"/>
+    <xsl:value-of select="SystemInfo/Kernel/ClockSource/source[@current='1']|clocksource/current"/>
     <xsl:text>&#10;</xsl:text>
 
     <xsl:text>   Available:    </xsl:text>
-    <xsl:for-each select="SystemInfo/Kernel/ClockSource/source">
-      <xsl:value-of select="."/>
-      <xsl:text> </xsl:text>
-    </xsl:for-each>
-    <xsl:value-of select="clocksource/available"/>
+    <xsl:choose>
+      <xsl:when test="SystemInfo/Kernel/ClockSource/source">
+        <xsl:for-each select="SystemInfo/Kernel/ClockSource/source">
+          <xsl:value-of select="."/>
+          <xsl:text> </xsl:text>
+        </xsl:for-each>
+      </xsl:when>
+      <xsl:when test="clocksource/available">
+        <xsl:value-of select="clocksource/available"/>
+      </xsl:when>
+      <xsl:otherwise>(unknown)</xsl:otherwise>
+    </xsl:choose>
     <xsl:text>&#10;&#10;</xsl:text>
    
     <xsl:text>   Load commands:&#10;</xsl:text>
