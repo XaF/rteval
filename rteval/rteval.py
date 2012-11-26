@@ -34,22 +34,14 @@
 
 import sys
 import os
-import os.path
 import time
-import string
 import threading
-import subprocess
 import socket
 import optparse
 import tempfile
-import statvfs
-import shutil
 import signal
 import rtevalclient
 import xmlrpclib
-import platform
-import fnmatch
-import glob
 from datetime import datetime
 from distutils import sysconfig
 from Log import Log
