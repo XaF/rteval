@@ -277,7 +277,13 @@ class RtEval(object):
         self.workdir = os.path.abspath(self.cmd_options.workdir)
     
 
-    def genxml(self, duration, xslt = None):
+    def report(self):
+        "Create a screen report, based on a predefined XSLT template"
+
+        if self.__measure_start is None:
+            raise Exception("No measurement runs have been attempted")
+
+        duration = datetime.now() - self.__measure_start
         seconds = duration.seconds
         hours = seconds / 3600
         if hours: seconds -= (hours * 3600)
@@ -311,21 +317,12 @@ class RtEval(object):
         # Close the report - prepare for return the result
         self.xmlreport.close()
 
-        # Write XML (or write XSLT parsed XML if xslt != None)
+        # Write the XML to the report directory
         if self.xml != None:
-            self.xmlreport.Write(self.xml, xslt)
-        else:
-            # If no file is set, use stdout
-            self.xmlreport.Write("-", xslt) # libxml2 defines a filename as "-" to be stdout
+            self.xmlreport.Write(self.xml, None)
 
-
-    def report(self):
-        "Create a screen report, based on a predefined XSLT template"
-
-        if self.__measure_start is None:
-            raise Exception("No measurement runs have been attempted")
-
-        self.genxml(datetime.now() - self.__measure_start)
+        # Write a text report to stdout as well, using the
+        # rteval_text.xsl template
         self.xmlreport.Write("-", self.config.xslt_report)
 
 
