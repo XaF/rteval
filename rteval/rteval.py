@@ -70,7 +70,7 @@ class RtEval(object):
     def __init__(self, cmdargs):
         self.version = "1.36"
         self.workdir = os.getcwd()
-        self.reportdir = os.getcwd()
+        self.reportdir = None
         self.inifile = None
         self.cmd_options = {}
         self.start = datetime.now()
@@ -370,10 +370,18 @@ class RtEval(object):
         print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (days, hours, minutes, r)
 
 
-    def prepare(self):
-        self.xml = os.path.join(self.reportdir, "summary.xml")
+    def prepare(self, onlyload = False):
         builddir = os.path.join(self.workdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
+
+        # create our report directory
+        try:
+            # Only create a report dir if we're doing measurements
+            # or the loads logging is enabled
+            if not onlyload or self.config.logging:
+                self.make_report_dir()
+        except:
+            raise RuntimeError("Cannot create report directory (NFS with rootsquash on?)")
 
         self.__logger.log(Log.INFO, "setting up loads")
         params = {'workdir':self.workdir, 
@@ -390,10 +398,12 @@ class RtEval(object):
                   }
         self.__loadmods.Setup(params)
 
-        if not self.cmd_options.onlyload:
+        if not onlyload:
             self.config.AppendConfig('cyclictest', params)
             self.__logger.log(Log.INFO, "setting up cyclictest")
             self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
+
+            self.xml = os.path.join(self.reportdir, "summary.xml")
 
 
     def measure(self):
@@ -413,13 +423,12 @@ class RtEval(object):
             
             self.__measure_start = datetime.now()
             
-            if not self.cmd_options.onlyload:
-                # start the cyclictest thread
-                self.__logger.log(Log.INFO, "starting cyclictest")
-                self.cyclictest.start()
+            # start the cyclictest thread
+            self.__logger.log(Log.INFO, "starting cyclictest")
+            self.cyclictest.start()
             
             nthreads = self.__loadmods.Unleash()
-                
+
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
             # wait for time to expire or thread to die
@@ -432,7 +441,7 @@ class RtEval(object):
             loadcount = 5
             while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
-                if not self.cmd_options.onlyload and not self.cyclictest.isAlive():
+                if not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
                 if len(threading.enumerate()) < nthreads:
                     raise RuntimeError, "load thread died!"
@@ -456,9 +465,8 @@ class RtEval(object):
             raise
 
         finally:
-            if not self.cmd_options.onlyload:
-                # stop cyclictest
-                self.cyclictest.stopevent.set()
+            # stop cyclictest
+            self.cyclictest.stopevent.set()
             
             # stop the loads
             self.__loadmods.Stop()
@@ -470,9 +478,8 @@ class RtEval(object):
 
         print "stopping run at %s" % time.asctime()
 
-        if not self.cmd_options.onlyload:
-            # wait for cyclictest to finish calculating stats
-            self.cyclictest.finished.wait()
+        # wait for cyclictest to finish calculating stats
+        self.cyclictest.finished.wait()
 
 
     def XMLRPC_Send(self):
@@ -602,30 +609,34 @@ class RtEval(object):
         if not os.path.isdir(self.workdir):
             raise RuntimeError, "work directory %d does not exist" % self.workdir
 
-        # create our report directory
-        try:
-            self.make_report_dir()
-        except:
-            print "Cannot create the report dir!"
-            print "(is this an NFS filesystem with rootsquash turned on?)"
-            sys.exit(-1)
+        self.prepare(self.cmd_options.onlyload)
 
-        self.prepare()
-        self.measure()
-
-        if not self.cmd_options.onlyload:
+        if self.cmd_options.onlyload:
+            # If --onlyload were given, just kick off the loads and nothing more
+            # No reports will be created.
+            self.__loadmods.Start()
+            nthreads = self.__loadmods.Unleash()
+            self.__logger.log(Log.INFO, "Started %i load threads - will run for %f seconds" % (
+                    nthreads, self.config.duration))
+            self.__logger.log(Log.INFO, "No measurements will be performed, due to the --onlyload option")
+            time.sleep(self.config.duration)
+            self.__loadmods.Stop()
+            retval = 0
+        else:
+            # ... otherwise, run the full measurement suite with reports
+            self.measure()
             self.report()
             if self.config.sysreport:
                 self.__sysinfo.run_sysreport(self.reportdir)
 
-        # if --xmlrpc-submit | -X was given, send our report to this host
-        if self.config.xmlrpc:
-            retval = self.XMLRPC_Send()
+            # if --xmlrpc-submit | -X was given, send our report to this host
+            if self.config.xmlrpc:
+                retval = self.XMLRPC_Send()
 
-        self.__sysinfo.copy_dmesg(self.reportdir)
-        self.tar_results()
+            self.__sysinfo.copy_dmesg(self.reportdir)
+            self.tar_results()
 
-        self.__logger.log(Log.DEBUG, "exiting with exit code: %d" % retval)
+            self.__logger.log(Log.DEBUG, "exiting with exit code: %d" % retval)
 
         return retval
 
