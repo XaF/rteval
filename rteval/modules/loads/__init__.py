@@ -49,6 +49,7 @@ class LoadThread(threading.Thread):
         self.startevent = threading.Event()
         self.stopevent = threading.Event()
         self.jobs = 0
+        self.args = None
 
         if not os.path.exists(self.builddir):
             os.makedirs(self.builddir)
@@ -108,11 +109,12 @@ class CommandLineLoad(LoadThread):
     def MakeReport(self):
         rep_n = libxml2.newNode("command_line")
         rep_n.newProp("name", self.name)
-        rep_n.newProp("run", self.jobs and '1' or '0')
+        rep_n.newProp("run", (self.jobs and self.args) and '1' or '0')
 
         if self.jobs:
             rep_n.newProp("job_instances", str(self.jobs))
-            rep_n.addContent(" ".join(self.args))
+            if self.args:
+                rep_n.addContent(" ".join(self.args))
 
         return rep_n
 
