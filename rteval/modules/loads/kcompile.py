@@ -84,11 +84,16 @@ class Kcompile(CommandLineLoad):
         self.mydir = os.path.join(self.builddir, kdir)
         self._log(Log.DEBUG, "mydir = %s" % self.mydir)
 
+
     def build(self):
         self._log(Log.DEBUG, "setting up all module config file in %s" % self.mydir)
         null = os.open("/dev/null", os.O_RDWR)
-        out = self.open_logfile("kcompile-build.stdout")
-        err = self.open_logfile("kcompile-build.stderr")
+        if self.logging:
+            out = self.open_logfile("kcompile-build.stdout")
+            err = self.open_logfile("kcompile-build.stderr")
+        else:
+            out = err = null
+
         # clean up from potential previous run
         try:
             ret = subprocess.call(["make", "-C", self.mydir, "mrproper", "allmodconfig"], 
@@ -101,8 +106,10 @@ class Kcompile(CommandLineLoad):
         self._log(Log.DEBUG, "ready to run")
         self.ready = True
         os.close(null)
-        os.close(out)
-        os.close(err)
+        if self.logging:
+            os.close(out)
+            os.close(err)
+
 
     def calc_numjobs(self):
         mult = int(self.params.setdefault('jobspercore', 1))
