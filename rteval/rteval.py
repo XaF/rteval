@@ -46,6 +46,7 @@ from datetime import datetime
 from distutils import sysconfig
 from Log import Log
 from sysinfo import SystemInfo
+from modules.loads import LoadModules
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
@@ -68,7 +69,6 @@ def sigterm_handler(signum, frame):
 class RtEval(object):
     def __init__(self, cmdargs):
         self.version = "1.36"
-        self.load_modules = []
         self.workdir = os.getcwd()
         self.reportdir = os.getcwd()
         self.inifile = None
@@ -139,7 +139,8 @@ class RtEval(object):
             self.mailer = None
 
         self.__sysinfo = SystemInfo(self.config, logger=self.__logger)
-        self.loads = []
+        self.__loadmods = LoadModules(self.config, logger=self.__logger)
+
         self.xml = None
         self.annotate = self.cmd_options.annotate
 
@@ -300,10 +301,8 @@ class RtEval(object):
         self.xmlreport.AppendXMLnodes(self.__sysinfo.MakeReport())
 
         # Add load info
-        self.xmlreport.openblock('loads', {'load_average':str(accum / samples)})
-        for load in self.loads:
-            self.xmlreport.AppendXMLnodes(load.MakeReport())
-        self.xmlreport.closeblock()
+        self.xmlreport.AppendXMLnodes(self.__loadmods.MakeReport((accum / samples)))
+
         self.cyclictest.genxml(self.xmlreport)
         if self.cmd_options.hwlatdetect:
             self.__hwlat.genxml(self.xmlreport)
@@ -340,36 +339,6 @@ class RtEval(object):
         xmlreport.Write('-', xsltfullpath)
         del xmlreport
 
-    def start_loads(self):
-        if len(self.loads) == 0:
-            raise RuntimeError, "start_loads: No loads defined!"
-        self.__logger.log(Log.INFO, "starting loads:")
-        for l in self.loads:
-            l.start()
-        # now wait until they're all ready
-        self.__logger.log(Log.INFO, "waiting for ready from all loads")
-        ready=False
-        while not ready:
-            busy = 0
-            for l in self.loads:
-                if not l.isAlive():
-                    raise RuntimeError, "%s died" % l.name
-                if not l.isReady():
-                    busy += 1
-                    self.__logger.log(Log.DEBUG, "waiting for %s" % l.name)
-            if busy:
-                time.sleep(1.0)
-            else:
-                ready = True
-
-    def stop_loads(self):
-        if len(self.loads) == 0:
-            raise RuntimeError, "stop_loads: No loads defined!"
-        self.__logger.log(Log.INFO, "stopping loads: ")
-        for l in self.loads:
-            self.__logger.log(Log.INFO, "\t%s" % l.name)
-            l.stopevent.set()
-            l.join(2.0)
 
     def make_report_dir(self):
         t = self.start
@@ -405,19 +374,7 @@ class RtEval(object):
         self.reportfile = os.path.join(self.reportdir, "summary.rpt")
         self.xml = os.path.join(self.reportdir, "summary.xml")
 
-        # read in loads from the ini file
-        self.load_modules = []
-        loads = self.config.GetSection("loads")
-        for l in loads:
-            # hope to eventually have different kinds but module is only on
-            # for now (jcw)
-            if l[1].lower() == 'module':
-                self.__logger.log(Log.INFO, "importing load module %s" % l[0])
-                self.load_modules.append(__import__("modules.loads.%s" % l[0],
-                                                    fromlist="modules.loads"))
-
         self.__logger.log(Log.INFO, "setting up loads")
-        self.loads = []
         params = {'workdir':self.workdir, 
                   'reportdir':self.reportdir,
                   'builddir':builddir,
@@ -431,12 +388,7 @@ class RtEval(object):
                   'duration':self.config.duration,
                   }
         
-        for m in self.load_modules:
-            mbname = m.__name__.split('.')[-1]
-            self.config.AppendConfig(mbname, params)
-            self.__logger.log(Log.INFO, "creating load instance for %s" % mbname)
-            c = self.config.GetSection(mbname)
-            self.loads.append(m.create(self.config.GetSection(mbname)))
+        self.__loadmods.Setup(params)
 
         if not onlyload:
             self.config.AppendConfig('cyclictest', params)
@@ -446,10 +398,10 @@ class RtEval(object):
         nthreads = 0
         try:
             # start the loads
-            self.start_loads()
+            self.__loadmods.Start()
             
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
-            print "started %d loads on %d cores" % (len(self.loads), self.__sysinfo.cpu_getCores(True)),
+            print "started %d loads on %d cores" % (self.__loadmods.ModulesLoaded(), self.__sysinfo.cpu_getCores(True)),
             if self.__sysinfo.mem_get_numa_nodes() > 1:
                 print " with %d numa nodes" % self.__sysinfo.mem_get_numa_nodes()
             else:
@@ -463,11 +415,7 @@ class RtEval(object):
                 self.__logger.log(Log.INFO, "starting cyclictest")
                 self.cyclictest.start()
             
-            # turn loose the loads
-            self.__logger.log(Log.INFO, "sending start event to all loads")
-            for l in self.loads:
-                l.startevent.set()
-                nthreads += 1
+            nthreads = self.__loadmods.Unleash()
                 
             accum = 0.0
             samples = 0
@@ -520,7 +468,7 @@ class RtEval(object):
                 self.cyclictest.stopevent.set()
             
             # stop the loads
-            self.stop_loads()
+            self.__loadmods.Stop()
 
         if self.cmd_options.hwlatdetect:
             self.__hwlat = HWLatDetect.HWLatDetectRunner(self.config.GetSection('hwlatdetect'))

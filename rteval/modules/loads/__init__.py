@@ -28,8 +28,10 @@ import os.path
 import time
 import subprocess
 import threading
+import libxml2
+from Log import Log
 
-class Load(threading.Thread):
+class LoadThread(threading.Thread):
     def __init__(self, name="<unnamed>", params={}, logger=None):
         threading.Thread.__init__(self)
         self.__logger = logger
@@ -102,9 +104,9 @@ class Load(threading.Thread):
         return os.open(os.path.join(self.reportdir, "logs", name), os.O_CREAT|os.O_WRONLY)
 
 
-class CommandLineLoad(Load):
+class CommandLineLoad(LoadThread):
     def __init__(self, name="<unnamed>", params={}, logger=None):
-        Load.__init__(self, name, params, logger)
+        LoadThread.__init__(self, name, params, logger)
 
 
     def MakeReport(self):
@@ -117,3 +119,94 @@ class CommandLineLoad(Load):
             rep_n.addContent(" ".join(self.args))
 
         return rep_n
+
+
+class LoadModules(object):
+    """Module container for LoadThread based modules"""
+
+    def __init__(self, config, logger):
+        self.__module_root = "modules.loads"
+        self.__module_config = "loads"
+        self.__report_tag = "loads"
+
+        self.__cfg = config
+        self.__logger = logger
+        self.__modules = {}
+        self.__loadlog = []
+
+
+    def Setup(self, modparams):
+        modcfg = self.__cfg.GetSection(self.__module_config)
+        for m in modcfg:
+            # hope to eventually have different kinds but module is only on
+            # for now (jcw)
+            if m[1].lower() == 'module':
+                self.__logger.log(Log.INFO, "importing module %s" % m[0])
+                self.__cfg.AppendConfig(m[0], modparams)
+                mod = __import__("%s.%s" % (self.__module_root, m[0]),
+                                 fromlist=self.__module_root)
+                self.__modules[m[0]] = { "module": mod,
+                                         "object": mod.create(self.__cfg.GetSection(m[0])) }
+
+
+    def MakeReport(self, loadavg):
+        rep_n = libxml2.newNode(self.__report_tag)
+        rep_n.newProp("load_average", str(loadavg))
+
+        for (modname, mod) in self.__modules.iteritems():
+            self.__logger.log(Log.DEBUG, "Getting report from %s" % modname)
+            modrep_n = mod["object"].MakeReport()
+            rep_n.addChild(modrep_n)
+
+        return rep_n
+
+
+    def ModulesLoaded(self):
+        return len(self.__modules)
+
+
+    def Start(self):
+        if len(self.__modules) == 0:
+            raise RuntimeError("No loads configured")
+
+        self.__logger.log(Log.INFO, "Starting loads")
+        for (modname, mod) in self.__modules.iteritems():
+            mod["object"].start()
+            self.__logger.log(Log.DEBUG, "\t - %s started" % modname)
+
+        self.__logger.log(Log.DEBUG, "Waiting for all loads to be ready")
+
+        busy = True
+        while not busy:
+            busy = False
+            for (modname, mod) in self.__modules.iteritems():
+                if not mod["object"].isAlive():
+                    raise RuntimeError("%s died" % modname)
+                if not mod["object"].isReady():
+                    busy = True
+                    self.__logger.log(Log.DEBUG, "Waiting for %s" % modname)
+
+            if busy:
+                time.sleep(1)
+
+
+    def Unleash(self):
+        # turn loose the loads
+        nthreads = 0
+        self.__logger.log(Log.INFO, "sending start event to all loads")
+        for (modname, mod) in self.__modules.iteritems():
+            mod["object"].startevent.set()
+            nthreads += 1
+
+        return nthreads
+
+
+    def Stop(self):
+        if len(self.__modules) == 0:
+            raise RuntimeError("No loads configured")
+
+        self.__logger.log(Log.INFO, "Stopping loads")
+        for (modname, mod) in self.__modules.iteritems():
+            mod["object"].stopevent.set()
+            self.__logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
+            mod["object"].join(2.0)
