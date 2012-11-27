@@ -1,5 +1,6 @@
 #
-#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2012   Clark Williams <williams@redhat.com>
+#   Copyright 2012          David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -22,11 +23,8 @@
 #   are deemed to be part of the source code.
 #
 
-import sys
 import os
-import os.path
 import time
-import subprocess
 import threading
 import libxml2
 from Log import Log
@@ -95,9 +93,6 @@ class LoadThread(threading.Thread):
         self.runload()
 
     def report(self):
-        pass
-
-    def genxml(self, x):
         pass
 
     def open_logfile(self, name):
