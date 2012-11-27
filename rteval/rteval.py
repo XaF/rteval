@@ -74,6 +74,7 @@ class RtEval(object):
         self.inifile = None
         self.cmd_options = {}
         self.start = datetime.now()
+        self.__measure_start = None
 
         default_config = {
             'rteval': {
@@ -320,7 +321,13 @@ class RtEval(object):
 
     def report(self):
         "Create a screen report, based on a predefined XSLT template"
+
+        if self.__measure_start is None:
+            raise Exception("No measurement runs have been attempted")
+
+        self.genxml(datetime.now() - self.__measure_start)
         self.xmlreport.Write("-", self.config.xslt_report)
+
 
     def XMLreport(self):
         "Retrieves the complete rteval XML report as a libxml2.xmlDoc object"
@@ -366,13 +373,10 @@ class RtEval(object):
         print "rteval time remaining: %d days, %d hours, %d minutes, %d seconds" % (days, hours, minutes, r)
 
 
-    def measure(self):
-        onlyload = self.cmd_options.onlyload
-
+    def prepare(self):
+        self.xml = os.path.join(self.reportdir, "summary.xml")
         builddir = os.path.join(self.workdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
-        self.reportfile = os.path.join(self.reportdir, "summary.rpt")
-        self.xml = os.path.join(self.reportdir, "summary.xml")
 
         self.__logger.log(Log.INFO, "setting up loads")
         params = {'workdir':self.workdir, 
@@ -387,16 +391,18 @@ class RtEval(object):
                   'numanodes':self.__sysinfo.mem_get_numa_nodes(),
                   'duration':self.config.duration,
                   }
-        
         self.__loadmods.Setup(params)
 
-        if not onlyload:
+        if not self.cmd_options.onlyload:
             self.config.AppendConfig('cyclictest', params)
             self.__logger.log(Log.INFO, "setting up cyclictest")
             self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
 
-        nthreads = 0
+
+    def measure(self):
         try:
+            nthreads = 0
+
             # start the loads
             self.__loadmods.Start()
             
@@ -408,9 +414,9 @@ class RtEval(object):
                 print ""
             print "Run duration: %d seconds" % self.config.duration
             
-            start = datetime.now()
+            self.__measure_start = datetime.now()
             
-            if not onlyload:
+            if not self.cmd_options.onlyload:
                 # start the cyclictest thread
                 self.__logger.log(Log.INFO, "starting cyclictest")
                 self.cyclictest.start()
@@ -429,7 +435,7 @@ class RtEval(object):
             loadcount = 5
             while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
-                if not onlyload and not self.cyclictest.isAlive():
+                if not self.cmd_options.onlyload and not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
                 if len(threading.enumerate()) < nthreads:
                     raise RuntimeError, "load thread died!"
@@ -453,7 +459,7 @@ class RtEval(object):
             raise
 
         finally:
-            if not onlyload:
+            if not self.cmd_options.onlyload:
                 # stop cyclictest
                 self.cyclictest.stopevent.set()
             
@@ -467,14 +473,9 @@ class RtEval(object):
 
         print "stopping run at %s" % time.asctime()
 
-        if not onlyload:
+        if not self.cmd_options.onlyload:
             # wait for cyclictest to finish calculating stats
             self.cyclictest.finished.wait()
-            self.genxml(datetime.now() - start)
-            self.report()
-            if self.config.sysreport:
-                self.__sysinfo.run_sysreport(self.reportdir)
-
 
 
     def XMLRPC_Send(self):
@@ -612,7 +613,13 @@ class RtEval(object):
             print "(is this an NFS filesystem with rootsquash turned on?)"
             sys.exit(-1)
 
+        self.prepare()
         self.measure()
+
+        if not self.cmd_options.onlyload:
+            self.report()
+            if self.config.sysreport:
+                self.__sysinfo.run_sysreport(self.reportdir)
 
         # if --xmlrpc-submit | -X was given, send our report to this host
         if self.config.xmlrpc:
