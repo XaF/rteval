@@ -128,6 +128,8 @@ class LoadModules(object):
         self.__module_root = "modules.loads"
         self.__module_config = "loads"
         self.__report_tag = "loads"
+        self.__loadavg_accum = 0.0
+        self.__loadavg_samples = 0
 
         self.__cfg = config
         self.__logger = logger
@@ -149,9 +151,9 @@ class LoadModules(object):
                                          "object": mod.create(self.__cfg.GetSection(m[0])) }
 
 
-    def MakeReport(self, loadavg):
+    def MakeReport(self):
         rep_n = libxml2.newNode(self.__report_tag)
-        rep_n.newProp("load_average", str(loadavg))
+        rep_n.newProp("load_average", str(self.GetLoadAvg()))
 
         for (modname, mod) in self.__modules.iteritems():
             self.__logger.log(Log.DEBUG, "Getting report from %s" % modname)
@@ -210,3 +212,19 @@ class LoadModules(object):
             mod["object"].stopevent.set()
             self.__logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
             mod["object"].join(2.0)
+
+
+    def SaveLoadAvg(self):
+        # open the loadavg /proc entry
+        p = open("/proc/loadavg")
+        load = float(p.readline().split()[0])
+        p.close()
+        self.__loadavg_accum += load
+        self.__loadavg_samples += 1
+
+
+    def GetLoadAvg(self):
+        if self.__loadavg_samples == 0:
+            self.SaveLoadAvg()
+        return float(self.__loadavg_accum / self.__loadavg_samples)
+

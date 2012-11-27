@@ -276,7 +276,7 @@ class RtEval(object):
         self.workdir = os.path.abspath(self.cmd_options.workdir)
     
 
-    def genxml(self, duration, accum, samples, xslt = None):
+    def genxml(self, duration, xslt = None):
         seconds = duration.seconds
         hours = seconds / 3600
         if hours: seconds -= (hours * 3600)
@@ -301,7 +301,7 @@ class RtEval(object):
         self.xmlreport.AppendXMLnodes(self.__sysinfo.MakeReport())
 
         # Add load info
-        self.xmlreport.AppendXMLnodes(self.__loadmods.MakeReport((accum / samples)))
+        self.xmlreport.AppendXMLnodes(self.__loadmods.MakeReport())
 
         self.cyclictest.genxml(self.xmlreport)
         if self.cmd_options.hwlatdetect:
@@ -417,9 +417,6 @@ class RtEval(object):
             
             nthreads = self.__loadmods.Unleash()
                 
-            accum = 0.0
-            samples = 0
-
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
             # wait for time to expire or thread to die
@@ -437,22 +434,15 @@ class RtEval(object):
                 if len(threading.enumerate()) < nthreads:
                     raise RuntimeError, "load thread died!"
                 if not loadcount:
-                    # open the loadavg /proc entry
-                    p = open("/proc/loadavg")
-                    load = float(p.readline().split()[0])
-                    p.close()
-                    accum += load
-                    samples += 1
+                    self.__loadmods.SaveLoadAvg()
                     loadcount = 5
-                    #self.__logger.log(Log.DEBUG, "current loadavg: %f, running avg: %f (load: %f, samples: %d)" % \
-                    #               (load, accum/samples, load, samples))
                 else:
                     loadcount -= 1
                 if currtime >= rpttime:
                     left_to_run = stoptime - currtime
                     self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
-                    print "load average: %.2f" % (accum / samples)
+                    print "load average: %.2f" % self.__loadmods.GetLoadAvg()
                 currtime = time.time()
             self.__logger.log(Log.DEBUG, "out of measurement loop")
             signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -480,7 +470,7 @@ class RtEval(object):
         if not onlyload:
             # wait for cyclictest to finish calculating stats
             self.cyclictest.finished.wait()
-            self.genxml(datetime.now() - start, accum, samples)
+            self.genxml(datetime.now() - start)
             self.report()
             if self.config.sysreport:
                 self.__sysinfo.run_sysreport(self.reportdir)
