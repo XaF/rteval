@@ -38,7 +38,7 @@ from Log import Log
 
 
 class Hackbench(CommandLineLoad):
-    def __init__(self, params={}, logger=None):
+    def __init__(self, params, logger):
         CommandLineLoad.__init__(self, "hackbench", params, logger)
 
     def __del__(self):
@@ -120,8 +120,8 @@ class Hackbench(CommandLineLoad):
             os.close(out)
             os.close(err)
 
-def create(params = {}):
-    return Hackbench(params)
+def create(params, logger):
+    return Hackbench(params, logger)
 
 
 if __name__ == '__main__':

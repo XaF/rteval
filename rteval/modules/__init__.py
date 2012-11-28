@@ -23,16 +23,26 @@
 #
 
 from Log import Log
+from rtevalConfig import rtevalConfig
 import libxml2
 
 class RtEvalModules(object):
     def __init__(self, config, logger):
+        if logger and not isinstance(logger, Log):
+            raise TypeError("logger attribute is not a Log() object")
+
+        if not isinstance(config, rtevalConfig):
+            raise TypeError("config attribue is not an rtevalConfig() object")
+
         self._cfg = config
         self._logger = logger
         self.__modules = {}
 
 
     def Setup(self, modparams):
+        if not isinstance(modparams, dict):
+            raise TypeError("modparams attribute is not of a dictionary type")
+
         modcfg = self._cfg.GetSection(self._module_config)
         for m in modcfg:
             # hope to eventually have different kinds but module is only on
@@ -42,8 +52,9 @@ class RtEvalModules(object):
                 self._cfg.AppendConfig(m[0], modparams)
                 mod = __import__("%s.%s" % (self._module_root, m[0]),
                                  fromlist=self._module_root)
+                modobj = mod.create(self._cfg.GetSection(m[0]), self._logger)
                 self.__modules[m[0]] = { "module": mod,
-                                         "object": mod.create(self._cfg.GetSection(m[0])) }
+                                         "object": modobj }
 
 
     def ModulesLoaded(self):
@@ -72,6 +83,8 @@ class RtEvalModules(object):
 
             if busy:
                 time.sleep(1)
+
+        self._logger.log(Log.DEBUG, "All %s modules are ready" % self._module_type)
 
 
     def Unleash(self):

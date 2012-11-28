@@ -28,17 +28,27 @@ import time
 import threading
 import libxml2
 from Log import Log
+from rtevalConfig import rtevalCfgSection
 from modules import RtEvalModules
 
 class LoadThread(threading.Thread):
-    def __init__(self, name="<unnamed>", params={}, logger=None):
+    def __init__(self, name, params={}, logger=None):
         threading.Thread.__init__(self)
+
+        if name is None or not isinstance(name, str):
+            raise TypeError("name attribute is not a string")
+
+        if params and not isinstance(params, rtevalCfgSection):
+            raise TypeError("params attribute is not a rtevalCfgSection() object")
+
+        if logger and not isinstance(logger, Log):
+            raise TypeError("logger attribute is not a Log() object")
+
         self.__logger = logger
         self.name = name
         self.builddir = params.setdefault('builddir', os.path.abspath("../build"))	# abs path to top dir
         self.srcdir = params.setdefault('srcdir', os.path.abspath("../loadsource"))	# abs path to src dir
         self.num_cpus = params.setdefault('numcores', 1)
-        self.debugging = params.setdefault('debugging', False)
         self.source = params.setdefault('source', None)
         self.reportdir = params.setdefault('reportdir', os.getcwd())
         self.logging = params.setdefault('logging', False)
@@ -54,12 +64,11 @@ class LoadThread(threading.Thread):
         if not os.path.exists(self.builddir):
             os.makedirs(self.builddir)
 
+
     def _log(self, logtype, msg):
         if self.__logger:
-            self.__logger.log(logtype, msg)
+            self.__logger.log(logtype, "[%s] %s" % (self.name, msg))
 
-    def debug(self, str):
-        if self.debugging: print "%s: %s" % (self.name, str)
 
     def isReady(self):
         return self.ready
@@ -94,15 +103,13 @@ class LoadThread(threading.Thread):
                 break
         self.runload()
 
-    def report(self):
-        pass
 
     def open_logfile(self, name):
         return os.open(os.path.join(self.reportdir, "logs", name), os.O_CREAT|os.O_WRONLY)
 
 
 class CommandLineLoad(LoadThread):
-    def __init__(self, name="<unnamed>", params={}, logger=None):
+    def __init__(self, name, params, logger):
         LoadThread.__init__(self, name, params, logger)
 
 

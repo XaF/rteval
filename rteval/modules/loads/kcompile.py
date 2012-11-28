@@ -33,7 +33,7 @@ from Log import Log
 kernel_prefix="linux-2.6"
 
 class Kcompile(CommandLineLoad):
-    def __init__(self, params={}, logger=None):
+    def __init__(self, params, logger):
         CommandLineLoad.__init__(self, "kcompile", params, logger)
 
 
@@ -160,6 +160,5 @@ class Kcompile(CommandLineLoad):
             os.close(err)
 
 
-def create(params = {}):
-    return Kcompile(params)
-    
+def create(params, logger):
+    return Kcompile(params, logger)
