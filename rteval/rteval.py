@@ -289,12 +289,13 @@ class RtEval(rtevalReport):
 
 
     def measure(self):
+        measure_start = None
         try:
             nthreads = 0
 
             # start the loads
             self._loadmods.Start()
-            
+
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
             print "started %d loads on %d cores" % (self._loadmods.ModulesLoaded(), self._sysinfo.cpu_getCores(True)),
             if self._sysinfo.mem_get_numa_nodes() > 1:
@@ -304,6 +305,7 @@ class RtEval(rtevalReport):
             print "Run duration: %d seconds" % self.config.duration
 
             # start the cyclictest thread
+            measure_start = datetime.now()
             self.__logger.log(Log.INFO, "starting cyclictest")
             self.cyclictest.start()
             
@@ -365,6 +367,8 @@ class RtEval(rtevalReport):
 
         # wait for cyclictest to finish calculating stats
         self.cyclictest.finished.wait()
+
+        return measure_start
 
 
     def summarize(self, file):
@@ -446,8 +450,7 @@ class RtEval(rtevalReport):
             retval = 0
         else:
             # ... otherwise, run the full measurement suite with reports
-            measure_start = datetime.now()
-            self.measure()
+            measure_start = self.measure()
             self._report(measure_start, self.config.xslt_report)
             if self.config.sysreport:
                 self._sysinfo.run_sysreport(self.reportdir)
