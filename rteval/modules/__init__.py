@@ -24,7 +24,7 @@
 
 from Log import Log
 from rtevalConfig import rtevalConfig
-import libxml2
+import time, libxml2
 
 class RtEvalModules(object):
     def __init__(self, config, logger):
@@ -72,7 +72,7 @@ class RtEvalModules(object):
 
         self._logger.log(Log.DEBUG, "Waiting for all %s modules to get ready" % self._module_type)
         busy = True
-        while not busy:
+        while busy:
             busy = False
             for (modname, mod) in self.__modules.iteritems():
                 if not mod["object"].isAlive():
