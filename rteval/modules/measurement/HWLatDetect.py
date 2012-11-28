@@ -28,15 +28,18 @@ import os
 import sys
 import libxml2
 import xmlout
+from Log import Log
+
 
 class HWLatDetectRunner(object):
-    def __init__(self,params={}):
+    def __init__(self, params={}, logger=None):
+        self.__logger = logger
         try:
             import hwlatdetect
             self.__hwlat = hwlatdetect.Detector()
         except Exception, e:
-            print "** ERROR ** hwlatdetect could not be loaded.  Will not run hwlatdetect"
-            print e
+            self.__logger.log(Log.ERR, "hwlatdetect could not be loaded.  Will not run hwlatdetect")
+            self.__logger.log(Log.DEBUG, str(e))
             self.__hwlat = None
             return
 
@@ -52,7 +55,7 @@ class HWLatDetectRunner(object):
 
     def run(self):
         if self.__hwlat is None:
-            raise Exception('Cannot run hwlatdetect')
+            raise Exception('hwlatdetect is not available')
 
         self.__hwlat.detect()
 
@@ -63,6 +66,9 @@ class HWLatDetectRunner(object):
 
 
     def genxml(self, x):
+        if self.__hwlat is None:
+            return
+
         x.openblock('hwlatdetect', {'format': '1.0'})
         x.taggedvalue('RunParams', '',
                       {'threshold': self.__hwlat.get('threshold'),

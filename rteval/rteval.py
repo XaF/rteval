@@ -473,9 +473,14 @@ class RtEval(object):
             self.__loadmods.Stop()
 
         if self.cmd_options.hwlatdetect:
-            self.__hwlat = HWLatDetect.HWLatDetectRunner(self.config.GetSection('hwlatdetect'))
-            self.__logger.log(Log.INFO, "Running hwlatdetect")
-            self.__hwlat.run()
+            try:
+                self.__hwlat = HWLatDetect.HWLatDetectRunner(self.config.GetSection('hwlatdetect'),
+                                                             logger=self.__logger)
+                self.__logger.log(Log.INFO, "Running hwlatdetect")
+                self.__hwlat.run()
+            except Exception, e:
+                self.__logger.log(Log.INFO, "Failed to run hwlatdetect")
+                self.__logger.log(Log.DEBUG, str(e))
 
         print "stopping run at %s" % time.asctime()
 
