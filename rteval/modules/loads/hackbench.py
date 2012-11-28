@@ -60,7 +60,7 @@ class Hackbench(CommandLineLoad):
         if ratio >= 0.75:
             mult = float(self.params.setdefault('jobspercore', 2))
         else:
-            print "hackbench: low memory system (%f GB/core)! Not running\n" % ratio
+            self._log(Log.INFO, "hackbench: low memory system (%f GB/core)! Not running\n" % ratio)
             mult = 0
         self.jobs = self.num_cpus * mult
 
@@ -100,10 +100,10 @@ class Hackbench(CommandLineLoad):
                 time.sleep(1.0)
             except OSError, e:
                 if e.errno != errno.ENOMEM:
-                    raise
+                    raise e
                 # Catch out-of-memory errors and wait a bit to (hopefully) 
                 # ease memory pressure
-                print "hackbench: %s, sleeping for %f seconds" % (e.strerror, self.err_sleep)
+                self._log(Log.DEBUG, "hackbench: %s, sleeping for %f seconds" % (e.strerror, self.err_sleep))
                 time.sleep(self.err_sleep)
                 if self.err_sleep < 60.0:
                     self.err_sleep *= 2.0
