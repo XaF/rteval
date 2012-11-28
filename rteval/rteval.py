@@ -401,7 +401,8 @@ class RtEval(object):
         if not onlyload:
             self.config.AppendConfig('cyclictest', params)
             self.__logger.log(Log.INFO, "setting up cyclictest")
-            self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'))
+            self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'),
+                                                    logger=self.__logger)
 
             self.xml = os.path.join(self.reportdir, "summary.xml")
 

@@ -34,10 +34,11 @@ import schedutils
 from threading import *
 import libxml2
 import xmlout
+from Log import Log
 
 class RunData(object):
     '''class to keep instance data from a cyclictest run'''
-    def __init__(self, id, type, priority):
+    def __init__(self, id, type, priority, logger):
         self.id = id
         self.type = type
         self.priority = int(priority)
@@ -54,6 +55,7 @@ class RunData(object):
         self.range = 0.0
         self.mad = 0.0
         self.variance = 0.0
+        self.__logger = logger
 
     def sample(self, value):
         self.samples[value] += self.samples.setdefault(value, 0) + 1
@@ -74,13 +76,13 @@ class RunData(object):
         # only have 1 (or none) set the calculated values
         # to zero and return
         if self.numsamples <= 1:
-            print "skipping %s (%d samples)" % (self.id, self.numsamples)
+            self.__logger.log(Log.DEBUG, "skipping %s (%d samples)" % (self.id, self.numsamples))
             self.variance = 0
             self.mad = 0
             self.stddev = 0
             return
 
-        print "reducing %s" % self.id
+        self.__logger.log(Log.INFO, "reducing %s" % self.id)
         total = 0
         keys = self.samples.keys()
         keys.sort()
@@ -156,7 +158,7 @@ class RunData(object):
 
 
 class Cyclictest(Thread):
-    def __init__(self, params={}):
+    def __init__(self, params={}, logger=None):
         Thread.__init__(self)
         self.duration = params.setdefault('duration', None)
         self.keepdata = params.setdefault('keepdata', False)
@@ -168,36 +170,38 @@ class Cyclictest(Thread):
         self.debugging = params.setdefault('debugging', False)
         self.reportfile = 'cyclictest.rpt'
         self.params = params
+        self.__logger = logger
+
         f = open('/proc/cpuinfo')
         self.data = {}
         numcores = 0
         for line in f:
             if line.startswith('processor'):
                 core = line.split()[-1]
-                self.data[core] = RunData(core, 'core', self.priority)
+                self.data[core] = RunData(core, 'core', self.priority, logger=self.__logger)
                 numcores += 1
             if line.startswith('model name'):
                 desc = line.split(': ')[-1][:-1]
                 self.data[core].description = ' '.join(desc.split())
         f.close()
         self.numcores = numcores
-        self.data['system'] = RunData('system', 'system', self.priority)
+        self.data['system'] = RunData('system', 'system', self.priority, logger=self.__logger)
         self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
         self.dataitems = len(self.data.keys())
-        self.debug("system has %d cpu cores" % (self.dataitems - 1))
+        self.__log(Log.DEBUG, "system has %d cpu cores" % (self.dataitems - 1))
         self.numanodes = params.setdefault('numanodes', 0)
 
     def __del__(self):
         pass
 
-    def debug(self, str):
-        if self.debugging: print "cyclictest: %s" % str
+    def __log(self, logtype, msg):
+        self.__logger.log(logtype, "cyclictest: %s" % msg)
 
     def getmode(self):
         if self.numanodes > 1:
-            self.debug("running in NUMA mode (%d nodes)" % self.numanodes)
+            self.__log(Log.DEBUG, "running in NUMA mode (%d nodes)" % self.numanodes)
             return '--numa'
-        self.debug("running in SMP mode")
+        self.__log(Log.DEBUG, "running in SMP mode")
         return '--smp'
 
     def run(self):
@@ -220,17 +224,17 @@ class Cyclictest(Thread):
         if self.threads:
             self.cmd.append("-t%d" % int(self.threads))
 
-        self.debug("starting with cmd: %s" % " ".join(self.cmd))
+        self.__log(Log.DEBUG, "starting with cmd: %s" % " ".join(self.cmd))
         null = os.open('/dev/null', os.O_RDWR)
         c = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=null, stdin=null)
         while True:
             if self.stopevent.isSet():
                 break
             if c.poll():
-                self.debug("process died! bailng out...")
+                self.__log(Log.DEBUG, "process died! bailng out...")
                 break
             time.sleep(1.0)
-        self.debug("stopping")
+        self.__log(Log.DEBUG, "stopping")
         if c.poll() == None:
             os.kill(c.pid, signal.SIGINT)
         # now parse the histogram output
