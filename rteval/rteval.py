@@ -36,18 +36,16 @@ import sys
 import os
 import time
 import threading
-import socket
 import optparse
 import tempfile
 import signal
-import rtevalclient
-import xmlrpclib
 from datetime import datetime
 from distutils import sysconfig
 from Log import Log
 from sysinfo import SystemInfo
 from modules.loads import LoadModules
 from rtevalReport import rtevalReport
+from rtevalXMLRPC import rtevalXMLRPC
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
@@ -157,53 +155,16 @@ class RtEval(rtevalReport):
         rtevalReport.__init__(self, self.version, self.config.installdir, self.annotate)
 
         # If --xmlrpc-submit is given, check that we can access the server
-        res = None
         if self.config.xmlrpc:
-            self.__logger.log(Log.DEBUG, "Checking if XML-RPC server '%s' is reachable" % self.config.xmlrpc)
-            attempt = 0
-            warning_sent = False
-            ping_failed = False
-            while attempt < 6:
-                try:
-                    client = rtevalclient.rtevalclient("http://%s/rteval/API1/" % self.config.xmlrpc)
-                    res = client.Hello()
-                    attempt = 10
-                    ping_failed = False
-                except xmlrpclib.ProtocolError:
-                    # Server do not support Hello(), but is reachable
-                    self.__logger.log(Log.INFO, "Got XML-RPC connection with %s but it did not support Hello()"
-                              % self.config.xmlrpc)
-                    res = None
-                except socket.error, err:
-                    self.__logger.log(Log.INFO, "Could not establish XML-RPC contact with %s\n%s"
-                              % (self.config.xmlrpc, str(err)))
-
-                    if (self.mailer is not None) and (not warning_sent):
-                        self.mailer.SendMessage("[RTEVAL:WARNING] Failed to ping XML-RPC server",
-                                                "Server %s did not respond.  Not giving up yet."
-                                                % self.config.xmlrpc)
-                        warning_sent = True
-
-                    # Do attempts handling
-                    attempt += 1
-                    if attempt > 5:
-                        break # To avoid sleeping before we abort
-
-                    print "Failed pinging XML-RPC server.  Doing another attempt(%i) " % attempt
-                    time.sleep(attempt*15) # Incremental sleep - sleep attempts*15 seconds
-                    ping_failed = True
-
-            if ping_failed:
+            self.__xmlrpc = rtevalXMLRPC(self.config.xmlrpc, self.__logger, self.mailer)
+            if not self.__xmlrpc.Ping():
                 if not self.cmd_options.xmlrpc_noabort:
                     print "ERROR: Could not reach XML-RPC server '%s'.  Aborting." % self.config.xmlrpc
                     sys.exit(2)
                 else:
                     print "WARNING: Could not ping the XML-RPC server.  Will continue anyway."
-
-            if res:
-                self.__logger.log(Log.INFO, "Verified XML-RPC connection with %s (XML-RPC API version: %i)"
-                          % (res["server"], res["APIversion"]))
-                self.__logger.log(Log.DEBUG, "Recieved greeting: %s" % res["greeting"])
+        else:
+            self.__xmlrpc = None
 
 
     def parse_options(self, cmdargs):
@@ -406,54 +367,6 @@ class RtEval(rtevalReport):
         self.cyclictest.finished.wait()
 
 
-    def XMLRPC_Send(self):
-        "Sends the report to a given XML-RPC host.  Returns 0 on success or 2 on submission failure."
-
-        if not self.config.xmlrpc:
-            return 2
-
-        url = "http://%s/rteval/API1/" % self.config.xmlrpc
-        attempt = 0
-        exitcode = 2   # Presume failure
-        warning_sent = False
-        while attempt < 6:
-            try:
-                client = rtevalclient.rtevalclient(url)
-                print "Submitting report to %s" % url
-                rterid = client.SendReport(self._XMLreport())
-                print "Report registered with submission id %i" % rterid
-                attempt = 10
-                exitcode = 0 # Success
-            except socket.error:
-                if (self.mailer is not None) and (not warning_sent):
-                    self.mailer.SendMessage("[RTEVAL:WARNING] Failed to submit report to XML-RPC server",
-                                            "Server %s did not respond.  Not giving up yet."
-                                            % self.config.xmlrpc)
-                    warning_sent = True
-
-                attempt += 1
-                if attempt > 5:
-                    break # To avoid sleeping before we abort
-
-                print "Failed sending report.  Doing another attempt(%i) " % attempt
-                time.sleep(attempt*5*60) # Incremental sleep - sleep attempts*5 minutes
-
-            except Exception, err:
-                raise err
-
-        if (self.mailer is not None):
-            # Send final result messages
-            if exitcode == 2:
-                self.mailer.SendMessage("[RTEVAL:FAILURE] Failed to submit report to XML-RPC server",
-                                        "Server %s did not respond at all after %i attempts."
-                                        % (self.config.xmlrpc, attempt - 1))
-            elif (exitcode == 0) and warning_sent:
-                self.mailer.SendMessage("[RTEVAL:SUCCESS] XML-RPC server available again",
-                                        "Succeeded to submit the report to %s in the end."
-                                        % (self.config.xmlrpc))
-        return exitcode
-
-
     def summarize(self, file):
         isarchive = False
         summary = file
@@ -540,8 +453,8 @@ class RtEval(rtevalReport):
                 self._sysinfo.run_sysreport(self.reportdir)
 
             # if --xmlrpc-submit | -X was given, send our report to this host
-            if self.config.xmlrpc:
-                retval = self.XMLRPC_Send()
+            if self.__xmlrpc:
+                retval = self.__xmlrpc.SendReport(self._XMLreport())
 
             self._sysinfo.copy_dmesg(self.reportdir)
             self._tar_results()
