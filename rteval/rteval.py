@@ -47,6 +47,7 @@ from distutils import sysconfig
 from Log import Log
 from sysinfo import SystemInfo
 from modules.loads import LoadModules
+from rtevalReport import rtevalReport
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
@@ -66,15 +67,13 @@ def sigint_handler(signum, frame):
 def sigterm_handler(signum, frame):
     raise RuntimeError,  "SIGTERM received!"
 
-class RtEval(object):
+class RtEval(rtevalReport):
     def __init__(self, cmdargs):
         self.version = "1.36"
         self.workdir = os.getcwd()
         self.reportdir = None
         self.inifile = None
         self.cmd_options = {}
-        self.start = datetime.now()
-        self.__measure_start = None
 
         default_config = {
             'rteval': {
@@ -139,8 +138,8 @@ class RtEval(object):
         else:
             self.mailer = None
 
-        self.__sysinfo = SystemInfo(self.config, logger=self.__logger)
-        self.__loadmods = LoadModules(self.config, logger=self.__logger)
+        self._sysinfo = SystemInfo(self.config, logger=self.__logger)
+        self._loadmods = LoadModules(self.config, logger=self.__logger)
 
         self.xml = None
         self.annotate = self.cmd_options.annotate
@@ -153,6 +152,9 @@ class RtEval(object):
 
         # Add rteval directory into module search path
         sys.path.insert(0, '%s/rteval' % sysconfig.get_python_lib())
+
+        # Initialise the report module
+        rtevalReport.__init__(self, self.version, self.config.installdir, self.annotate)
 
         # If --xmlrpc-submit is given, check that we can access the server
         res = None
@@ -277,88 +279,6 @@ class RtEval(object):
         self.workdir = os.path.abspath(self.cmd_options.workdir)
     
 
-    def report(self):
-        "Create a screen report, based on a predefined XSLT template"
-
-        if self.__measure_start is None:
-            raise Exception("No measurement runs have been attempted")
-
-        duration = datetime.now() - self.__measure_start
-        seconds = duration.seconds
-        hours = seconds / 3600
-        if hours: seconds -= (hours * 3600)
-        minutes = seconds / 60
-        if minutes: seconds -= (minutes * 60)
-
-        # Start new XML report
-        self.xmlreport = xmlout.XMLOut('rteval', self.version)
-        self.xmlreport.NewReport()
-
-        self.xmlreport.openblock('run_info', {'days': duration.days,
-                                 'hours': hours,
-                                 'minutes': minutes,
-                                 'seconds': seconds})
-        self.xmlreport.taggedvalue('date', self.start.strftime('%Y-%m-%d'))
-        self.xmlreport.taggedvalue('time', self.start.strftime('%H:%M:%S'))
-        if self.annotate:
-            self.xmlreport.taggedvalue('annotate', self.annotate)
-        self.xmlreport.closeblock()
-
-        # Collect and add info about the system
-        self.xmlreport.AppendXMLnodes(self.__sysinfo.MakeReport())
-
-        # Add load info
-        self.xmlreport.AppendXMLnodes(self.__loadmods.MakeReport())
-
-        self.cyclictest.genxml(self.xmlreport)
-        if self.cmd_options.hwlatdetect:
-            self.__hwlat.genxml(self.xmlreport)
-
-        # Close the report - prepare for return the result
-        self.xmlreport.close()
-
-        # Write the XML to the report directory
-        if self.xml != None:
-            self.xmlreport.Write(self.xml, None)
-
-        # Write a text report to stdout as well, using the
-        # rteval_text.xsl template
-        self.xmlreport.Write("-", self.config.xslt_report)
-
-
-    def XMLreport(self):
-        "Retrieves the complete rteval XML report as a libxml2.xmlDoc object"
-        return self.xmlreport.GetXMLdocument()
-
-    def show_report(self, xmlfile, xsltfile):
-        '''summarize a previously generated xml file'''
-        print "Loading %s for summarizing" % xmlfile
-
-        xsltfullpath = os.path.join(self.config.installdir, xsltfile)
-        if not os.path.exists(xsltfullpath):
-            raise RuntimeError, "can't find XSL template (%s)!" % xsltfullpath
-
-        xmlreport = xmlout.XMLOut('rteval', self.version)
-        xmlreport.LoadReport(xmlfile)
-        xmlreport.Write('-', xsltfullpath)
-        del xmlreport
-
-
-    def make_report_dir(self):
-        t = self.start
-        i = 1
-        self.reportdir = os.path.join(self.workdir,
-                                      t.strftime("rteval-%Y%m%d-"+str(i)))
-        while os.path.exists(self.reportdir):
-            i += 1
-            self.reportdir = os.path.join(self.workdir,
-                                          t.strftime('rteval-%Y%m%d-'+str(i)))
-        if not os.path.isdir(self.reportdir): 
-            os.mkdir(self.reportdir)
-            os.mkdir(os.path.join(self.reportdir, "logs"))
-        return self.reportdir
-
-
     def show_remaining_time(self, remaining):
         r = int(remaining)
         days = r / 86400
@@ -379,9 +299,9 @@ class RtEval(object):
             # Only create a report dir if we're doing measurements
             # or the loads logging is enabled
             if not onlyload or self.config.logging:
-                self.make_report_dir()
-        except:
-            raise RuntimeError("Cannot create report directory (NFS with rootsquash on?)")
+                self.reportdir = self._make_report_dir(self.workdir)
+        except Exception, e:
+            raise RuntimeError("Cannot create report directory (NFS with rootsquash on?) [%s]", str(e))
 
         self.__logger.log(Log.INFO, "setting up loads")
         params = {'workdir':self.workdir, 
@@ -390,13 +310,13 @@ class RtEval(object):
                   'srcdir':self.config.srcdir,
                   'verbose': self.config.verbose,
                   'debugging': self.config.debugging,
-                  'numcores':self.__sysinfo.cpu_getCores(True),
+                  'numcores':self._sysinfo.cpu_getCores(True),
                   'logging':self.config.logging,
-                  'memsize':self.__sysinfo.mem_get_size(),
-                  'numanodes':self.__sysinfo.mem_get_numa_nodes(),
+                  'memsize':self._sysinfo.mem_get_size(),
+                  'numanodes':self._sysinfo.mem_get_numa_nodes(),
                   'duration':self.config.duration,
                   }
-        self.__loadmods.Setup(params)
+        self._loadmods.Setup(params)
 
         if not onlyload:
             self.config.AppendConfig('cyclictest', params)
@@ -412,23 +332,21 @@ class RtEval(object):
             nthreads = 0
 
             # start the loads
-            self.__loadmods.Start()
+            self._loadmods.Start()
             
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
-            print "started %d loads on %d cores" % (self.__loadmods.ModulesLoaded(), self.__sysinfo.cpu_getCores(True)),
-            if self.__sysinfo.mem_get_numa_nodes() > 1:
-                print " with %d numa nodes" % self.__sysinfo.mem_get_numa_nodes()
+            print "started %d loads on %d cores" % (self._loadmods.ModulesLoaded(), self._sysinfo.cpu_getCores(True)),
+            if self._sysinfo.mem_get_numa_nodes() > 1:
+                print " with %d numa nodes" % self._sysinfo.mem_get_numa_nodes()
             else:
                 print ""
             print "Run duration: %d seconds" % self.config.duration
-            
-            self.__measure_start = datetime.now()
-            
+
             # start the cyclictest thread
             self.__logger.log(Log.INFO, "starting cyclictest")
             self.cyclictest.start()
             
-            nthreads = self.__loadmods.Unleash()
+            nthreads = self._loadmods.Unleash()
 
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
@@ -447,7 +365,7 @@ class RtEval(object):
                 if len(threading.enumerate()) < nthreads:
                     raise RuntimeError, "load thread died!"
                 if not loadcount:
-                    self.__loadmods.SaveLoadAvg()
+                    self._loadmods.SaveLoadAvg()
                     loadcount = 5
                 else:
                     loadcount -= 1
@@ -455,7 +373,7 @@ class RtEval(object):
                     left_to_run = stoptime - currtime
                     self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
-                    print "load average: %.2f" % self.__loadmods.GetLoadAvg()
+                    print "load average: %.2f" % self._loadmods.GetLoadAvg()
                 currtime = time.time()
             self.__logger.log(Log.DEBUG, "out of measurement loop")
             signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -470,7 +388,7 @@ class RtEval(object):
             self.cyclictest.stopevent.set()
             
             # stop the loads
-            self.__loadmods.Stop()
+            self._loadmods.Stop()
 
         if self.cmd_options.hwlatdetect:
             try:
@@ -502,7 +420,7 @@ class RtEval(object):
             try:
                 client = rtevalclient.rtevalclient(url)
                 print "Submitting report to %s" % url
-                rterid = client.SendReport(self.xmlreport.GetXMLdocument())
+                rterid = client.SendReport(self._XMLreport())
                 print "Report registered with submission id %i" % rterid
                 attempt = 10
                 exitcode = 0 # Success
@@ -536,21 +454,6 @@ class RtEval(object):
         return exitcode
 
 
-    def tar_results(self):
-        if not os.path.isdir(self.reportdir):
-            raise RuntimeError, "no such directory: %s" % self.reportdir
-        import tarfile
-        dirname = os.path.dirname(self.reportdir)
-        rptdir = os.path.basename(self.reportdir)
-        cwd = os.getcwd()
-        os.chdir(dirname)
-        try:
-            t = tarfile.open(rptdir + ".tar.bz2", "w:bz2")
-            t.add(rptdir)
-            t.close()
-        except:
-            os.chdir(cwd)
-
     def summarize(self, file):
         isarchive = False
         summary = file
@@ -574,7 +477,7 @@ class RtEval(object):
             t.extract(element, path=tmp)
             summary = os.path.join(tmp, element)
             isarchive = True
-        self.show_report(summary, 'rteval_text.xsl')
+        self._show_report(summary, 'rteval_text.xsl')
         if isarchive:
             os.unlink(summary)
 
@@ -591,7 +494,7 @@ class RtEval(object):
                 if self.cmd_options.summarize:
                     self.summarize(x)
                 elif self.cmd_options.rawhistogram:
-                    self.show_report(x, 'rteval_histogram_raw.xsl')
+                    self._show_report(x, 'rteval_histogram_raw.xsl')
 
             sys.exit(0)
 
@@ -620,27 +523,28 @@ class RtEval(object):
         if self.cmd_options.onlyload:
             # If --onlyload were given, just kick off the loads and nothing more
             # No reports will be created.
-            self.__loadmods.Start()
-            nthreads = self.__loadmods.Unleash()
+            self._loadmods.Start()
+            nthreads = self._loadmods.Unleash()
             self.__logger.log(Log.INFO, "Started %i load threads - will run for %f seconds" % (
                     nthreads, self.config.duration))
             self.__logger.log(Log.INFO, "No measurements will be performed, due to the --onlyload option")
             time.sleep(self.config.duration)
-            self.__loadmods.Stop()
+            self._loadmods.Stop()
             retval = 0
         else:
             # ... otherwise, run the full measurement suite with reports
+            measure_start = datetime.now()
             self.measure()
-            self.report()
+            self._report(measure_start, self.config.xslt_report)
             if self.config.sysreport:
-                self.__sysinfo.run_sysreport(self.reportdir)
+                self._sysinfo.run_sysreport(self.reportdir)
 
             # if --xmlrpc-submit | -X was given, send our report to this host
             if self.config.xmlrpc:
                 retval = self.XMLRPC_Send()
 
-            self.__sysinfo.copy_dmesg(self.reportdir)
-            self.tar_results()
+            self._sysinfo.copy_dmesg(self.reportdir)
+            self._tar_results()
 
             self.__logger.log(Log.DEBUG, "exiting with exit code: %d" % retval)
 
