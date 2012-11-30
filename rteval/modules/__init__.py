@@ -46,7 +46,11 @@ class RtEvalModules(object):
         self._logger.log(Log.INFO, "importing module %s" % modname)
         mod = __import__("%s.%s" % (modroot, modname),
                          fromlist=modroot)
-        self.__modules[modname] = mod.create(modcfg, self._logger)
+        return mod.create(modcfg, self._logger)
+
+
+    def _RegisterModuleObject(self, modname, modobj):
+        self.__modules[modname] = modobj
 
 
     def ModulesLoaded(self):
