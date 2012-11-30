@@ -28,7 +28,14 @@ import time, libxml2
 
 
 class ModuleContainer(object):
+    """The ModuleContainer keeps an overview over loaded modules and the objects it
+will instantiate.  These objects are accessed by iterating the ModuleContainer object."""
+
     def __init__(self, modules_root, logger):
+        """Creates a ModuleContainer object.  modules_root defines the default
+directory where the modules will be loaded from.  logger should point to a Log()
+object which will be used for logging and will also be given to the instantiated
+objects during module import."""
         if logger and not isinstance(logger, Log):
             raise TypeError("logger attribute is not a Log() object")
 
@@ -39,6 +46,9 @@ class ModuleContainer(object):
 
 
     def Import(self, modname, modcfg, modroot=None):
+        """Imports a module and instantiates an object from the modules create() function.
+The instantiated object is returned in this call"""
+
         if modroot is None:
             modroot = self.__modules_root
 
@@ -49,19 +59,27 @@ class ModuleContainer(object):
 
 
     def RegisterModuleObject(self, modname, modobj):
+        """Registers an instantiated module object.  This module object will be
+returned when a ModuleContainer object is iterated over"""
         self.__modules[modname] = modobj
 
 
     def ModulesLoaded(self):
+        "Returns number of registered module objects"
         return len(self.__modules)
 
 
     def __iter__(self):
+        "Initiates the iterating process"
+
         self.__iter_list = self.__modules.keys()
         return self
 
 
     def next(self):
+        """Internal Python iterating method, returns the next
+module name and object to be processed"""
+
         if len(self.__iter_list) == 0:
             self.__iter_list = None
             raise StopIteration
@@ -72,7 +90,16 @@ class ModuleContainer(object):
 
 
 class RtEvalModules(object):
+    """RtEvalModules should normally be inherrited by a more specific module class.
+    This class takes care of managing imported modules and have methods for starting
+    and stopping the workload these modules contains."""
+
     def __init__(self, modules_root, logger):
+        """Initialises the RtEvalModules() internal variables.  The modules_root
+argument should point at the root directory where the modules will be loaded from.
+The logger argument should point to a Log() object which will be used for logging
+and will also be given to the instantiated objects during module import."""
+
         self._logger = logger
         self.__modules = ModuleContainer(modules_root, logger)
 
@@ -81,17 +108,23 @@ class RtEvalModules(object):
     # Primarily to have better control of the module containers
     # iteration API
     def _Import(self, modname, modcfg, modroot = None):
+        "Imports a module and returns an instantiated object from the module"
         return self.__modules.Import(modname, modcfg, modroot)
 
     def _RegisterModuleObject(self, modname, modobj):
+        "Registers an instantiated module object which RtEvalModules will control"
         return self.__modules.RegisterModuleObject(modname, modobj)
 
     def ModulesLoaded(self):
+        "Returns number of imported modules"
         return self.__modules.ModulesLoaded()
     # End of exports
 
 
     def Start(self):
+        """Prepares all the imported modules workload to start, but they will not
+start their workloads yet"""
+
         if self.__modules.ModulesLoaded() == 0:
             raise RuntimeError("No %s modules configured" % self._module_type)
 
@@ -118,6 +151,8 @@ class RtEvalModules(object):
 
 
     def Unleash(self):
+        """Unleashes all the loaded modules workloads"""
+
         # turn loose the loads
         nthreads = 0
         self._logger.log(Log.INFO, "sending start event to all %s modules" % self._module_type)
@@ -129,7 +164,9 @@ class RtEvalModules(object):
 
 
     def Stop(self):
-        if self.__modules.ModulesLoaded() == 0:
+        """Stops all the running workloads from in all the loaded modules"""
+
+        if self.ModulesLoaded() == 0:
             raise RuntimeError("No %s modules configured" % self._module_type)
 
         self._logger.log(Log.INFO, "Stopping %s modules" % self._module_type)
@@ -140,6 +177,8 @@ class RtEvalModules(object):
 
 
     def MakeReport(self):
+        """Collects all the loaded modules reports in a single libxml2.xmlNode() object"""
+
         rep_n = libxml2.newNode(self._report_tag)
 
         for (modname, mod) in self.__modules:
