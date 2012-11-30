@@ -141,6 +141,19 @@ class LoadModules(RtEvalModules):
         RtEvalModules.__init__(self, config, logger)
 
 
+    def Setup(self, modparams):
+        if not isinstance(modparams, dict):
+            raise TypeError("modparams attribute is not of a dictionary type")
+
+        modcfg = self._cfg.GetSection(self._module_config)
+        for m in modcfg:
+            # hope to eventually have different kinds but module is only on
+            # for now (jcw)
+            if m[1].lower() == 'module':
+                self._cfg.AppendConfig(m[0], modparams)
+                self._Import(m[0], self._cfg.GetSection(m[0]))
+
+
     def MakeReport(self):
         rep_n = RtEvalModules.MakeReport(self)
         rep_n.newProp("load_average", str(self.GetLoadAvg()))

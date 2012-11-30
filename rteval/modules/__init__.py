@@ -39,22 +39,16 @@ class RtEvalModules(object):
         self.__modules = {}
 
 
-    def Setup(self, modparams):
-        if not isinstance(modparams, dict):
-            raise TypeError("modparams attribute is not of a dictionary type")
+    def _Import(self, modname, modcfg, modroot=None):
+        if modroot is None:
+            modroot = self._module_root
 
-        modcfg = self._cfg.GetSection(self._module_config)
-        for m in modcfg:
-            # hope to eventually have different kinds but module is only on
-            # for now (jcw)
-            if m[1].lower() == 'module':
-                self._logger.log(Log.INFO, "importing module %s" % m[0])
-                self._cfg.AppendConfig(m[0], modparams)
-                mod = __import__("%s.%s" % (self._module_root, m[0]),
-                                 fromlist=self._module_root)
-                modobj = mod.create(self._cfg.GetSection(m[0]), self._logger)
-                self.__modules[m[0]] = { "module": mod,
-                                         "object": modobj }
+        self._logger.log(Log.INFO, "importing module %s" % modname)
+        mod = __import__("%s.%s" % (modroot, modname),
+                         fromlist=modroot)
+        modobj = mod.create(modcfg, self._logger)
+        self.__modules[modname] = { "module": mod,
+                                    "object": modobj }
 
 
     def ModulesLoaded(self):
