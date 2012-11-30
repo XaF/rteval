@@ -125,13 +125,16 @@
     </xsl:choose>
     <xsl:text>&#10;&#10;</xsl:text>
    
-    <xsl:text>   Load commands:&#10;</xsl:text>
+    <xsl:text>   System load:&#10;</xsl:text>
     <xsl:text>       Load average: </xsl:text>
     <xsl:value-of select="loads/@load_average"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>       Commands:&#10;</xsl:text>
-    <xsl:apply-templates select="loads/command_line"/>
+    <xsl:if test="loads/command_line">
+      <xsl:text>&#10;</xsl:text>
+      <xsl:text>       Executed loads:&#10;</xsl:text>
+      <xsl:apply-templates select="loads/command_line"/>
+    </xsl:if>
     <xsl:text>&#10;</xsl:text>
 
    <!-- Format other sections of the report, if they are found                 -->

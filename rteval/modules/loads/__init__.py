@@ -114,9 +114,11 @@ class CommandLineLoad(LoadThread):
 
 
     def MakeReport(self):
+        if not (self.jobs and self.args):
+            return None
+
         rep_n = libxml2.newNode("command_line")
         rep_n.newProp("name", self.name)
-        rep_n.newProp("run", (self.jobs and self.args) and '1' or '0')
 
         if self.jobs:
             rep_n.newProp("job_instances", str(self.jobs))

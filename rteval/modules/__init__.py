@@ -115,6 +115,7 @@ class RtEvalModules(object):
         for (modname, mod) in self.__modules.iteritems():
             self._logger.log(Log.DEBUG, "Getting report from %s" % modname)
             modrep_n = mod["object"].MakeReport()
-            rep_n.addChild(modrep_n)
+            if modrep_n is not None:
+                rep_n.addChild(modrep_n)
 
         return rep_n
