@@ -288,13 +288,14 @@ class RtEval(rtevalReport):
             self.xml = os.path.join(self.reportdir, "summary.xml")
 
 
-    def measure(self):
+    def measure(self, with_loads):
         measure_start = None
         try:
             nthreads = 0
 
             # start the loads
-            self._loadmods.Start()
+            if with_loads:
+                self._loadmods.Start()
 
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
             print "started %d loads on %d cores" % (self._loadmods.ModulesLoaded(), self._sysinfo.cpu_getCores(True)),
@@ -309,7 +310,7 @@ class RtEval(rtevalReport):
             self.__logger.log(Log.INFO, "starting cyclictest")
             self.cyclictest.start()
             
-            nthreads = self._loadmods.Unleash()
+            nthreads = with_loads and self._loadmods.Unleash() or None
 
             report_interval = int(self.config.GetSection('rteval').report_interval)
 
@@ -320,24 +321,29 @@ class RtEval(rtevalReport):
             stoptime = (time.time() + self.config.duration)
             currtime = time.time()
             rpttime = currtime + report_interval
-            loadcount = 5
+            load_avg_checked = 5
             while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
                 if not self.cyclictest.isAlive():
                     raise RuntimeError, "cyclictest thread died!"
-                if len(threading.enumerate()) < nthreads:
-                    raise RuntimeError, "load thread died!"
-                if not loadcount:
+
+                if with_loads:
+                    if len(threading.enumerate()) < nthreads:
+                        raise RuntimeError, "load thread died!"
+
+                if not load_avg_checked:
                     self._loadmods.SaveLoadAvg()
-                    loadcount = 5
+                    load_avg_checked = 5
                 else:
-                    loadcount -= 1
+                    load_avg_checked -= 1
+
                 if currtime >= rpttime:
                     left_to_run = stoptime - currtime
                     self.show_remaining_time(left_to_run)
                     rpttime = currtime + report_interval
                     print "load average: %.2f" % self._loadmods.GetLoadAvg()
                 currtime = time.time()
+
             self.__logger.log(Log.DEBUG, "out of measurement loop")
             signal.signal(signal.SIGINT, signal.SIG_DFL)
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
@@ -351,7 +357,8 @@ class RtEval(rtevalReport):
             self.cyclictest.stopevent.set()
             
             # stop the loads
-            self._loadmods.Stop()
+            if with_loads:
+                self._loadmods.Stop()
 
         if self.cmd_options.hwlatdetect:
             try:
@@ -450,7 +457,7 @@ class RtEval(rtevalReport):
             retval = 0
         else:
             # ... otherwise, run the full measurement suite with reports
-            measure_start = self.measure()
+            measure_start = self.measure(True)
             self._report(measure_start, self.config.xslt_report)
             if self.config.sysreport:
                 self._sysinfo.run_sysreport(self.reportdir)
