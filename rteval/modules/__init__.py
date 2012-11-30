@@ -46,9 +46,7 @@ class RtEvalModules(object):
         self._logger.log(Log.INFO, "importing module %s" % modname)
         mod = __import__("%s.%s" % (modroot, modname),
                          fromlist=modroot)
-        modobj = mod.create(modcfg, self._logger)
-        self.__modules[modname] = { "module": mod,
-                                    "object": modobj }
+        self.__modules[modname] = mod.create(modcfg, self._logger)
 
 
     def ModulesLoaded(self):
@@ -61,7 +59,7 @@ class RtEvalModules(object):
 
         self._logger.log(Log.INFO, "Starting %s modules" % self._module_type)
         for (modname, mod) in self.__modules.iteritems():
-            mod["object"].start()
+            mod.start()
             self._logger.log(Log.DEBUG, "\t - %s started" % modname)
 
         self._logger.log(Log.DEBUG, "Waiting for all %s modules to get ready" % self._module_type)
@@ -69,9 +67,9 @@ class RtEvalModules(object):
         while busy:
             busy = False
             for (modname, mod) in self.__modules.iteritems():
-                if not mod["object"].isAlive():
+                if not mod.isAlive():
                     raise RuntimeError("%s died" % modname)
-                if not mod["object"].isReady():
+                if not mod.isReady():
                     busy = True
                     self._logger.log(Log.DEBUG, "Waiting for %s" % modname)
 
@@ -86,7 +84,7 @@ class RtEvalModules(object):
         nthreads = 0
         self._logger.log(Log.INFO, "sending start event to all %s modules" % self._module_type)
         for (modname, mod) in self.__modules.iteritems():
-            mod["object"].startevent.set()
+            mod.startevent.set()
             nthreads += 1
 
         return nthreads
@@ -98,9 +96,9 @@ class RtEvalModules(object):
 
         self._logger.log(Log.INFO, "Stopping %s modules" % self._module_type)
         for (modname, mod) in self.__modules.iteritems():
-            mod["object"].stopevent.set()
+            mod.stopevent.set()
             self._logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
-            mod["object"].join(2.0)
+            mod.join(2.0)
 
 
     def MakeReport(self):
@@ -108,7 +106,7 @@ class RtEvalModules(object):
 
         for (modname, mod) in self.__modules.iteritems():
             self._logger.log(Log.DEBUG, "Getting report from %s" % modname)
-            modrep_n = mod["object"].MakeReport()
+            modrep_n = mod.MakeReport()
             if modrep_n is not None:
                 rep_n.addChild(modrep_n)
 
