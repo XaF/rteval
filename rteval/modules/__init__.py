@@ -26,30 +26,29 @@ from Log import Log
 from rtevalConfig import rtevalConfig
 import time, libxml2
 
-class RtEvalModules(object):
-    def __init__(self, config, logger):
+
+class ModuleContainer(object):
+    def __init__(self, modules_root, logger):
         if logger and not isinstance(logger, Log):
             raise TypeError("logger attribute is not a Log() object")
 
-        if not isinstance(config, rtevalConfig):
-            raise TypeError("config attribue is not an rtevalConfig() object")
-
-        self._cfg = config
-        self._logger = logger
+        self.__modules_root = modules_root
+        self.__logger = logger
         self.__modules = {}
+        self.__iter_list = None
 
 
-    def _Import(self, modname, modcfg, modroot=None):
+    def Import(self, modname, modcfg, modroot=None):
         if modroot is None:
-            modroot = self._module_root
+            modroot = self.__modules_root
 
-        self._logger.log(Log.INFO, "importing module %s" % modname)
+        self.__logger.log(Log.INFO, "importing module %s" % modname)
         mod = __import__("%s.%s" % (modroot, modname),
                          fromlist=modroot)
-        return mod.create(modcfg, self._logger)
+        return mod.create(modcfg, self.__logger)
 
 
-    def _RegisterModuleObject(self, modname, modobj):
+    def RegisterModuleObject(self, modname, modobj):
         self.__modules[modname] = modobj
 
 
@@ -57,12 +56,47 @@ class RtEvalModules(object):
         return len(self.__modules)
 
 
+    def __iter__(self):
+        self.__iter_list = self.__modules.keys()
+        return self
+
+
+    def next(self):
+        if len(self.__iter_list) == 0:
+            self.__iter_list = None
+            raise StopIteration
+        else:
+            modname = self.__iter_list.pop()
+            return (modname, self.__modules[modname])
+
+
+
+class RtEvalModules(object):
+    def __init__(self, modules_root, logger):
+        self._logger = logger
+        self.__modules = ModuleContainer(modules_root, logger)
+
+
+    # Export some of the internal module container methods
+    # Primarily to have better control of the module containers
+    # iteration API
+    def _Import(self, modname, modcfg, modroot = None):
+        return self.__modules.Import(modname, modcfg, modroot)
+
+    def _RegisterModuleObject(self, modname, modobj):
+        return self.__modules.RegisterModuleObject(modname, modobj)
+
+    def ModulesLoaded(self):
+        return self.__modules.ModulesLoaded()
+    # End of exports
+
+
     def Start(self):
-        if len(self.__modules) == 0:
+        if self.__modules.ModulesLoaded() == 0:
             raise RuntimeError("No %s modules configured" % self._module_type)
 
         self._logger.log(Log.INFO, "Starting %s modules" % self._module_type)
-        for (modname, mod) in self.__modules.iteritems():
+        for (modname, mod) in self.__modules:
             mod.start()
             self._logger.log(Log.DEBUG, "\t - %s started" % modname)
 
@@ -70,7 +104,7 @@ class RtEvalModules(object):
         busy = True
         while busy:
             busy = False
-            for (modname, mod) in self.__modules.iteritems():
+            for (modname, mod) in self.__modules:
                 if not mod.isAlive():
                     raise RuntimeError("%s died" % modname)
                 if not mod.isReady():
@@ -87,7 +121,7 @@ class RtEvalModules(object):
         # turn loose the loads
         nthreads = 0
         self._logger.log(Log.INFO, "sending start event to all %s modules" % self._module_type)
-        for (modname, mod) in self.__modules.iteritems():
+        for (modname, mod) in self.__modules:
             mod.startevent.set()
             nthreads += 1
 
@@ -95,11 +129,11 @@ class RtEvalModules(object):
 
 
     def Stop(self):
-        if len(self.__modules) == 0:
+        if self.__modules.ModulesLoaded() == 0:
             raise RuntimeError("No %s modules configured" % self._module_type)
 
         self._logger.log(Log.INFO, "Stopping %s modules" % self._module_type)
-        for (modname, mod) in self.__modules.iteritems():
+        for (modname, mod) in self.__modules:
             mod.stopevent.set()
             self._logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
             mod.join(2.0)
@@ -108,7 +142,7 @@ class RtEvalModules(object):
     def MakeReport(self):
         rep_n = libxml2.newNode(self._report_tag)
 
-        for (modname, mod) in self.__modules.iteritems():
+        for (modname, mod) in self.__modules:
             self._logger.log(Log.DEBUG, "Getting report from %s" % modname)
             modrep_n = mod.MakeReport()
             if modrep_n is not None:
