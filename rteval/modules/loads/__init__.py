@@ -151,7 +151,7 @@ class LoadModules(RtEvalModules):
             # for now (jcw)
             if m[1].lower() == 'module':
                 self.__cfg.AppendConfig(m[0], modparams)
-                modobj = self._Import(m[0], self.__cfg.GetSection(m[0]))
+                modobj = self._InstantiateModule(m[0], self.__cfg.GetSection(m[0]))
                 self._RegisterModuleObject(m[0], modobj)
 
 

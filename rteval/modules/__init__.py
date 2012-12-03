@@ -41,38 +41,63 @@ objects during module import."""
 
         self.__modules_root = modules_root
         self.__logger = logger
-        self.__modules = {}
+        self.__modobjects = {}  # Keeps track of instantiated objects
+        self.__modsloaded = {}     # Keeps track of imported modules
         self.__iter_list = None
 
 
-    def Import(self, modname, modcfg, modroot=None):
-        """Imports a module and instantiates an object from the modules create() function.
-The instantiated object is returned in this call"""
+    def __importmod(self, modname, modroot=None):
+        """Imports a module and saves references to the imported module.
+If the same module is tried imported more times, it will return the module
+reference from the first import"""
 
         if modroot is None:
             modroot = self.__modules_root
 
-        self.__logger.log(Log.INFO, "importing module %s" % modname)
-        mod = __import__("%s.%s" % (modroot, modname),
-                         fromlist=modroot)
+        # If this module is already reported return the module,
+        # if not (except KeyError:) import it and return the imported module
+        try:
+            idxname = "%s.%s" % (modroot, modname)
+            return self.__modsloaded[idxname]
+        except KeyError:
+            self.__logger.log(Log.INFO, "importing module %s" % modname)
+            mod = __import__("%s.%s" % (modroot, modname),
+                             fromlist=modroot)
+            self.__modsloaded[idxname] = mod
+            return mod
+
+
+    def ModuleInfo(self, modname, modroot = None):
+        """Imports a module and calls the modules' ModuleInfo() function and returns
+the information provided by the module"""
+
+        mod = self.__importmod(modname, modroot)
+        return mod.ModuleInfo()
+
+
+    def InstantiateModule(self, modname, modcfg, modroot = None):
+        """Imports a module and instantiates an object from the modules create() function.
+The instantiated object is returned in this call"""
+
+        mod = self.__importmod(modname, modroot)
         return mod.create(modcfg, self.__logger)
 
 
     def RegisterModuleObject(self, modname, modobj):
         """Registers an instantiated module object.  This module object will be
 returned when a ModuleContainer object is iterated over"""
-        self.__modules[modname] = modobj
+        self.__modobjects[modname] = modobj
 
 
     def ModulesLoaded(self):
         "Returns number of registered module objects"
-        return len(self.__modules)
+        return len(self.__modobjects)
 
 
     def __iter__(self):
         "Initiates the iterating process"
 
-        self.__iter_list = self.__modules.keys()
+        self.__iter_list = self.__modobjects.keys()
         return self
 
 
@@ -85,7 +110,7 @@ module name and object to be processed"""
             raise StopIteration
         else:
             modname = self.__iter_list.pop()
-            return (modname, self.__modules[modname])
+            return (modname, self.__modobjects[modname])
 
 
 
@@ -107,9 +132,9 @@ and will also be given to the instantiated objects during module import."""
     # Export some of the internal module container methods
     # Primarily to have better control of the module containers
     # iteration API
-    def _Import(self, modname, modcfg, modroot = None):
+    def _InstantiateModule(self, modname, modcfg, modroot = None):
         "Imports a module and returns an instantiated object from the module"
-        return self.__modules.Import(modname, modcfg, modroot)
+        return self.__modules.InstantiateModule(modname, modcfg, modroot)
 
     def _RegisterModuleObject(self, modname, modobj):
         "Registers an instantiated module object which RtEvalModules will control"
