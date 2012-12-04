@@ -220,6 +220,16 @@ start their workloads yet"""
             mod.join(2.0)
 
 
+    def WaitForCompletion(self, wtime = None):
+        """Waits for the running modules to complete their running"""
+
+        self._logger.log(Log.INFO, "Waiting for %s modules to complete" % self._module_type)
+        for (modname, mod) in self.__modules:
+            self._logger.log(Log.DEBUG, "\t - Waiting for %s" % modname)
+            mod.finished.wait(wtime)
+        self._logger.log(Log.DEBUG, "All %s modules completed" % self._module_type)
+
+
     def MakeReport(self):
         """Collects all the loaded modules reports in a single libxml2.xmlNode() object"""
 
