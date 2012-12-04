@@ -23,7 +23,7 @@
 #
 
 from Log import Log
-from rtevalConfig import rtevalConfig
+from rtevalConfig import rtevalCfgSection
 import time, libxml2
 
 
@@ -78,6 +78,9 @@ the information provided by the module"""
     def InstantiateModule(self, modname, modcfg, modroot = None):
         """Imports a module and instantiates an object from the modules create() function.
 The instantiated object is returned in this call"""
+
+        if modcfg and not isinstance(modcfg, rtevalCfgSection):
+            raise TypeError("modcfg attribute is not a rtevalCfgSection() object")
 
         mod = self.__importmod(modname, modroot)
         return mod.create(modcfg, self.__logger)
