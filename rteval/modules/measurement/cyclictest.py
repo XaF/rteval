@@ -1,7 +1,8 @@
 #
 #   cyclictest.py - object to manage a cyclictest executable instance
 #
-#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2012  Clark Williams <williams@redhat.com>
+#   Copyright 2012         David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -24,21 +25,14 @@
 #   are deemed to be part of the source code.
 #
 
-import os
-import sys
-import subprocess
-import tempfile
-import time
-import signal
-import schedutils
-from threading import *
-import libxml2
-import xmlout
+import os, sys, subprocess, signal, libxml2
 from Log import Log
+from modules import rtevalModulePrototype
+
 
 class RunData(object):
     '''class to keep instance data from a cyclictest run'''
-    def __init__(self, id, type, priority, logger):
+    def __init__(self, id, type, priority, logfnc):
         self.id = id
         self.type = type
         self.priority = int(priority)
@@ -55,7 +49,7 @@ class RunData(object):
         self.range = 0.0
         self.mad = 0.0
         self.variance = 0.0
-        self.__logger = logger
+        self._log = logfnc
 
     def sample(self, value):
         self.samples[value] += self.samples.setdefault(value, 0) + 1
@@ -76,13 +70,13 @@ class RunData(object):
         # only have 1 (or none) set the calculated values
         # to zero and return
         if self.numsamples <= 1:
-            self.__logger.log(Log.DEBUG, "skipping %s (%d samples)" % (self.id, self.numsamples))
+            self._log(Log.DEBUG, "skipping %s (%d samples)" % (self.id, self.numsamples))
             self.variance = 0
             self.mad = 0
             self.stddev = 0
             return
 
-        self.__logger.log(Log.INFO, "reducing %s" % self.id)
+        self._log(Log.INFO, "reducing %s" % self.id)
         total = 0
         keys = self.samples.keys()
         keys.sort()
@@ -127,139 +121,186 @@ class RunData(object):
         # standard deviation
         self.stddev = math.sqrt(self.variance)
 
-    def genxml(self, x):
+
+    def MakeReport(self):
+        rep_n = libxml2.newNode(self.type)
         if self.type == 'system':
-            x.openblock(self.type, {'description':self.description})
+            rep_n.newProp('description', self.description)
         else:
-            x.openblock(self.type, {'id': self.id, 'priority': self.priority})
-        x.openblock('statistics')
-        x.taggedvalue('samples', str(self.numsamples))
-        x.taggedvalue('minimum', str(self.min), {"unit": "us"})
-        x.taggedvalue('maximum', str(self.max), {"unit": "us"})
-        x.taggedvalue('median', str(self.median), {"unit": "us"})
-        x.taggedvalue('mode', str(self.mode), {"unit": "us"})
-        x.taggedvalue('range', str(self.range), {"unit": "us"})
-        x.taggedvalue('mean', str(self.mean), {"unit": "us"})
-        x.taggedvalue('mean_absolute_deviation', str(self.mad), {"unit": "us"})
-        x.taggedvalue('variance', str(self.variance), {"unit": "us"})
-        x.taggedvalue('standard_deviation', str(self.stddev), {"unit": "us"})
-        x.closeblock()
-        h = libxml2.newNode('histogram')
-        h.newProp('nbuckets', str(len(self.samples)))
+            rep_n.newProp('id', str(self.id))
+            rep_n.newProp('priority', str(self.priority))
+
+        stat_n = rep_n.newChild(None, 'statistics', None)
+
+        stat_n.newTextChild(None, 'samples', str(self.numsamples))
+
+        n = stat_n.newTextChild(None, 'minimum', str(self.min))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'maximum', str(self.max))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'mediam', str(self.median))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'mode', str(self.mode))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'range', str(self.range))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'mean', str(self.mean))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.mad))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'variance', str(self.variance))
+        n.newProp('unit', 'us')
+
+        n = stat_n.newTextChild(None, 'standard_deviation', str(self.stddev))
+        n.newProp('unit', 'us')
+
+        hist_n = rep_n.newChild(None, 'histogram', None)
+        hist_n.newProp('nbuckets', str(len(self.samples)))
         keys = self.samples.keys()
         keys.sort()
         for k in keys:
-            b = libxml2.newNode('bucket')
-            b.newProp('index', str(k))
-            b.newProp('value', str(self.samples[k]))
-            h.addChild(b)
-        x.AppendXMLnodes(h)
-        x.closeblock()
+            b_n = hist_n.newChild(None, 'bucket', None)
+            b_n.newProp('index', str(k))
+            b_n.newProp('value', str(self.samples[k]))
+
+        return rep_n
 
 
-class Cyclictest(Thread):
-    def __init__(self, params={}, logger=None):
-        Thread.__init__(self)
-        self.duration = params.setdefault('duration', None)
-        self.keepdata = params.setdefault('keepdata', False)
-        self.stopevent = Event()
-        self.finished = Event()
-        self.threads = params.setdefault('threads', None)
-        self.priority = params.setdefault('priority', 95)
-        self.interval = "-i100"
-        self.debugging = params.setdefault('debugging', False)
-        self.reportfile = 'cyclictest.rpt'
-        self.params = params
-        self.__logger = logger
+class Cyclictest(rtevalModulePrototype):
+    def __init__(self, config, logger=None):
+        rtevalModulePrototype.__init__(self, 'measurement', 'cyclictest', logger)
+        self.__cfg = config
 
+        # Create a RunData object per CPU core
         f = open('/proc/cpuinfo')
-        self.data = {}
-        numcores = 0
+        self.__numanodes = int(self.__cfg.setdefault('numanodes', 0))
+        self.__priority = int(self.__cfg.setdefault('priority', 95))
+        self.__buckets = int(self.__cfg.setdefault('buckets', 2000))
+        self.__numcores = 0
+        self.__cyclicdata = {}
         for line in f:
             if line.startswith('processor'):
                 core = line.split()[-1]
-                self.data[core] = RunData(core, 'core', self.priority, logger=self.__logger)
-                numcores += 1
+                self.__cyclicdata[core] = RunData(core, 'core',self.__priority,
+                                                  logfnc=self._log)
+                self.__numcores += 1
             if line.startswith('model name'):
                 desc = line.split(': ')[-1][:-1]
-                self.data[core].description = ' '.join(desc.split())
+                self.__cyclicdata[core].description = ' '.join(desc.split())
         f.close()
-        self.numcores = numcores
-        self.data['system'] = RunData('system', 'system', self.priority, logger=self.__logger)
-        self.data['system'].description = ("(%d cores) " % numcores) + self.data['0'].description
-        self.dataitems = len(self.data.keys())
-        self.__log(Log.DEBUG, "system has %d cpu cores" % (self.dataitems - 1))
-        self.numanodes = params.setdefault('numanodes', 0)
 
-    def __del__(self):
-        pass
+        # Create a RunData object for the overall system
+        self.__cyclicdata['system'] = RunData('system', 'system', self.__priority,
+                                              logfnc=self._log)
+        self.__cyclicdata['system'].description = ("(%d cores) " % self.__numcores) + self.__cyclicdata['0'].description
+        self._log(Log.DEBUG, "system has %d cpu cores" % self.__numcores)
+        self.__started = False
 
-    def __log(self, logtype, msg):
-        self.__logger.log(logtype, "cyclictest: %s" % msg)
 
-    def getmode(self):
-        if self.numanodes > 1:
-            self.__log(Log.DEBUG, "running in NUMA mode (%d nodes)" % self.numanodes)
+    def __getmode(self):
+        if self.__numanodes > 1:
+            self._log(Log.DEBUG, "running in NUMA mode (%d nodes)" % self.__numanodes)
             return '--numa'
-        self.__log(Log.DEBUG, "running in SMP mode")
+        self._log(Log.DEBUG, "running in SMP mode")
         return '--smp'
 
-    def run(self):
-        if self.params.has_key('buckets'):
-            buckets = int(self.params.buckets)
+
+    def _WorkloadSetup(self):
+        self.__cyclicprocess = None
+        pass
+
+
+    def _WorkloadBuild(self):
+        self._setReady()
+
+
+    def _WorkloadPrepare(self):
+        if self.__cfg.has_key('interval'):
+            self.__interval = '-i%d' % int(self.__cfg.interval)
+
+        self.__cmd = ['cyclictest',
+                      self.__interval,
+                      '-qm',
+                      '-d0',
+                      '-h %d' % self.__buckets,
+                      "-p%d" % int(self.__priority),
+                      self.__getmode(),
+                      ]
+
+        if self.__cfg.has_key('threads') and __cfg.threads:
+            self.__cmd.append("-t%d" % int(self.__cfg.threads))
+
+
+    def _WorkloadTask(self):
+        if self.__started:
+            # Don't restart cyclictest if it is already runing
+            return
+
+        self._log(Log.DEBUG, "starting with cmd: %s" % " ".join(self.__cmd))
+        self.__nullfp = os.open('/dev/null', os.O_RDWR)
+        self.__cyclicprocess = subprocess.Popen(self.__cmd,
+                                                stdout=subprocess.PIPE,
+                                                stderr=self.__nullfp,
+                                                stdin=self.__nullfp)
+        self.__started = True
+
+
+    def _WorkloadAlive(self):
+        if self.__started:
+            return self.__cyclicprocess.poll() is None
         else:
-            buckets = 2000
-        if self.params.has_key('interval'):
-            self.interval = '-i%d' % int(self.params.interval)
+            return False
 
-        self.cmd = ['cyclictest', 
-                    self.interval, 
-                    '-qm', 
-                    '-d0', 
-                    '-h %d' % buckets,
-                    "-p%d" % int(self.priority),
-                    self.getmode(),
-                    ]
 
-        if self.threads:
-            self.cmd.append("-t%d" % int(self.threads))
+    def _WorkloadCleanup(self):
+        if self.__cyclicprocess.poll() == None:
+            os.kill(self.__cyclicprocess.pid, signal.SIGINT)
 
-        self.__log(Log.DEBUG, "starting with cmd: %s" % " ".join(self.cmd))
-        null = os.open('/dev/null', os.O_RDWR)
-        c = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=null, stdin=null)
-        while True:
-            if self.stopevent.isSet():
-                break
-            if c.poll():
-                self.__log(Log.DEBUG, "process died! bailng out...")
-                break
-            time.sleep(1.0)
-        self.__log(Log.DEBUG, "stopping")
-        if c.poll() == None:
-            os.kill(c.pid, signal.SIGINT)
         # now parse the histogram output
-        for line in c.stdout:
+        for line in self.__cyclicprocess.stdout:
             if line.startswith('#'): continue
             vals = line.split()
             index = int(vals[0])
-            for i in range(0, len(self.data)-1):
-                if str(i) not in self.data: continue
-                self.data[str(i)].bucket(index, int(vals[i+1]))
-                self.data['system'].bucket(index, int(vals[i+1]))
-        for n in self.data.keys():
-            self.data[n].reduce()
-        self.finished.set()
-        os.close(null)
+            for i in range(0, len(self.__cyclicdata)-1):
+                if str(i) not in self.__cyclicdata: continue
+                self.__cyclicdata[str(i)].bucket(index, int(vals[i+1]))
+                self.__cyclicdata['system'].bucket(index, int(vals[i+1]))
+        for n in self.__cyclicdata.keys():
+            self.__cyclicdata[n].reduce()
 
-    def genxml(self, x):
-        x.openblock('cyclictest')
-        x.taggedvalue('command_line', " ".join(self.cmd))
+        self._setFinished()
+        self.__started = False
+        os.close(self.__nullfp)
+        del self.__nullfp
 
-        self.data["system"].genxml(x)
-        for t in range(0, self.numcores):
-            if str(t) not in self.data: continue
-            self.data[str(t)].genxml(x)
-        x.closeblock()
+
+    def MakeReport(self):
+        rep_n = libxml2.newNode('cyclictest')
+        rep_n.newProp('command_line', ' '.join(self.__cmd))
+
+        rep_n.addChild(self.__cyclicdata["system"].MakeReport())
+        for thr in range(0, self.__numcores):
+            if str(thr) not in self.__cyclicdata:
+                continue
+
+            rep_n.addChild(self.__cyclicdata[str(thr)].MakeReport())
+
+        return rep_n
+
+
+def ModuleInfo():
+    return {"parallel": True,
+            "loads": True}
+
+def create(params, logger):
+    return Cyclictest(params, logger)
 
 
 if __name__ == '__main__':
