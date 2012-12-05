@@ -74,8 +74,8 @@ class Hackbench(CommandLineLoad):
 
         self.__nullfp = os.open("/dev/null", os.O_RDWR)
         if self._logging:
-            self._out = self.open_logfile("hackbench.stdout")
-            self._err = self.open_logfile("hackbench.stderr")
+            self.__out = self.open_logfile("hackbench.stdout")
+            self.__err = self.open_logfile("hackbench.stderr")
         else:
             self.__out = self.__err = self.__nullfp
 
