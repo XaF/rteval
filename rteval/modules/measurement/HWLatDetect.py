@@ -24,75 +24,121 @@
 #   are deemed to be part of the source code.
 #
 
-import os
-import sys
-import libxml2
-import xmlout
+import os, sys, libxml2
+from modules import rtevalModulePrototype
 from Log import Log
 
 
-class HWLatDetectRunner(object):
-    def __init__(self, params={}, logger=None):
-        self.__logger = logger
-        try:
-            import hwlatdetect
-            self.__hwlat = hwlatdetect.Detector()
-        except Exception, e:
-            self.__logger.log(Log.ERR, "hwlatdetect could not be loaded.  Will not run hwlatdetect")
-            self.__logger.log(Log.DEBUG, str(e))
-            self.__hwlat = None
-            return
+class HWLatDetectRunner(rtevalModulePrototype):
+    def __init__(self, config, logger=None):
+        rtevalModulePrototype.__init__(self, 'measurement', 'hwlatdetect', logger)
 
-        self.__hwlat.set('threshold', int(params.setdefault('threshold', 15)))
-        self.__hwlat.set('window', int(params.setdefault('window', 1000000)))
-        self.__hwlat.set('width', int(params.setdefault('width', 800000)))
-        self.__hwlat.testduration = int(params.setdefault('duration', 10))
-        self.__hwlat.setup()
-
+        self.__cfg = config
+        self.__hwlat = None
         self.__exceeding = None
         self.__samples = []
 
 
-    def run(self):
+    def _WorkloadSetup(self):
+        try:
+            import hwlatdetect
+            self.__hwlat = hwlatdetect.Detector()
+        except Exception, e:
+            self._log(Log.WARN, "hwlatdetect could not be loaded.  Will not run hwlatdetect")
+            self._log(Log.DEBUG, str(e))
+            return
+
+
+    def _WorkloadBuild(self):
+        self._setReady()
+
+
+    def _WorkloadPrepare(self):
+	self._log(Log.DEBUG, "Preparing hwlatdetect")
+        self.__hwlat.set('threshold', int(self.__cfg.setdefault('threshold', 15)))
+        self.__hwlat.set('window', int(self.__cfg.setdefault('window', 1000000)))
+        self.__hwlat.set('width', int(self.__cfg.setdefault('width', 800000)))
+        self.__hwlat.testduration = int(self.__cfg.setdefault('duration', 10))
+	self._log(Log.DEBUG, "__hwlat.setup()")
+        self.__hwlat.setup()
+        self.__running = False
+
+
+    def _WorkloadTask(self):
         if self.__hwlat is None:
-            raise Exception('hwlatdetect is not available')
+            return
+        if self.__running:
+            return
 
+        self.__running = True
+	self._log(Log.INFO, "Starting")
         self.__hwlat.detect()
+	self._log(Log.INFO, "Completed")
 
-        # Copy out the results
+
+    def _WorkloadAlive(self):
+        return self.__running
+
+
+    def _WorkloadCleanup(self):
+        if not self.__running:
+            return
+
+	self._log(Log.DEBUG, "Parsing results")
+        # Grab the measurement results
         self.__exceeding = self.__hwlat.get("count")
         for s in self.__hwlat.samples:
             self.__samples.append(s.split('\t'))
 
+        self.__running = False
 
-    def genxml(self, x):
+
+    def MakeReport(self):
         if self.__hwlat is None:
             return
 
-        x.openblock('hwlatdetect', {'format': '1.0'})
-        x.taggedvalue('RunParams', '',
-                      {'threshold': self.__hwlat.get('threshold'),
-                       'window': self.__hwlat.get('window'),
-                       'width': self.__hwlat.get('width'),
-                       'duration': self.__hwlat.testduration}
-                      )
-        sn = libxml2.newNode('samples')
+        rep_n = libxml2.newNode('hwlatdetect')
+        rep_n.newProp('format', '1.0')
+
+        runp_n = rep_n.newChild(None, 'RunParams', None)
+        runp_n.newProp('threshold', str(self.__hwlat.get('threshold')))
+        runp_n.newProp('window', str(self.__hwlat.get('window')))
+        runp_n.newProp('width', str(self.__hwlat.get('width')))
+        runp_n.newProp('duration', str(self.__hwlat.testduration))
+
+        sn = rep_n.newChild(None, 'samples', None)
         sn.newProp('exceeding', str(self.__exceeding))
         sn.newProp('count', str(len(self.__samples)))
         for s in self.__samples:
-            n = libxml2.newNode('sample')
+            n = sn.newChild(None, 'sample', None)
             n.newProp('timestamp', s[0])
             n.newProp('duration', s[1])
-            sn.addChild(n)
-        x.AppendXMLnodes(sn)
-        x.closeblock()
+
+        return rep_n
+
+
+
+def ModuleInfo():
+    return {"parallel": False,
+            "loads": False}
+
+
+def create(params, logger):
+    return HWLatDetect(params, logger)
 
 
 if __name__ == '__main__':
-    c = HWLatDetectRunner()
-    c.run()
-    x = xmlout.XMLOut('hwlat_test', '1.0')
-    x.NewReport()
-    c.genxml(x)
-    x.close()
-    x.Write('-')
+    from rtevalConfig import rtevalConfig
+    l = Log()
+    l.SetLogVerbosity(Log.INFO|Log.DEBUG|Log.ERR|Log.WARN)
+    cfg = rtevalConfig({}, logger=l)
+    c = HWLatDetectRunner(cfg, l)
+    c._WorkloadSetup()
+    c._WorkloadPrepare()
+    c._WorkloadTask()
+    c._WorkloadCleanup()
+    rep_n = c.MakeReport()
+
+    xml = libxml2.newDoc('1.0')
+    xml.setRootElement(rep_n)
+    xml.saveFormatFileEnc('-','UTF-8',1)
