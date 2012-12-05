@@ -137,6 +137,7 @@ class rtevalConfig(rtevalCfgSection):
 
         self.__info("reading config file %s" % cfgfile)
         ini = ConfigParser.ConfigParser()
+        ini.optionxform = str
         ini.read(cfgfile)
 
         # wipe any previously read config info (other than the rteval stuff)
@@ -151,7 +152,7 @@ class rtevalConfig(rtevalCfgSection):
             if not self.__config_data.has_key(s):
                 self.__config_data[s] = {}
             for i in ini.items(s):
-                self.__config_data[s][i[0]] = i[1]
+                self.__config_data[s][i[0]] = i[1].split('#')[0].strip()
 
         # export the rteval section to member variables
         try:
