@@ -44,14 +44,12 @@ from distutils import sysconfig
 from Log import Log
 from sysinfo import SystemInfo
 from modules.loads import LoadModules
+from modules.measurement import MeasurementModules, MeasurementProfile
 from rtevalReport import rtevalReport
 from rtevalXMLRPC import rtevalXMLRPC
 
 # put local path at start of list to overide installed methods
 sys.path.insert(0, "./rteval")
-from modules import loads
-from modules.measurement import cyclictest, HWLatDetect
-import xmlout
 import rtevalConfig
 import rtevalMailer
 
@@ -138,6 +136,7 @@ class RtEval(rtevalReport):
 
         self._sysinfo = SystemInfo(self.config, logger=self.__logger)
         self._loadmods = LoadModules(self.config, logger=self.__logger)
+        self._measuremods = MeasurementModules(self.config, logger=self.__logger)
 
         self.xml = None
         self.annotate = self.cmd_options.annotate
@@ -217,10 +216,6 @@ class RtEval(rtevalReport):
                           action='store_true', default=False,
                           help="only run the loads (don't run measurement threads)")
 
-        parser.add_option("--hwlatdetect", dest="hwlatdetect",
-                          action='store_true', default=False,
-                          help="Run hardware latency detect afterwards")
-
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:
             mult = 1.0
@@ -264,7 +259,7 @@ class RtEval(rtevalReport):
         except Exception, e:
             raise RuntimeError("Cannot create report directory (NFS with rootsquash on?) [%s]", str(e))
 
-        self.__logger.log(Log.INFO, "setting up loads")
+        self.__logger.log(Log.INFO, "Preparing load modules")
         params = {'workdir':self.workdir, 
                   'reportdir':self.reportdir,
                   'builddir':builddir,
@@ -279,17 +274,21 @@ class RtEval(rtevalReport):
                   }
         self._loadmods.Setup(params)
 
-        if not onlyload:
-            self.config.AppendConfig('cyclictest', params)
-            self.__logger.log(Log.INFO, "setting up cyclictest")
-            self.cyclictest = cyclictest.Cyclictest(params=self.config.GetSection('cyclictest'),
-                                                    logger=self.__logger)
+        self.__logger.log(Log.INFO, "Preparing measurement modules")
+        self._measuremods.Setup(params)
 
+        if not onlyload:
             self.xml = os.path.join(self.reportdir, "summary.xml")
 
 
-    def measure(self, with_loads):
+    def measure(self, measure_profile):
+        if not isinstance(measure_profile, MeasurementProfile):
+            raise Exception("measure_profile is not an MeasurementProfile object")
+
         measure_start = None
+        (with_loads, run_parallel) = measure_profile.GetProfile()
+        self.__logger.log(Log.INFO, "Using measurement profile [loads: %s  parallel: %s]" % (
+                with_loads, run_parallel))
         try:
             nthreads = 0
 
@@ -306,13 +305,14 @@ class RtEval(rtevalReport):
             print "Run duration: %d seconds" % self.config.duration
 
             # start the cyclictest thread
-            measure_start = datetime.now()
-            self.__logger.log(Log.INFO, "starting cyclictest")
-            self.cyclictest.start()
+            measure_profile.Start()
             
-            nthreads = with_loads and self._loadmods.Unleash() or None
 
+            # Uleash the loads and measurement threads
             report_interval = int(self.config.GetSection('rteval').report_interval)
+            nthreads = with_loads and self._loadmods.Unleash() or None
+            measure_profile.Unleash()
+            measure_start = datetime.now()
 
             # wait for time to expire or thread to die
             signal.signal(signal.SIGINT, sigint_handler)
@@ -324,8 +324,8 @@ class RtEval(rtevalReport):
             load_avg_checked = 5
             while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
-                if not self.cyclictest.isAlive():
-                    raise RuntimeError, "cyclictest thread died!"
+                if not measure_profile.isAlive():
+                    raise RuntimeError, "one of the measurement threads died!"
 
                 if with_loads:
                     if len(threading.enumerate()) < nthreads:
@@ -353,27 +353,17 @@ class RtEval(rtevalReport):
             raise
 
         finally:
-            # stop cyclictest
-            self.cyclictest.stopevent.set()
+            # stop measurement threads
+            measure_profile.Stop()
             
             # stop the loads
             if with_loads:
                 self._loadmods.Stop()
 
-        if self.cmd_options.hwlatdetect:
-            try:
-                self.__hwlat = HWLatDetect.HWLatDetectRunner(self.config.GetSection('hwlatdetect'),
-                                                             logger=self.__logger)
-                self.__logger.log(Log.INFO, "Running hwlatdetect")
-                self.__hwlat.run()
-            except Exception, e:
-                self.__logger.log(Log.INFO, "Failed to run hwlatdetect")
-                self.__logger.log(Log.DEBUG, str(e))
-
         print "stopping run at %s" % time.asctime()
 
-        # wait for cyclictest to finish calculating stats
-        self.cyclictest.finished.wait()
+        # wait for measurement modules to finish calculating stats
+        measure_profile.WaitForCompletion()
 
         return measure_start
 
@@ -457,7 +447,11 @@ class RtEval(rtevalReport):
             retval = 0
         else:
             # ... otherwise, run the full measurement suite with reports
-            measure_start = self.measure(True)
+            measure_start = None
+            for meas_prf in self._measuremods:
+                mstart = self.measure(meas_prf)
+                if measure_start is None:
+                    measure_start = mstart
             self._report(measure_start, self.config.xslt_report)
             if self.config.sysreport:
                 self._sysinfo.run_sysreport(self.reportdir)

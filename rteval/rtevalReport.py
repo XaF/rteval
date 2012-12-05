@@ -71,9 +71,8 @@ class rtevalReport(object):
         # Add load info
         self.__xmlreport.AppendXMLnodes(self._loadmods.MakeReport())
 
-        self.cyclictest.genxml(self.__xmlreport)
-        if self.cmd_options.hwlatdetect:
-            self._hwlat.genxml(self.__xmlreport)
+        # Add measurement data
+        self.__xmlreport.AppendXMLnodes(self._measuremods.MakeReport())
 
         # Close the report - prepare for return the result
         self.__xmlreport.close()
