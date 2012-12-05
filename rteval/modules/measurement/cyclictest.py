@@ -183,6 +183,7 @@ class Cyclictest(rtevalModulePrototype):
         self.__numanodes = int(self.__cfg.setdefault('numanodes', 0))
         self.__priority = int(self.__cfg.setdefault('priority', 95))
         self.__buckets = int(self.__cfg.setdefault('buckets', 2000))
+        self.__distance = int(self.__cfg.setdefault('distance', 25))
         self.__numcores = 0
         self.__cyclicdata = {}
         for line in f:
@@ -228,7 +229,7 @@ class Cyclictest(rtevalModulePrototype):
         self.__cmd = ['cyclictest',
                       self.__interval,
                       '-qm',
-                      '-d0',
+                      '-d%d' % self.__distance,
                       '-h %d' % self.__buckets,
                       "-p%d" % int(self.__priority),
                       self.__getmode(),
