@@ -78,6 +78,7 @@ measurement profiles, based on their characteristics"""
         self.__logger = logger
         self.__measureprofiles = []
         self.__modules_root = "modules.measurement"
+        self.__iter_item = None
 
 
     def GetProfile(self, with_load, run_parallel):
@@ -135,3 +136,22 @@ measurement profiles, based on their characteristics"""
                 rep_n.addChild(mprep_n)
 
         return rep_n
+
+
+    def __iter__(self):
+        "Initiates an iteration loop for MeasurementProfile objects"
+
+        self.__iter_item = len(self.__measureprofiles)
+        return self
+
+
+    def next(self):
+        """Internal Python iterating method, returns the next
+MeasurementProfile object to be processed"""
+
+        if self.__iter_item == 0:
+            self.__iter_item = None
+            raise StopIteration
+        else:
+            self.__iter_item -= 1
+            return self.__measureprofiles[self.__iter_item]
