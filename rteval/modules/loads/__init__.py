@@ -29,35 +29,30 @@ import threading
 import libxml2
 from Log import Log
 from rtevalConfig import rtevalCfgSection
-from modules import RtEvalModules
+from modules import RtEvalModules, rtevalModulePrototype
 
-class LoadThread(threading.Thread):
-    def __init__(self, name, params={}, logger=None):
-        threading.Thread.__init__(self)
+class LoadThread(rtevalModulePrototype):
+    def __init__(self, name, config, logger=None):
 
         if name is None or not isinstance(name, str):
             raise TypeError("name attribute is not a string")
 
-        if params and not isinstance(params, rtevalCfgSection):
-            raise TypeError("params attribute is not a rtevalCfgSection() object")
+        if config and not isinstance(config, rtevalCfgSection):
+            raise TypeError("config attribute is not a rtevalCfgSection() object")
 
         if logger and not isinstance(logger, Log):
             raise TypeError("logger attribute is not a Log() object")
 
-        self.__logger = logger
-        self.name = name
-        self.builddir = params.setdefault('builddir', os.path.abspath("../build"))	# abs path to top dir
-        self.srcdir = params.setdefault('srcdir', os.path.abspath("../loadsource"))	# abs path to src dir
-        self.num_cpus = params.setdefault('numcores', 1)
-        self.source = params.setdefault('source', None)
-        self.reportdir = params.setdefault('reportdir', os.getcwd())
-        self.logging = params.setdefault('logging', False)
-        self.memsize = params.setdefault('memsize', (0, 'GB'))
-        self.params = params
-        self.ready = False
+        rtevalModulePrototype.__init__(self, "load", name, logger)
+        self.builddir = config.setdefault('builddir', os.path.abspath("../build"))	# abs path to top dir
+        self.srcdir = config.setdefault('srcdir', os.path.abspath("../loadsource"))	# abs path to src dir
+        self.num_cpus = config.setdefault('numcores', 1)
+        self.source = config.setdefault('source', None)
+        self.reportdir = config.setdefault('reportdir', os.getcwd())
+        self.memsize = config.setdefault('memsize', (0, 'GB'))
+        self._logging = config.setdefault('logging', True)
+        self._cfg = config
         self.mydir = None
-        self.startevent = threading.Event()
-        self.stopevent = threading.Event()
         self.jobs = 0
         self.args = None
 
@@ -65,52 +60,13 @@ class LoadThread(threading.Thread):
             os.makedirs(self.builddir)
 
 
-    def _log(self, logtype, msg):
-        if self.__logger:
-            self.__logger.log(logtype, "[%s] %s" % (self.name, msg))
-
-
-    def isReady(self):
-        return self.ready
-
-    def shouldStop(self):
-        return self.stopevent.isSet()
-
-    def shouldStart(self):
-        return self.startevent.isSet()
-
-    def setup(self, builddir, tarball):
-        pass
-
-    def build(self, builddir):
-        pass
-
-    def runload(self, rundir):
-        pass
-
-    def run(self):
-        if self.shouldStop():
-            return
-        self.setup()
-        if self.shouldStop():
-            return
-        self.build()
-        while True:
-            if self.shouldStop():
-                return
-            self.startevent.wait(1.0)
-            if self.shouldStart():
-                break
-        self.runload()
-
-
     def open_logfile(self, name):
         return os.open(os.path.join(self.reportdir, "logs", name), os.O_CREAT|os.O_WRONLY)
 
 
 class CommandLineLoad(LoadThread):
-    def __init__(self, name, params, logger):
-        LoadThread.__init__(self, name, params, logger)
+    def __init__(self, name, config, logger):
+        LoadThread.__init__(self, name, config, logger)
 
 
     def MakeReport(self):
@@ -118,7 +74,7 @@ class CommandLineLoad(LoadThread):
             return None
 
         rep_n = libxml2.newNode("command_line")
-        rep_n.newProp("name", self.name)
+        rep_n.newProp("name", self._name)
 
         if self.jobs:
             rep_n.newProp("job_instances", str(self.jobs))
