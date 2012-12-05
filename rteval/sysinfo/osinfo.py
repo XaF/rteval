@@ -49,10 +49,14 @@ class OSInfo(object):
 
     def copy_dmesg(self, repdir):
         dpath = "/var/log/dmesg"
-        if not os.path.exists(dpath):
-            print "dmesg file not found at %s" % dpath
+        if os.path.exists(dpath):
+            shutil.copyfile(dpath, os.path.join(repdir, "dmesg"))
             return
-        shutil.copyfile(dpath, os.path.join(repdir, "dmesg"))
+        if os.path.exists('/usr/bin/dmesg'):
+            subprocess.call('/usr/bin/dmesg > %s' % os.path.join(repdir, "dmesg"), shell=True)
+            return
+        print "dmesg file not found at %s and no dmesg exe found!" % dpath
+
 
 
     def run_sysreport(self, repdir):

@@ -102,6 +102,10 @@ class RtEval(rtevalReport):
             'cyclictest' : {
                 'interval' : '100',
                 'buckets'  : '2000',
+                'distance' : '25',
+                },
+            'measurement' : {
+                'cyclictest' : 'module',
                 }
             }
 

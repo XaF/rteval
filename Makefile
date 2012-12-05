@@ -40,14 +40,15 @@ BLOAD	:=	$(LOADDIR)/dbench-4.0.tar.gz
 LOADS	:=	$(KLOAD) $(BLOAD)
 
 runit:
-	[ -d ./run ] || mkdir run
-	python rteval/rteval.py -D -L -v --workdir=./run --loaddir=./loadsource --duration=$(D) -f ./rteval/rteval.conf -i ./rteval
+	[ -d $(HERE)/run ] || mkdir run
+	python rteval/rteval.py -D -L -v --workdir=$(HERE)/run --loaddir=$(HERE)/loadsource --duration=$(D) -f $(HERE)/rteval.conf -i $(HERE)/rteval
 
 load:
 	[ -d ./run ] || mkdir run
-	python rteval/rteval.py --onlyload -D -L -v --workdir=./run --loaddir=./loadsource -f ./rteval/rteval.conf -i ./rteval
+	python rteval/rteval.py --onlyload -D -L -v --workdir=./run --loaddir=$(HERE)/loadsource -f $(HERE)/rteval/rteval.conf -i $(HERE)/rteval
+
 sysreport:
-	python rteval/rteval.py -D -v --workdir=./run --loaddir=./loadsource --duration=$(D) -i ./rteval --sysreport
+	python rteval/rteval.py -D -v --workdir=$(HERE)/run --loaddir=$(HERE)/loadsource --duration=$(D) -i $(HERE)/rteval --sysreport
 
 clean:
 	rm -f *~ rteval/*~ rteval/*.py[co] *.tar.bz2 *.tar.gz doc/*~ server/rteval-xmlrpc-*.tar.gz
