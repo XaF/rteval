@@ -1,5 +1,6 @@
 #
-#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2012  Clark Williams <williams@redhat.com>
+#   Copyright 2012         David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -21,11 +22,7 @@
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
 #
-import sys
-import os
-import time
-import glob
-import subprocess
+import sys, os, glob, subprocess
 from signal import SIGTERM
 from modules.loads import CommandLineLoad
 from Log import Log
@@ -33,14 +30,14 @@ from Log import Log
 kernel_prefix="linux-2.6"
 
 class Kcompile(CommandLineLoad):
-    def __init__(self, params, logger):
-        CommandLineLoad.__init__(self, "kcompile", params, logger)
+    def __init__(self, config, logger):
+        CommandLineLoad.__init__(self, "kcompile", config, logger)
 
 
-    def setup(self):
+    def _WorkloadSetup(self):
         # find our source tarball
-        if self.params.has_key('tarball'):
-            tarfile = os.path.join(self.srcdir, self.params.tarfile)
+        if self._cfg.has_key('tarball'):
+            tarfile = os.path.join(self.srcdir, self._cfg.tarfile)
             if not os.path.exists(tarfile):
                 raise RuntimeError, " tarfile %s does not exist!" % tarfile
             self.source = tarfile
@@ -85,10 +82,10 @@ class Kcompile(CommandLineLoad):
         self._log(Log.DEBUG, "mydir = %s" % self.mydir)
 
 
-    def build(self):
+    def _WorkloadBuild(self):
         self._log(Log.DEBUG, "setting up all module config file in %s" % self.mydir)
         null = os.open("/dev/null", os.O_RDWR)
-        if self.logging:
+        if self._logging:
             out = self.open_logfile("kcompile-build.stdout")
             err = self.open_logfile("kcompile-build.stderr")
         else:
@@ -104,15 +101,15 @@ class Kcompile(CommandLineLoad):
             self._log(Log.DEBUG, "keyboard interrupt, aborting")
             return
         self._log(Log.DEBUG, "ready to run")
-        self.ready = True
         os.close(null)
-        if self.logging:
+        if self._logging:
             os.close(out)
             os.close(err)
+        self._setReady()
 
 
-    def calc_numjobs(self):
-        mult = int(self.params.setdefault('jobspercore', 1))
+    def __calc_numjobs(self):
+        mult = int(self._cfg.setdefault('jobspercore', 1))
         mem = self.memsize[0]
         if self.memsize[1] == 'KB':
             mem = mem / (1024.0 * 1024.0)
@@ -128,37 +125,55 @@ class Kcompile(CommandLineLoad):
             njobs = self.num_cpus
         return njobs
 
-    def runload(self):
-        null = os.open("/dev/null", os.O_RDWR)
-        if self.logging:
-            out = self.open_logfile("kcompile.stdout")
-            err = self.open_logfile("kcompile.stderr")
+
+    def _WorkloadPrepare(self):
+        self.__nullfd = os.open("/dev/null", os.O_RDWR)
+        if self._logging:
+            self.__outfd = self.open_logfile("kcompile.stdout")
+            self.__errfd = self.open_logfile("kcompile.stderr")
         else:
-            out = err = null
+            self.__outfd = self.__errfd = self.__nullfd
 
-        njobs = self.calc_numjobs()
-        self._log(Log.DEBUG, "starting loop (jobs: %d)" % njobs)
-        self.args = ["make", "-C", self.mydir, 
-                     "-j%d" % njobs ] 
-        p = subprocess.Popen(self.args, 
-                             stdin=null,stdout=out,stderr=err)
-        while not self.stopevent.isSet():
-            time.sleep(1.0)
-            if p.poll() != None:
-                r = p.wait()
-                self._log(Log.DEBUG, "restarting compile job (exit status: %s)" % r)
-                p = subprocess.Popen(self.args,
-                                     stdin=null,stdout=out,stderr=err)
+        self.jobs = self.__calc_numjobs()
+        self._log(Log.DEBUG, "starting loop (jobs: %d)" % self.jobs)
+        self.args = ["make", "-C", self.mydir,
+                     "-j%d" % self.jobs ]
+        self.__kcompileproc = None
+
+
+    def _WorkloadTask(self):
+        if not self.__kcompileproc or self.__kcompileproc.poll() is not None:
+            # If kcompile has not been kicked off yet, or have completed,
+            # restart it
+            self._log(Log.DEBUG, "Kicking off kcompile: %s" % " ".join(self.args))
+            self.__kcompileproc = subprocess.Popen(self.args,
+                                                   stdin=self.__nullfd,
+                                                   stdout=self.__outfd,
+                                                   stderr=self.__errfd)
+
+
+    def _WorkloadAlive(self):
+        # Let _WorkloadTask() kick off new runs, if it stops - thus
+        # kcompile will always be alive
+        return True
+
+
+    def _WorkloadCleanup(self):
         self._log(Log.DEBUG, "out of stopevent loop")
-        if p.poll() == None:
+        if self.__kcompileproc.poll() == None:
             self._log(Log.DEBUG, "killing compile job with SIGTERM")
-            os.kill(p.pid, SIGTERM)
-        p.wait()
-        os.close(null)
-        if self.logging:
-            os.close(out)
-            os.close(err)
+            os.kill(self.__kcompileproc.pid, SIGTERM)
+        self.__kcompileproc.wait()
+        os.close(self.__nullfd)
+        del self.__nullfd
+        if self._logging:
+            os.close(self.__outfd)
+            del self.__outfd
+            os.close(self.__errfd)
+            del self.__errfd
+        del self.__kcompileproc
+        self._setFinished()
 
 
-def create(params, logger):
-    return Kcompile(params, logger)
+def create(config, logger):
+    return Kcompile(config, logger)

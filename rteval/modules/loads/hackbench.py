@@ -1,8 +1,8 @@
 #  
 #   hackbench.py - class to manage an instance of hackbench load
 #
-#   Copyright 2009,2010   Clark Williams <williams@redhat.com>
-#   Copyright 2009,2010   David Sommerseth <davids@redhat.com>
+#   Copyright 2009 - 2012  Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2012  David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -25,29 +25,18 @@
 #   are deemed to be part of the source code.
 #
 
-import sys
-import os
-import time
-import glob
-import subprocess
-import errno
-from signal import SIGTERM
-from signal import SIGKILL
+import sys, os, time, glob, subprocess, errno
+from signal import SIGTERM, SIGKILL
 from modules.loads import CommandLineLoad
 from Log import Log
 
 
 class Hackbench(CommandLineLoad):
-    def __init__(self, params, logger):
-        CommandLineLoad.__init__(self, "hackbench", params, logger)
+    def __init__(self, config, logger):
+        CommandLineLoad.__init__(self, "hackbench", config, logger)
 
-    def __del__(self):
-        null = open("/dev/null", "w")
-        subprocess.call(['killall', '-9', 'hackbench'], 
-                        stdout=null, stderr=null)
-        os.close(null)
 
-    def setup(self):
+    def _WorkloadSetup(self):
         'calculate arguments based on input parameters'
         (mem, units) = self.memsize
         if units == 'KB':
@@ -58,7 +47,7 @@ class Hackbench(CommandLineLoad):
             mem = mem * 1024
         ratio = float(mem) / float(self.num_cpus)
         if ratio >= 0.75:
-            mult = float(self.params.setdefault('jobspercore', 2))
+            mult = float(self._cfg.setdefault('jobspercore', 2))
         else:
             self._log(Log.INFO, "hackbench: low memory system (%f GB/core)! Not running\n" % ratio)
             mult = 0
@@ -66,62 +55,79 @@ class Hackbench(CommandLineLoad):
 
         self.args = ['hackbench',  '-P',
                      '-g', str(self.jobs), 
-                     '-l', str(self.params.setdefault('loops', '100')),
-                     '-s', str(self.params.setdefault('datasize', '100'))
+                     '-l', str(self._cfg.setdefault('loops', '100')),
+                     '-s', str(self._cfg.setdefault('datasize', '100'))
                      ]
-        self.err_sleep = 5.0
+        self.__err_sleep = 5.0
 
-    def build(self):
-        self.ready = True
 
-    def start_hackbench(self, inf, outf, errf):
-        self._log(Log.DEBUG, "running: %s" % " ".join(self.args))
-        return subprocess.Popen(self.args, stdin=inf, stdout=outf, stderr=errf)
+    def _WorkloadBuild(self):
+        # Nothing to build, so we're basically ready
+        self._setReady()
 
-    def runload(self):
+
+    def _WorkloadPrepare(self):
         # if we don't have any jobs just wait for the stop event and return
         if self.jobs == 0:
-            self.stopevent.wait()
+            self.WaitForCompletion()
             return
-        null = os.open("/dev/null", os.O_RDWR)
-        if self.logging:
-            out = self.open_logfile("hackbench.stdout")
-            err = self.open_logfile("hackbench.stderr")
+
+        self.__nullfp = os.open("/dev/null", os.O_RDWR)
+        if self._logging:
+            self._out = self.open_logfile("hackbench.stdout")
+            self._err = self.open_logfile("hackbench.stderr")
         else:
-            out = err = null
+            self.__out = self.__err = self.__nullfp
+
         self._log(Log.DEBUG, "starting loop (jobs: %d)" % self.jobs)
 
-        p = self.start_hackbench(null, out, err)
-        while not self.stopevent.isSet():
-            try:
-                # if poll() returns an exit status, restart
-                if p.poll() != None:
-                    p = self.start_hackbench(null, out, err)
-                time.sleep(1.0)
-            except OSError, e:
-                if e.errno != errno.ENOMEM:
-                    raise e
-                # Catch out-of-memory errors and wait a bit to (hopefully) 
-                # ease memory pressure
-                self._log(Log.DEBUG, "hackbench: %s, sleeping for %f seconds" % (e.strerror, self.err_sleep))
-                time.sleep(self.err_sleep)
-                if self.err_sleep < 60.0:
-                    self.err_sleep *= 2.0
-                if self.err_sleep > 60.0:
-                    self.err_sleep = 60.0
 
-        self._log(Log.DEBUG, "stopping")
-        if p.poll() == None:
-            os.kill(p.pid, SIGKILL)
-        p.wait()
-        self._log(Log.DEBUG, "returning from runload()")
-        os.close(null)
-        if self.logging:
-            os.close(out)
-            os.close(err)
+    def _WorkloadTask(self):
+        if self.shouldStop():
+            return
 
-def create(params, logger):
-    return Hackbench(params, logger)
+        self._log(Log.DEBUG, "running: %s" % " ".join(self.args))
+        try:
+            self.__hbproc = subprocess.Popen(self.args,
+                                             stdin=self.__nullfp,
+                                             stdout=self.__out,
+                                             stderr=self.__err)
+        except OSError, e:
+            if e.errno != errno.ENOMEM:
+                raise e
+            # Catch out-of-memory errors and wait a bit to (hopefully)
+            # ease memory pressure
+            self._log(Log.DEBUG, "hackbench: %s, sleeping for %f seconds" % (e.strerror, self.__err_sleep))
+            time.sleep(self.__err_sleep)
+            if self.__err_sleep < 60.0:
+                self.__err_sleep *= 2.0
+            if self.__err_sleep > 60.0:
+                self.__err_sleep = 60.0
+
+
+    def _WorkloadAlive(self):
+        # As hackbench is short-lived, lets pretend it is always alive
+        return True
+
+
+    def _WorkloadCleanup(self):
+        if self.__hbproc.poll() == None:
+            os.kill(self.__hbproc.pid, SIGKILL)
+        self.__hbproc.wait()
+
+        os.close(self.__nullfp)
+        if self._logging:
+            os.close(self.__out)
+            del self.__out
+            os.close(self.__err)
+            del self.__err
+
+        del self.__hbproc
+        del self.__nullfp
+
+
+def create(config, logger):
+    return Hackbench(config, logger)
 
 
 if __name__ == '__main__':
