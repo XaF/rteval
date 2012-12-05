@@ -59,7 +59,6 @@ class HWLatDetectRunner(rtevalModulePrototype):
         self.__hwlat.set('window', int(self.__cfg.setdefault('window', 1000000)))
         self.__hwlat.set('width', int(self.__cfg.setdefault('width', 800000)))
         self.__hwlat.testduration = int(self.__cfg.setdefault('duration', 10))
-	self._log(Log.DEBUG, "__hwlat.setup()")
         self.__hwlat.setup()
         self.__running = False
 
@@ -71,9 +70,7 @@ class HWLatDetectRunner(rtevalModulePrototype):
             return
 
         self.__running = True
-	self._log(Log.INFO, "Starting")
         self.__hwlat.detect()
-	self._log(Log.INFO, "Completed")
 
 
     def _WorkloadAlive(self):
@@ -91,6 +88,7 @@ class HWLatDetectRunner(rtevalModulePrototype):
             self.__samples.append(s.split('\t'))
 
         self.__running = False
+        self._setFinished()
 
 
     def MakeReport(self):
@@ -124,7 +122,7 @@ def ModuleInfo():
 
 
 def create(params, logger):
-    return HWLatDetect(params, logger)
+    return HWLatDetectRunner(params, logger)
 
 
 if __name__ == '__main__':
