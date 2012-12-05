@@ -64,6 +64,10 @@ class MeasurementProfile(RtEvalModules):
         return rep_n
 
 
+    def isAlive(self):
+        """Returns True if all modules which are supposed to run runs"""
+        return self._isAlive(self.__run_parallel)
+
 
 class MeasurementModules(object):
     """Class which takes care of all measurement modules and groups them into
