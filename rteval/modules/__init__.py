@@ -323,8 +323,6 @@ start their workloads yet"""
         while busy:
             busy = False
             for (modname, mod) in self.__modules:
-                if not mod.isAlive():
-                    raise RuntimeError("%s died" % modname)
                 if not mod.isReady():
                     busy = True
                     self._logger.log(Log.DEBUG, "Waiting for %s" % modname)
