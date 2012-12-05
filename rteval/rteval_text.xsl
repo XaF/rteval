@@ -136,14 +136,8 @@
       <xsl:apply-templates select="loads/command_line"/>
     </xsl:if>
     <xsl:text>&#10;</xsl:text>
-
-   <!-- Format other sections of the report, if they are found                 -->
-   <!-- To add support for even more sections, just add them into the existing -->
-   <!-- xsl:apply-tempaltes tag, separated with pipe(|)                        -->
-   <!--                                                                        -->
-   <!--       select="cyclictest|new_foo_section|another_section"              -->
-   <!--                                                                        -->
-   <xsl:apply-templates select="cyclictest|hwlatdetect[@format='1.0']"/>
+    <!-- Generate a summary report for all measurement profiles -->
+    <xsl:apply-templates select="Measurements/Profile"/>
    <xsl:text>  ===================================================================&#10;</xsl:text>
 </xsl:template>
   <!--                              -->
@@ -166,19 +160,46 @@
   </xsl:template>
 
 
-  <!-- Format the cyclic test section of the report -->
-  <xsl:template match="/rteval/cyclictest">
-    <xsl:text>   Latency test&#10;</xsl:text>
+  <xsl:template match="/rteval/Measurements/Profile">
+    <xsl:text>   Measurement profile </xsl:text>
+    <xsl:value-of select="position()"/><xsl:text>: </xsl:text>
+    <xsl:choose>
+      <xsl:when test="@loads = '1'"><xsl:text>With loads, </xsl:text></xsl:when>
+      <xsl:otherwise><xsl:text>Without loads, </xsl:text></xsl:otherwise>
+    </xsl:choose>
+    <xsl:choose>
+      <xsl:when test="@parallel = '1'">
+        <xsl:text>measurements in parallel</xsl:text>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:text>measurements serialised</xsl:text>
+      </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>      Command:</xsl:text>
-    <xsl:value-of select="command_line"/>
+    <!-- Format other sections of the report, if they are found                 -->
+    <!-- To add support for even more sections, just add them into the existing -->
+    <!-- xsl:apply-tempaltes tag, separated with pipe(|)                        -->
+    <!--                                                                        -->
+    <!--       select="cyclictest|new_foo_section|another_section"              -->
+    <!--                                                                        -->
+    <xsl:apply-templates select="cyclictest|hwlatdetect[@format='1.0']"/>
+    <xsl:text>&#10;</xsl:text>
+  </xsl:template>
+
+  <!-- Format the cyclic test section of the report -->
+  <xsl:template match="/rteval/Measurements/Profile/cyclictest">
+    <xsl:text>       Latency test&#10;</xsl:text>
+
+    <xsl:text>          Command: </xsl:text>
+    <xsl:value-of select="@command_line"/>
     <xsl:text>&#10;&#10;</xsl:text>
 
-    <xsl:text>      System:  </xsl:text>
+    <xsl:text>          System:  </xsl:text>
     <xsl:value-of select="system/@description"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>      Statistics: &#10;</xsl:text>
+    <xsl:text>          Statistics: &#10;</xsl:text>
     <xsl:apply-templates select="system/statistics"/>
 
     <!-- Add CPU core info and stats-->
@@ -189,65 +210,65 @@
 
 
   <!--  Format the CPU core section in the cyclict test part -->
-  <xsl:template match="cyclictest/core">
-    <xsl:text>      CPU core </xsl:text>
+  <xsl:template match="/rteval/Measurements/Profile/cyclictest/core">
+    <xsl:text>          CPU core </xsl:text>
     <xsl:value-of select="@id"/>
-    <xsl:text>   Priority: </xsl:text>
+    <xsl:text>       Priority: </xsl:text>
     <xsl:value-of select="@priority"/>
     <xsl:text>&#10;</xsl:text>
-    <xsl:text>      Statistics: </xsl:text>
+    <xsl:text>          Statistics: </xsl:text>
     <xsl:text>&#10;</xsl:text>
     <xsl:apply-templates select="statistics"/>
   </xsl:template>
 
 
   <!-- Generic formatting of statistics information -->
-  <xsl:template match="statistics">
-    <xsl:text>          Samples:           </xsl:text>
+  <xsl:template match="/rteval/Measurements/Profile/cyclictest/*/statistics">
+    <xsl:text>            Samples:           </xsl:text>
     <xsl:value-of select="samples"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Mean:              </xsl:text>
+    <xsl:text>            Mean:              </xsl:text>
     <xsl:value-of select="mean"/>
     <xsl:value-of select="mean/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Median:            </xsl:text>
+    <xsl:text>            Median:            </xsl:text>
     <xsl:value-of select="median"/>
     <xsl:value-of select="median/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Mode:              </xsl:text>
+    <xsl:text>            Mode:              </xsl:text>
     <xsl:value-of select="mode"/>
     <xsl:value-of select="mode/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Range:             </xsl:text>
+    <xsl:text>            Range:             </xsl:text>
     <xsl:value-of select="range"/>
     <xsl:value-of select="range/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Min:               </xsl:text>
+    <xsl:text>            Min:               </xsl:text>
     <xsl:value-of select="minimum"/>
     <xsl:value-of select="minimum/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Max:               </xsl:text>
+    <xsl:text>            Max:               </xsl:text>
     <xsl:value-of select="maximum"/>
     <xsl:value-of select="maximum/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Mean Absolute Dev: </xsl:text>
+    <xsl:text>            Mean Absolute Dev: </xsl:text>
     <xsl:value-of select="mean_absolute_deviation"/>
     <xsl:value-of select="mean_absolute_deviation/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Variance:          </xsl:text>
+    <xsl:text>            Variance:          </xsl:text>
     <xsl:value-of select="variance"/>
     <xsl:value-of select="variance/@unit"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>          Std.dev:           </xsl:text>
+    <xsl:text>            Std.dev:           </xsl:text>
     <xsl:value-of select="standard_deviation"/>
     <xsl:value-of select="standard_deviation/@unit"/>
     <xsl:text>&#10;&#10;</xsl:text>
@@ -256,7 +277,7 @@
 
 
   <!-- Format the hwlatdetect test section of the report -->
-  <xsl:template match="/rteval/hwlatdetect[@format='1.0']">
+  <xsl:template match="/rteval/Measurements/Profile/hwlatdetect[@format='1.0']">
     <xsl:text>  Hardware latency detector&#10;</xsl:text>
 
     <xsl:text>       Run duration: </xsl:text>
@@ -281,7 +302,7 @@
     <xsl:apply-templates select="samples/sample"/>
   </xsl:template>
 
-  <xsl:template match="/rteval/hwlatdetect[@format='1.0']/samples/sample">
+  <xsl:template match="/rteval/Measurements/Profile/hwlatdetect[@format='1.0']/samples/sample">
     <xsl:text>         - @</xsl:text>
     <xsl:value-of select="@timestamp"/>
     <xsl:text>  </xsl:text>
