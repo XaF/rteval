@@ -253,6 +253,16 @@ returned when a ModuleContainer object is iterated over"""
         return len(self.__modobjects)
 
 
+    def GetModulesList(self):
+        "Returns a list of module names"
+        return self.__modobjects.keys()
+
+
+    def GetNamedModuleObject(self, modname):
+        "Looks up a named module and returns its registered module object"
+        return self.__modobjects[modname]
+
+
     def __iter__(self):
         "Initiates the iterating process"
 
@@ -306,6 +316,14 @@ and will also be given to the instantiated objects during module import."""
     def ModulesLoaded(self):
         "Returns number of imported modules"
         return self.__modules.ModulesLoaded()
+
+    def GetModulesList(self):
+        "Returns a list of module names"
+        return self.__modules.GetModulesList()
+
+    def GetNamedModuleObject(self, modname):
+        "Returns a list of module names"
+        return self.__modules.GetNamedModuleObject(modname)
     # End of exports
 
 
