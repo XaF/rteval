@@ -349,20 +349,14 @@ start their workloads yet"""
         return nthreads
 
 
-    def _isAlive(self, all_running_pass):
-        """Returns True if all modules which are supposed to run runs"""
+    def _isAlive(self):
+        """Returns True if all modules are running"""
 
-        ret = True
         for (modname, mod) in self.__modules:
-            if all_running_pass:
-                # We requiring all modules to run to pass
-                ret &= mod.WorkloadAlive()
-            else:
-                # We require only a single module to run to pass
-                # This is used by f.ex. measurement modules, running
-                # serialised
-                ret |= mod.WorkloadAlive()
-        return ret
+            # We requiring all modules to run to pass
+            if not mod.WorkloadAlive():
+                return False
+        return True
 
 
 

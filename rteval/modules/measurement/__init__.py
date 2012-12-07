@@ -33,6 +33,9 @@ class MeasurementProfile(RtEvalModules):
         self.__with_load = with_load
         self.__run_parallel = run_parallel
 
+        # Only used when running modules serialised
+        self.__run_serialised_mods = None
+
         self._module_type = "measurement"
         self._module_config = "measurement"
         self._report_tag = "Profile"
@@ -56,6 +59,22 @@ class MeasurementProfile(RtEvalModules):
         self._RegisterModuleObject(modname, modobj)
 
 
+    def Unleash(self):
+        """Unleashes all the measurement modules"""
+
+        if self.__run_parallel:
+            # Use the inherrited method if running
+            # measurements in parallel
+            return RtEvalModules.Unleash(self)
+
+        # Get a list of all registered modules,
+        # and start the first one
+        self.__serialised_mods = self.GetModulesList()
+        mod = self.GetNamedModuleObject(self.__serialised_mods[0])
+        mod.setStart()
+        return 1
+
+
     def MakeReport(self):
         "Generates an XML report for all run measurement modules in this profile"
         rep_n = RtEvalModules.MakeReport(self)
@@ -66,7 +85,26 @@ class MeasurementProfile(RtEvalModules):
 
     def isAlive(self):
         """Returns True if all modules which are supposed to run runs"""
-        return self._isAlive(self.__run_parallel)
+
+        if self.__run_parallel:
+            return self._isAlive()
+
+        if len(self.__serialised_mods) > 0:
+            # If running serialised, first check if measurement is still running,
+            # if so - return True.
+            mod = self.GetNamedModuleObject(self.__serialised_mods[0])
+            if mod.WorkloadAlive():
+                return True
+
+            # If not, go to next on the list and kick it off
+            self.__serialised_mods.remove(self.__serialised_mods[0])
+            if len(self.__serialised_mods) > 0:
+                mod = self.GetNamedModuleObject(self.__serialised_mods[0])
+                mod.setStart()
+                return True
+
+        # If we've been through everything, nothing is running
+        return False
 
 
 class MeasurementModules(object):
