@@ -73,6 +73,7 @@ class RtEval(rtevalReport):
 
         default_config = {
             'rteval': {
+                'quiet'      : False,
                 'verbose'    : False,
                 'keepdata'   : True,
                 'debugging'  : False,
@@ -127,7 +128,9 @@ class RtEval(rtevalReport):
         self.config.AppendConfig('rteval', self.cmd_options)
 
         # Update log level, based on config/command line args
-        loglev = (self.config.verbose and Log.INFO) | (self.config.debugging and Log.DEBUG)
+        loglev = (not self.config.quiet and (Log.ERR | Log.WARN)) \
+            | (self.config.verbose and Log.INFO) \
+            | (self.config.debugging and Log.DEBUG)
         self.__logger.SetLogVerbosity(loglev)
 
         self.__logger.log(Log.DEBUG, "workdir: %s" % self.workdir)
@@ -329,7 +332,9 @@ class RtEval(rtevalReport):
             while (currtime <= stoptime) and not sigint_received:
                 time.sleep(1.0)
                 if not measure_profile.isAlive():
-                    raise RuntimeError, "one of the measurement threads died!"
+                    stoptime = currtime
+                    self.__logger.log(Log.WARN,
+                                      "Measurement threads did not use the full time slot. Doing a controlled stop.")
 
                 if with_loads:
                     if len(threading.enumerate()) < nthreads:
