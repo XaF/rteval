@@ -73,7 +73,7 @@ class HWLatDetectRunner(rtevalModulePrototype):
         self.__hwlat.detect()
 
 
-    def _WorkloadAlive(self):
+    def WorkloadAlive(self):
         return self.__running
 
 

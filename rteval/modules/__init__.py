@@ -115,9 +115,9 @@ class rtevalModulePrototype(threading.Thread):
         raise NotImplementedError("_WorkloadTask() method must be implemented in the %s module" % self._name)
 
 
-    def _WorkloadAlive(self):
+    def WorkloadAlive(self):
         "Required module method, which should return True if the workload is still alive"
-        raise NotImplementedError("_WorkloadAlive() method must be implemented in the %s module" % self._name)
+        raise NotImplementedError("WorkloadAlive() method must be implemented in the %s module" % self._name)
 
 
     def _WorkloadCleanup(self):
@@ -147,15 +147,15 @@ class rtevalModulePrototype(threading.Thread):
             if self.shouldStart():
                 break
 
-        self._log(Log.DEBUG, "starting %s module" % self._module_type)
+        self._log(Log.DEBUG, "Starting %s workload" % self._module_type)
         while not self.shouldStop():
             # Run the workload
             self._WorkloadTask()
 
             if self.shouldStop():
                 break
-            if not self._WorkloadAlive():
-                self._log(Log.DEBUG, "%s workload died! bailng out..." % self._module_type)
+            if not self.WorkloadAlive():
+                self._log(Log.DEBUG, "%s workload stopped running." % self._module_type)
                 break
             time.sleep(1.0)
         self._log(Log.DEBUG, "stopping %s workload" % self._module_type)
@@ -356,12 +356,12 @@ start their workloads yet"""
         for (modname, mod) in self.__modules:
             if all_running_pass:
                 # We requiring all modules to run to pass
-                ret &= mod._WorkloadAlive()
+                ret &= mod.WorkloadAlive()
             else:
                 # We require only a single module to run to pass
                 # This is used by f.ex. measurement modules, running
                 # serialised
-                ret |= mod._WorkloadAlive()
+                ret |= mod.WorkloadAlive()
         return ret
 
 

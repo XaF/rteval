@@ -105,7 +105,7 @@ class Hackbench(CommandLineLoad):
                 self.__err_sleep = 60.0
 
 
-    def _WorkloadAlive(self):
+    def WorkloadAlive(self):
         # As hackbench is short-lived, lets pretend it is always alive
         return True
 

@@ -253,7 +253,7 @@ class Cyclictest(rtevalModulePrototype):
         self.__started = True
 
 
-    def _WorkloadAlive(self):
+    def WorkloadAlive(self):
         if self.__started:
             return self.__cyclicprocess.poll() is None
         else:

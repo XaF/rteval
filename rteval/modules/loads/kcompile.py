@@ -152,7 +152,7 @@ class Kcompile(CommandLineLoad):
                                                    stderr=self.__errfd)
 
 
-    def _WorkloadAlive(self):
+    def WorkloadAlive(self):
         # Let _WorkloadTask() kick off new runs, if it stops - thus
         # kcompile will always be alive
         return True
