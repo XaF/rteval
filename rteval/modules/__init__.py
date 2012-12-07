@@ -90,6 +90,9 @@ class rtevalModulePrototype(threading.Thread):
 
     def WaitForCompletion(self, wtime = None):
         "Blocks until the module has completed its workload"
+        if not self.shouldStart():
+            # If it hasn't been started yet, nothing to wait for
+            return None
         return self.__events["finished"].wait(wtime)
 
 
