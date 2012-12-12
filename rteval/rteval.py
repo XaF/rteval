@@ -65,11 +65,11 @@ def sigterm_handler(signum, frame):
 
 class RtEval(rtevalReport):
     def __init__(self, cmdargs):
-        self.version = "1.36"
-        self.workdir = os.getcwd()
-        self.reportdir = None
-        self.inifile = None
-        self.cmd_options = {}
+        self.__version = "2.0_pre"
+        self.__workdir = os.getcwd()
+        self.__reportdir = None
+        self.__inifile = None
+        self.__cmd_opts = {}
 
         default_config = {
             'rteval': {
@@ -115,57 +115,54 @@ class RtEval(rtevalReport):
         self.__logger.SetLogVerbosity(Log.INFO)
 
         # setup initial configuration
-        self.config = rtevalConfig.rtevalConfig(default_config, logger=self.__logger)
+        self.__cfg = rtevalConfig.rtevalConfig(default_config, logger=self.__logger)
 
         # parse command line options
         self.parse_options(cmdargs)
 
         # read in config file info
-        self.inifile = self.config.Load(self.cmd_options.inifile)
+        self.__inifile = self.__cfg.Load(self.__cmd_opts.inifile)
 
         # copy the command line options into the rteval config section
         # (cmd line overrides config file values)
-        self.config.AppendConfig('rteval', self.cmd_options)
+        self.__cfg.AppendConfig('rteval', self.__cmd_opts)
 
         # Update log level, based on config/command line args
-        loglev = (not self.config.quiet and (Log.ERR | Log.WARN)) \
-            | (self.config.verbose and Log.INFO) \
-            | (self.config.debugging and Log.DEBUG)
+        loglev = (not self.__cfg.quiet and (Log.ERR | Log.WARN)) \
+            | (self.__cfg.verbose and Log.INFO) \
+            | (self.__cfg.debugging and Log.DEBUG)
         self.__logger.SetLogVerbosity(loglev)
 
-        self.__logger.log(Log.DEBUG, "workdir: %s" % self.workdir)
+        self.__logger.log(Log.DEBUG, "workdir: %s" % self.__workdir)
 
         # prepare a mailer, if that's configured
-        if self.config.HasSection('smtp'):
-            self.mailer = rtevalMailer.rtevalMailer(self.config.GetSection('smtp'))
+        if self.__cfg.HasSection('smtp'):
+            self.__mailer = rtevalMailer.rtevalMailer(self.__cfg.GetSection('smtp'))
         else:
-            self.mailer = None
+            self.__mailer = None
 
-        self._sysinfo = SystemInfo(self.config, logger=self.__logger)
-        self._loadmods = LoadModules(self.config, logger=self.__logger)
-        self._measuremods = MeasurementModules(self.config, logger=self.__logger)
+        self._sysinfo = SystemInfo(self.__cfg, logger=self.__logger)
+        self._loadmods = LoadModules(self.__cfg, logger=self.__logger)
+        self._measuremods = MeasurementModules(self.__cfg, logger=self.__logger)
 
-        self.xml = None
-        self.annotate = self.cmd_options.annotate
+        if not self.__cfg.xslt_report.startswith(self.__cfg.installdir):
+            self.__cfg.xslt_report = os.path.join(self.__cfg.installdir, "rteval_text.xsl")
 
-        if not self.config.xslt_report.startswith(self.config.installdir):
-            self.config.xslt_report = os.path.join(self.config.installdir, "rteval_text.xsl")
-
-        if not os.path.exists(self.config.xslt_report):
-            raise RuntimeError, "can't find XSL template (%s)!" % self.config.xslt_report
+        if not os.path.exists(self.__cfg.xslt_report):
+            raise RuntimeError, "can't find XSL template (%s)!" % self.__cfg.xslt_report
 
         # Add rteval directory into module search path
         sys.path.insert(0, '%s/rteval' % sysconfig.get_python_lib())
 
         # Initialise the report module
-        rtevalReport.__init__(self, self.version, self.config.installdir, self.annotate)
+        rtevalReport.__init__(self, self.__version, self.__cfg.installdir, self.__cmd_opts.annotate)
 
         # If --xmlrpc-submit is given, check that we can access the server
-        if self.config.xmlrpc:
-            self.__xmlrpc = rtevalXMLRPC(self.config.xmlrpc, self.__logger, self.mailer)
+        if self.__cfg.xmlrpc:
+            self.__xmlrpc = rtevalXMLRPC(self.__cfg.xmlrpc, self.__logger, self.__mailer)
             if not self.__xmlrpc.Ping():
-                if not self.cmd_options.xmlrpc_noabort:
-                    print "ERROR: Could not reach XML-RPC server '%s'.  Aborting." % self.config.xmlrpc
+                if not self.__cmd_opts.xmlrpc_noabort:
+                    print "ERROR: Could not reach XML-RPC server '%s'.  Aborting." % self.__cfg.xmlrpc
                     sys.exit(2)
                 else:
                     print "WARNING: Could not ping the XML-RPC server.  Will continue anyway."
@@ -177,28 +174,28 @@ class RtEval(rtevalReport):
         '''parse the command line arguments'''
         parser = optparse.OptionParser()
         parser.add_option("-d", "--duration", dest="duration",
-                          type="string", default=self.config.duration,
+                          type="string", default=self.__cfg.duration,
                           help="specify length of test run (default: %default)")
         parser.add_option("-v", "--verbose", dest="verbose",
-                          action="store_true", default=self.config.verbose,
+                          action="store_true", default=self.__cfg.verbose,
                           help="turn on verbose prints (default: %default)")
         parser.add_option("-w", "--workdir", dest="workdir",
-                          type="string", default=self.workdir,
+                          type="string", default=self.__workdir,
                           help="top directory for rteval data (default: %default)")
         parser.add_option("-l", "--loaddir", dest="srcdir",
-                          type="string", default=self.config.srcdir,
+                          type="string", default=self.__cfg.srcdir,
                           help="directory for load source tarballs (default: %default)")
         parser.add_option("-i", "--installdir", dest="installdir",
-                          type="string", default=self.config.installdir,
+                          type="string", default=self.__cfg.installdir,
                           help="place to locate installed templates (default: %default)")
         parser.add_option("-s", "--sysreport", dest="sysreport",
-                          action="store_true", default=self.config.sysreport,
+                          action="store_true", default=self.__cfg.sysreport,
                           help='run sysreport to collect system data (default: %default)')
         parser.add_option("-D", '--debug', dest='debugging',
-                          action='store_true', default=self.config.debugging,
+                          action='store_true', default=self.__cfg.debugging,
                           help='turn on debug prints (default: %default)')
         parser.add_option("-X", '--xmlrpc-submit', dest='xmlrpc',
-                          action='store', default=self.config.xmlrpc, metavar='HOST',
+                          action='store', default=self.__cfg.xmlrpc, metavar='HOST',
                           help='Hostname to XML-RPC server to submit reports')
         parser.add_option("-P", "--xmlrpc-no-abort", dest="xmlrpc_noabort",
                           action='store_true', default=False,
@@ -223,10 +220,10 @@ class RtEval(rtevalReport):
                           action='store_true', default=False,
                           help="only run the loads (don't run measurement threads)")
 
-        (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
-        if self.cmd_options.duration:
+        (self.__cmd_opts, self.__cmd_args) = parser.parse_args(args = cmdargs)
+        if self.__cmd_opts.duration:
             mult = 1.0
-            v = self.cmd_options.duration.lower()
+            v = self.__cmd_opts.duration.lower()
             if v.endswith('s'):
                 v = v[:-1]
             elif v.endswith('m'):
@@ -238,8 +235,8 @@ class RtEval(rtevalReport):
             elif v.endswith('d'):
                 v = v[:-1]
                 mult = 3600.0 * 24.0
-            self.cmd_options.duration = float(v) * mult
-        self.workdir = os.path.abspath(self.cmd_options.workdir)
+            self.__cmd_opts.duration = float(v) * mult
+        self.__workdir = os.path.abspath(self.__cmd_opts.workdir)
     
 
     def show_remaining_time(self, remaining):
@@ -254,30 +251,30 @@ class RtEval(rtevalReport):
 
 
     def prepare(self, onlyload = False):
-        builddir = os.path.join(self.workdir, 'rteval-build')
+        builddir = os.path.join(self.__workdir, 'rteval-build')
         if not os.path.isdir(builddir): os.mkdir(builddir)
 
         # create our report directory
         try:
             # Only create a report dir if we're doing measurements
             # or the loads logging is enabled
-            if not onlyload or self.config.logging:
-                self.reportdir = self._make_report_dir(self.workdir)
+            if not onlyload or self.__cfg.logging:
+                self.__reportdir = self._make_report_dir(self.__workdir)
         except Exception, e:
             raise RuntimeError("Cannot create report directory (NFS with rootsquash on?) [%s]", str(e))
 
         self.__logger.log(Log.INFO, "Preparing load modules")
-        params = {'workdir':self.workdir, 
-                  'reportdir':self.reportdir,
+        params = {'workdir':self.__workdir,
+                  'reportdir':self.__reportdir,
                   'builddir':builddir,
-                  'srcdir':self.config.srcdir,
-                  'verbose': self.config.verbose,
-                  'debugging': self.config.debugging,
+                  'srcdir':self.__cfg.srcdir,
+                  'verbose': self.__cfg.verbose,
+                  'debugging': self.__cfg.debugging,
                   'numcores':self._sysinfo.cpu_getCores(True),
-                  'logging':self.config.logging,
+                  'logging':self.__cfg.logging,
                   'memsize':self._sysinfo.mem_get_size(),
                   'numanodes':self._sysinfo.mem_get_numa_nodes(),
-                  'duration':self.config.duration,
+                  'duration':self.__cfg.duration,
                   }
         self._loadmods.Setup(params)
 
@@ -285,7 +282,7 @@ class RtEval(rtevalReport):
         self._measuremods.Setup(params)
 
         if not onlyload:
-            self.xml = os.path.join(self.reportdir, "summary.xml")
+            self._xml = os.path.join(self.__reportdir, "summary.xml")
 
 
     def measure(self, measure_profile):
@@ -309,14 +306,14 @@ class RtEval(rtevalReport):
                 print " with %d numa nodes" % self._sysinfo.mem_get_numa_nodes()
             else:
                 print ""
-            print "Run duration: %d seconds" % self.config.duration
+            print "Run duration: %d seconds" % self.__cfg.duration
 
             # start the cyclictest thread
             measure_profile.Start()
             
 
             # Uleash the loads and measurement threads
-            report_interval = int(self.config.GetSection('rteval').report_interval)
+            report_interval = int(self.__cfg.GetSection('rteval').report_interval)
             nthreads = with_loads and self._loadmods.Unleash() or None
             measure_profile.Unleash()
             measure_start = datetime.now()
@@ -324,8 +321,8 @@ class RtEval(rtevalReport):
             # wait for time to expire or thread to die
             signal.signal(signal.SIGINT, sigint_handler)
             signal.signal(signal.SIGTERM, sigterm_handler)
-            self.__logger.log(Log.INFO, "waiting for duration (%f)" % self.config.duration)
-            stoptime = (time.time() + self.config.duration)
+            self.__logger.log(Log.INFO, "waiting for duration (%f)" % self.__cfg.duration)
+            stoptime = (time.time() + self.__cfg.duration)
             currtime = time.time()
             rpttime = currtime + report_interval
             load_avg_checked = 5
@@ -409,14 +406,14 @@ class RtEval(rtevalReport):
         retval = 0;
 
         # if --summarize was specified then just parse the XML, print it and exit
-        if self.cmd_options.summarize or self.cmd_options.rawhistogram:
+        if self.__cmd_opts.summarize or self.__cmd_opts.rawhistogram:
             if len(self.cmd_arguments) < 1:
                 raise RuntimeError, "Must specify at least one XML file with --summarize!"
 
-            for x in self.cmd_arguments:
-                if self.cmd_options.summarize:
+            for x in self.__cmd_args:
+                if self.__cmd_opts.summarize:
                     self.summarize(x)
-                elif self.cmd_options.rawhistogram:
+                elif self.__cmd_opts.rawhistogram:
                     self._show_report(x, 'rteval_histogram_raw.xsl')
 
             sys.exit(0)
@@ -434,24 +431,24 @@ class RtEval(rtevalReport):
         logging:  %s
         duration: %f
         sysreport: %s
-        inifile:  %s''' % (self.workdir, self.config.srcdir, self.reportdir, self.config.verbose,
-                           self.config.debugging, self.config.logging, self.config.duration, 
-                           self.config.sysreport, self.inifile))
+        inifile:  %s''' % (self.__workdir, self.__cfg.srcdir, self.__reportdir, self.__cfg.verbose,
+                           self.__cfg.debugging, self.__cfg.logging, self.__cfg.duration,
+                           self.__cfg.sysreport, self.__inifile))
 
-        if not os.path.isdir(self.workdir):
-            raise RuntimeError, "work directory %d does not exist" % self.workdir
+        if not os.path.isdir(self.__workdir):
+            raise RuntimeError, "work directory %d does not exist" % self.__workdir
 
-        self.prepare(self.cmd_options.onlyload)
+        self.prepare(self.__cmd_opts.onlyload)
 
-        if self.cmd_options.onlyload:
+        if self.__cmd_opts.onlyload:
             # If --onlyload were given, just kick off the loads and nothing more
             # No reports will be created.
             self._loadmods.Start()
             nthreads = self._loadmods.Unleash()
             self.__logger.log(Log.INFO, "Started %i load threads - will run for %f seconds" % (
-                    nthreads, self.config.duration))
+                    nthreads, self.__cfg.duration))
             self.__logger.log(Log.INFO, "No measurements will be performed, due to the --onlyload option")
-            time.sleep(self.config.duration)
+            time.sleep(self.__cfg.duration)
             self._loadmods.Stop()
             retval = 0
         else:
@@ -461,15 +458,15 @@ class RtEval(rtevalReport):
                 mstart = self.measure(meas_prf)
                 if measure_start is None:
                     measure_start = mstart
-            self._report(measure_start, self.config.xslt_report)
-            if self.config.sysreport:
-                self._sysinfo.run_sysreport(self.reportdir)
+            self._report(measure_start, self.__cfg.xslt_report)
+            if self.__cfg.sysreport:
+                self._sysinfo.run_sysreport(self.__reportdir)
 
             # if --xmlrpc-submit | -X was given, send our report to this host
             if self.__xmlrpc:
                 retval = self.__xmlrpc.SendReport(self._XMLreport())
 
-            self._sysinfo.copy_dmesg(self.reportdir)
+            self._sysinfo.copy_dmesg(self.__reportdir)
             self._tar_results()
 
             self.__logger.log(Log.DEBUG, "exiting with exit code: %d" % retval)

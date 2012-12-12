@@ -36,6 +36,7 @@ class rtevalReport(object):
         self.__start = datetime.now()
         self.__xmlreport = None
         self.__reportdir = None
+        self._xml = None
 
 
     def _report(self, measure_start, xslt_tpl):
@@ -61,7 +62,7 @@ class rtevalReport(object):
                                  'seconds': seconds})
         self.__xmlreport.taggedvalue('date', self.__start.strftime('%Y-%m-%d'))
         self.__xmlreport.taggedvalue('time', self.__start.strftime('%H:%M:%S'))
-        if self.annotate:
+        if self.__annotate:
             self.__xmlreport.taggedvalue('annotate', self.__annotate)
         self.__xmlreport.closeblock()
 
@@ -78,8 +79,8 @@ class rtevalReport(object):
         self.__xmlreport.close()
 
         # Write the XML to the report directory
-        if self.xml != None:
-            self.__xmlreport.Write(self.xml, None)
+        if self._xml != None:
+            self.__xmlreport.Write(self._xml, None)
 
         # Write a text report to stdout as well, using the
         # rteval_text.xsl template
@@ -99,7 +100,7 @@ class rtevalReport(object):
         if not os.path.exists(xsltfullpath):
             raise RuntimeError, "can't find XSL template (%s)!" % xsltfullpath
 
-        xmlreport = xmlout.XMLOut('rteval', self.version)
+        xmlreport = xmlout.XMLOut('rteval', self.__version)
         xmlreport.LoadReport(xmlfile)
         xmlreport.Write('-', xsltfullpath)
         del xmlreport
