@@ -259,7 +259,7 @@ class RtEval(rtevalReport):
             # Only create a report dir if we're doing measurements
             # or the loads logging is enabled
             if not onlyload or self.__cfg.logging:
-                self.__reportdir = self._make_report_dir(self.__workdir)
+                self.__reportdir = self._make_report_dir(self.__workdir, "summary.xml")
         except Exception, e:
             raise RuntimeError("Cannot create report directory (NFS with rootsquash on?) [%s]", str(e))
 
@@ -280,9 +280,6 @@ class RtEval(rtevalReport):
 
         self.__logger.log(Log.INFO, "Preparing measurement modules")
         self._measuremods.Setup(params)
-
-        if not onlyload:
-            self._xml = os.path.join(self.__reportdir, "summary.xml")
 
 
     def measure(self, measure_profile):

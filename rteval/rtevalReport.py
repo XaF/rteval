@@ -36,7 +36,7 @@ class rtevalReport(object):
         self.__start = datetime.now()
         self.__xmlreport = None
         self.__reportdir = None
-        self._xml = None
+        self.__xmlfname = None
 
 
     def _report(self, measure_start, xslt_tpl):
@@ -79,8 +79,8 @@ class rtevalReport(object):
         self.__xmlreport.close()
 
         # Write the XML to the report directory
-        if self._xml != None:
-            self.__xmlreport.Write(self._xml, None)
+        if self.__xmlfname != None:
+            self.__xmlreport.Write(self.__xmlfname, None)
 
         # Write a text report to stdout as well, using the
         # rteval_text.xsl template
@@ -106,7 +106,7 @@ class rtevalReport(object):
         del xmlreport
 
 
-    def _make_report_dir(self, workdir):
+    def _make_report_dir(self, workdir, reportfile):
         t = self.__start
         i = 1
         self.__reportdir = os.path.join(workdir,
@@ -118,6 +118,8 @@ class rtevalReport(object):
         if not os.path.isdir(self.__reportdir):
             os.mkdir(self.__reportdir)
             os.mkdir(os.path.join(self.__reportdir, "logs"))
+
+        self.__xmlfname = os.path.join(self.__reportdir, reportfile)
         return self.__reportdir
 
 
