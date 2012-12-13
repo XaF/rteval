@@ -63,12 +63,12 @@ for example to execute a ten minute run of rteval:
 .B \-v, \-\-verbose
 Increase the verbosity of output during the test run
 .TP
-.B \-w, \-\-workdir=WORKDIR
+.B \-w WORKDIR, \-\-workdir=WORKDIR
 Tell rteval to change directory to WORKDIR before creating any
 subdirectories for report files. The default WORKDIR is the directory
 in which rteval was started. 
 .TP
-.B \-l, \-\-loaddir=LOADDIR
+.B \-l LOADDIR, \-\-loaddir=LOADDIR
 Tell rteval where to find the source for the loads
 .TP
 .B \-s, \-\-sysreport
@@ -78,12 +78,51 @@ information on the running system.
 .B \-D, \-\-debug
 Turn on debugging prints during run
 .TP
-.B \-X, \-\-xmprpc-submit=HOST
+.B \-X HOST, \-\-xmprpc-submit=HOST
 Have rteval send report data to HOST following the run, using XML-RPC
+.TP
+.B \-P, \-\-xmlrpc-no-abort
+Do not abort if XML-RPC server do not respond to ping  request
 .TP
 .B \-Z, \-\-summarize
 Have rteval summarize an existing report. This will not cause loads or
 meausurement utilities to be run. 
+.TP
+.B \-H, \-\-raw-histogram
+Generate raw histogram data for an already existing XML report
+.TP
+.B \-f INIFILE, \-\-inifile=INIFILE
+Initialization file for configuring loads and behavior
+.TP
+.B \-a COMMENT, \-\-annotate=COMMENT
+Add a little annotation which is stored in the report
+.TP
+.B \-L, \-\-logging
+Log the output of the loads in the report directory
+.TP
+.B \-O, \-\-onlyload
+Only run the loads (don't run measurement threads)
+
+.SH MODULE OPTIONS
+These are options that affect the execution behavior of the measurement and load modules.
+.TP
+.B \-\-cyclictest-priority=PRIORITY
+SCHED_FIFO priority for measurement threads (default: 95)
+.TP
+.B \-\-cyclictest-interval=INTERVAL
+Measurement thread interval in microseconds (default: 100)
+.TP
+.B \-\-cyclictest-distance=DISTANCE
+Interval increment in microseconds (default: 0)
+.TP
+.B \-\-cyclictest-buckets=NBUCKETS
+Number of 1 microsecond histogram buckets (default: 2000)
+.TP
+.B \-\-hackbench-jobspercore=N
+Number of jobs per online-core for hackbench load
+.TP
+.B \-\-kcompile-jobspercore=N
+Number of jobs per online-core for kernel compile load
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).

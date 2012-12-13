@@ -124,7 +124,7 @@ class RtEval(object):
                 'hackbench'  : 'module',
                 },
             'kcompile' : {
-                'source'     : 'linux-2.6.21.tar.bz2',
+                'source'     : 'linux-2.6.39.tar.bz2',
                 'jobspercore': '2',
                 },
             'hackbench' : {
@@ -149,6 +149,24 @@ class RtEval(object):
         # copy the command line options into the rteval config section
         # (cmd line overrides config file values)
         self.config.AppendConfig('rteval', self.cmd_options)
+
+        if self.cmd_options.cyclictest_interval != None:
+            self.config.AppendConfig('cyclictest', { "interval":self.cmd_options.cyclictest_interval })
+
+        if self.cmd_options.cyclictest_distance != None:
+            self.config.AppendConfig('cyclictest', { "distance":self.cmd_options.cyclictest_distance })
+
+        if self.cmd_options.cyclictest_buckets != None:
+            self.config.AppendConfig('cyclictest', { "buckets":self.cmd_options.cyclictest_distance })
+
+        if self.cmd_options.cyclictest_priority != None:
+            self.config.AppendConfig('cyclictest', { "priority":self.cmd_options.cyclictest_priority })
+
+        if self.cmd_options.hackbench_jobspercore != None:
+            self.config.AppendConfig('hackbench', { "jobspercore":self.cmd_options.hackbench_jobspercore })
+
+        if self.cmd_options.kcompile_jobspercore != None:
+            self.config.AppendConfig('kcompile', { "jobspercore":self.cmd_options.kcompile_jobspercore })
 
         self.debug("workdir: %s" % self.workdir)
 
@@ -386,10 +404,31 @@ class RtEval(object):
         parser.add_option("-L", "--logging", dest="logging",
                          action='store_true', default=False,
                          help='log the output of the loads in the report directory')
-
         parser.add_option("-O", "--onlyload", dest="onlyload",
                           action='store_true', default=False,
                           help="only run the loads (don't run measurement threads)")
+
+        # module options
+        parser.add_option("", "--cyclictest-interval", dest="cyclictest_interval",
+                          action="store", type="int",
+                          help="cyclictest measurement interval in microseconds")
+        parser.add_option("", "--cyclictest-distance", dest="cyclictest_distance",
+                          action="store", type="int", 
+                          help="cyclictest measurement interval increment in microseconds")
+        parser.add_option("", "--cyclictest-buckets", dest="cyclictest_buckets",
+                          action="store", type="int",
+                          help="number of cyclictest 1 microsecond histogram buckets")
+        parser.add_option("", "--cyclictest-priority", dest="cyclictest_priority",
+                          action="store", type="int",
+                          help="SCHED_FIFO priority of measurement threads")
+
+        parser.add_option("", "--hackbench-jobspercore", dest="hackbench_jobspercore",
+                          action="store", type="int",
+                          help="number of hackbench jobs per-core")
+        parser.add_option("", "--kcompile-jobspercore", dest="kcompile_jobspercore",
+                          action="store", type="int",
+                          help="number of kernel compile jobs per-core")
+
 
         (self.cmd_options, self.cmd_arguments) = parser.parse_args(args = cmdargs)
         if self.cmd_options.duration:

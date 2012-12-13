@@ -163,8 +163,10 @@ class Cyclictest(Thread):
         self.stopevent = Event()
         self.finished = Event()
         self.threads = params.setdefault('threads', None)
-        self.priority = params.setdefault('priority', 95)
-        self.interval = "-i100"
+        self.priority = int(params.setdefault('priority', 95))
+        self.interval = int(params.setdefault('interval', 100))
+        self.distance = int(params.setdefault('distance', 0))
+        self.buckets =  int(params.setdefault('buckets', 2000))
         self.debugging = params.setdefault('debugging', False)
         self.reportfile = 'cyclictest.rpt'
         self.params = params
@@ -201,19 +203,13 @@ class Cyclictest(Thread):
         return '--smp'
 
     def run(self):
-        if self.params.has_key('buckets'):
-            buckets = int(self.params.buckets)
-        else:
-            buckets = 2000
-        if self.params.has_key('interval'):
-            self.interval = '-i%d' % int(self.params.interval)
 
         self.cmd = ['cyclictest', 
-                    self.interval, 
                     '-qm', 
-                    '-d0', 
-                    '-h %d' % buckets,
-                    "-p%d" % int(self.priority),
+                    '-i %d' % self.interval,
+                    '-d %d' % self.distance, 
+                    '-h %d' % self.buckets,
+                    "-p %d" % self.priority,
                     self.getmode(),
                     ]
 
