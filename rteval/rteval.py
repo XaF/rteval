@@ -115,17 +115,19 @@ class RtEval(rtevalReport):
         self.__logger.SetLogVerbosity(Log.INFO)
 
         # setup initial configuration
-        self.__cfg = rtevalConfig.rtevalConfig(default_config, logger=self.__logger)
+        self.__cfgobj = rtevalConfig.rtevalConfig(default_config, logger=self.__logger)
 
         # parse command line options
+        self.__cfg = self.__cfgobj.GetSection('rteval')
         self.parse_options(cmdargs)
 
         # read in config file info
-        self.__inifile = self.__cfg.Load(self.__cmd_opts.inifile)
+        self.__inifile = self.__cfgobj.Load(self.__cmd_opts.inifile)
 
         # copy the command line options into the rteval config section
         # (cmd line overrides config file values)
-        self.__cfg.AppendConfig('rteval', self.__cmd_opts)
+        self.__cfgobj.AppendConfig('rteval', vars(self.__cmd_opts))
+        self.__cfg = self.__cfgobj.GetSection('rteval')
 
         # Update log level, based on config/command line args
         loglev = (not self.__cfg.quiet and (Log.ERR | Log.WARN)) \
@@ -136,14 +138,14 @@ class RtEval(rtevalReport):
         self.__logger.log(Log.DEBUG, "workdir: %s" % self.__workdir)
 
         # prepare a mailer, if that's configured
-        if self.__cfg.HasSection('smtp'):
-            self.__mailer = rtevalMailer.rtevalMailer(self.__cfg.GetSection('smtp'))
+        if self.__cfgobj.HasSection('smtp'):
+            self.__mailer = rtevalMailer.rtevalMailer(self.__cfgobj.GetSection('smtp'))
         else:
             self.__mailer = None
 
         self._sysinfo = SystemInfo(self.__cfg, logger=self.__logger)
-        self._loadmods = LoadModules(self.__cfg, logger=self.__logger)
-        self._measuremods = MeasurementModules(self.__cfg, logger=self.__logger)
+        self._loadmods = LoadModules(self.__cfgobj, logger=self.__logger)
+        self._measuremods = MeasurementModules(self.__cfgobj, logger=self.__logger)
 
         if not self.__cfg.xslt_report.startswith(self.__cfg.installdir):
             self.__cfg.xslt_report = os.path.join(self.__cfg.installdir, "rteval_text.xsl")
@@ -310,7 +312,7 @@ class RtEval(rtevalReport):
             
 
             # Uleash the loads and measurement threads
-            report_interval = int(self.__cfg.GetSection('rteval').report_interval)
+            report_interval = int(self.__cfg.report_interval)
             nthreads = with_loads and self._loadmods.Unleash() or None
             measure_profile.Unleash()
             measure_start = datetime.now()
