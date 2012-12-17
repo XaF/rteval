@@ -18,6 +18,7 @@ from Log import Log
 import rtevalConfig, rtevalMailer
 
 
+RTEVAL_VERSION = "2.0_pre"
 
 sigint_received = False
 def sigint_handler(signum, frame):
@@ -34,7 +35,7 @@ def sigterm_handler(signum, frame):
 
 class RtEval(rtevalReport):
     def __init__(self, config, loadmods, measuremods, logger):
-        self.__version = "2.0_pre"
+        self.__version = RTEVAL_VERSION
 
         if not isinstance(config, rtevalConfig.rtevalConfig):
             raise TypeError("config variable is not an rtevalConfig object")

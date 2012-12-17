@@ -2,17 +2,23 @@
 from distutils.sysconfig import get_python_lib
 from distutils.core import setup
 from os.path import isfile, join
-import glob
-import os
+import glob, os, shutil
+from rteval import RTEVAL_VERSION
+from rteval.sysinfo import dmi         # Just to get rid of a warning
 
 # Get PYTHONLIB with no prefix so --prefix installs work.
 PYTHONLIB = join(get_python_lib(standard_lib=1, prefix=''), 'site-packages')
 
+
+# DMI module might be loaded, so ignore any warnings it may have
+dmi.ProcessWarnings()
+
+
 setup(name="rteval",
-      version = "1.36",
-      description = "evaluate system performance for Realtime",
-      author = "Clark Williams",
-      author_email = "williams@redhat.com",
+      version = RTEVAL_VERSION,
+      description = "Evaluate system performance for Realtime",
+      author = "Clark Williams, David Sommerseth",
+      author_email = "williams@redhat.com, davids@redhat.com",
       license = "GPLv2",
       long_description =
 """\
@@ -26,5 +32,10 @@ of time. When the run is finished, the sample data from cyclictest is
 analyzed for standard statistical measurements (i.e mode, median, range,
 mean, variance and standard deviation) and a report is generated. 
 """,
-      packages = ["rteval"],
+      packages = ["rteval",
+                  "rteval.modules",
+                  "rteval.modules.loads",
+                  "rteval.modules.measurement",
+                  "rteval.sysinfo"],
+      scripts = ["rteval-cmd"],
       )
