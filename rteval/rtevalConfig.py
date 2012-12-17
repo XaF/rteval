@@ -80,9 +80,12 @@ class rtevalCfgSection(object):
             elmt = self.__dict__['_rtevalCfgSection__iter_list'].pop()
 
             # HACK: This element shouldn't really appear here ... why!??!
-            while elmt == '_rtevalCfgSection__cfgdata':
+            while (elmt == '_rtevalCfgSection__cfgdata') and \
+                    (len(self.__dict__['_rtevalCfgSection__iter_list']) > 0):
                 elmt = self.__dict__['_rtevalCfgSection__iter_list'].pop()
 
+            if len(self.__dict__['_rtevalCfgSection__iter_list']) == 0:
+                raise StopIteration
             return (elmt, self.__cfgdata[elmt])
 
 
