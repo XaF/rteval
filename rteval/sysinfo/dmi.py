@@ -84,7 +84,8 @@ class DMIinfo(object):
         elif os.path.exists(self.__sharedir + '/' + fname):
             return libxml2.parseFile(self.__sharedir + '/' + fname)
         else:
-            raise RuntimeError, 'Could not locate XSLT template for DMI data (%s)' % fname
+            raise RuntimeError, 'Could not locate XSLT template for DMI data (%s/%s)' % \
+                (self.__sharedir, fname)
 
 
     def MakeReport(self):
