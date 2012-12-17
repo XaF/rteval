@@ -27,9 +27,9 @@ import os
 import time
 import threading
 import libxml2
-from Log import Log
-from rtevalConfig import rtevalCfgSection
-from modules import RtEvalModules, rtevalModulePrototype
+from rteval.Log import Log
+from rteval.rtevalConfig import rtevalCfgSection
+from rteval.modules import RtEvalModules, rtevalModulePrototype
 
 class LoadThread(rtevalModulePrototype):
     def __init__(self, name, config, logger=None):

@@ -23,7 +23,7 @@
 #
 
 import libxml2
-from modules import RtEvalModules, ModuleContainer
+from rteval.modules import RtEvalModules, ModuleContainer
 
 
 class MeasurementProfile(RtEvalModules):

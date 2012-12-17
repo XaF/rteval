@@ -25,7 +25,7 @@
 #
 
 import sys, libxml2
-from Log import Log
+from rteval.Log import Log
 from glob import glob
 from kernel import KernelInfo
 from services import SystemServices

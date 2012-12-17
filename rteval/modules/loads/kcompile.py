@@ -24,8 +24,8 @@
 #
 import sys, os, glob, subprocess
 from signal import SIGTERM
-from modules.loads import CommandLineLoad
-from Log import Log
+from rteval.modules.loads import CommandLineLoad
+from rteval.Log import Log
 
 kernel_prefix="linux-2.6"
 

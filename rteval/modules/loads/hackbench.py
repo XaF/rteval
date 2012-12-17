@@ -27,8 +27,8 @@
 
 import sys, os, time, glob, subprocess, errno
 from signal import SIGTERM, SIGKILL
-from modules.loads import CommandLineLoad
-from Log import Log
+from rteval.modules.loads import CommandLineLoad
+from rteval.Log import Log
 
 
 class Hackbench(CommandLineLoad):

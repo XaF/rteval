@@ -27,7 +27,7 @@
 
 import sys, os
 import libxml2, libxslt
-from Log import Log
+from rteval.Log import Log
 
 try:
     import dmidecode

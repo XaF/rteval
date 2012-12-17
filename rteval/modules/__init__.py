@@ -22,8 +22,8 @@
 #   are deemed to be part of the source code.
 #
 
-from Log import Log
-from rtevalConfig import rtevalCfgSection
+from rteval.Log import Log
+from rteval.rtevalConfig import rtevalCfgSection
 import time, libxml2, threading
 
 __all__ = ["rtevalModulePrototype", "ModuleContainer", "RtEvalModules"]
@@ -202,8 +202,8 @@ reference from the first import"""
             return self.__modsloaded[idxname]
         except KeyError:
             self.__logger.log(Log.INFO, "importing module %s" % modname)
-            mod = __import__("%s.%s" % (modroot, modname),
-                             fromlist=modroot)
+            mod = __import__("rteval.%s.%s" % (modroot, modname),
+                             fromlist="rteval.%s" % modroot)
             self.__modsloaded[idxname] = mod
             return mod
 

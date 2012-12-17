@@ -26,8 +26,8 @@
 #
 
 import os, sys, subprocess, signal, libxml2
-from Log import Log
-from modules import rtevalModulePrototype
+from rteval.Log import Log
+from rteval.modules import rtevalModulePrototype
 
 
 class RunData(object):

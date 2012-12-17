@@ -27,7 +27,7 @@
 
 import os, shutil, subprocess, libxml2
 from glob import glob
-from Log import Log
+from rteval.Log import Log
 
 class OSInfo(object):
     def __init__(self, logger):

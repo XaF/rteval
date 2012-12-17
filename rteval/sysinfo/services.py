@@ -27,8 +27,8 @@
 #
 
 import sys, subprocess, os, glob, fnmatch, libxml2
-from sysinfo.tools import getcmdpath
-from Log import Log
+from rteval.sysinfo.tools import getcmdpath
+from rteval.Log import Log
 
 
 class SystemServices(object):
