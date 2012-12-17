@@ -387,8 +387,11 @@ start their workloads yet"""
         self._logger.log(Log.INFO, "Stopping %s modules" % self._module_type)
         for (modname, mod) in self.__modules:
             mod.setStop()
-            self._logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
-            mod.join(2.0)
+            try:
+                self._logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
+                mod.join(2.0)
+            except RuntimeError, e:
+                self._logger.log(Log.ERR, "\t\tFailed stopping %s: %s" % (modname, str(e)))
 
 
     def WaitForCompletion(self, wtime = None):
