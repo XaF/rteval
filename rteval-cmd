@@ -95,11 +95,10 @@ def summarize(repfile, xslt):
 
 
 
-def parse_options(cfg, cmdargs):
+def parse_options(cfg, parser, cmdargs):
     '''parse the command line arguments'''
 
     rtevcfg = cfg.GetSection('rteval')
-    parser = optparse.OptionParser()
     parser.add_option("-d", "--duration", dest="duration",
                       type="string", default=rtevcfg.duration,
                       help="specify length of test run (default: %default)")
@@ -162,6 +161,7 @@ def parse_options(cfg, cmdargs):
             v = v[:-1]
             mult = 3600.0 * 24.0
         cmd_opts.duration = float(v) * mult
+
     return (cmd_opts, cmd_args)
 
 
@@ -235,7 +235,10 @@ if __name__ == '__main__':
         measuremods = MeasurementModules(config, logger=logger)
 
         # parse command line options
-        (cmd_opts, cmd_args) = parse_options(config, sys.argv[1:])
+        parser = optparse.OptionParser()
+        loadmods.SetupModuleOptions(parser)
+        measuremods.SetupModuleOptions(parser)
+        (cmd_opts, cmd_args) = parse_options(config, parser, sys.argv[1:])
 
         # copy the command line options into the rteval config section
         # (cmd line overrides config file values)

@@ -95,6 +95,17 @@ class LoadModules(RtEvalModules):
         self.__loadavg_samples = 0
         self.__cfg = config
         RtEvalModules.__init__(self, "modules.loads", logger)
+        self.__LoadModules(self.__cfg.GetSection(self._module_config))
+
+
+    def __LoadModules(self, modcfg):
+        "Loads and imports all the configured modules"
+
+        for m in modcfg:
+            # hope to eventually have different kinds but module is only on
+            # for now (jcw)
+            if m[1].lower() == 'module':
+                self._LoadModule(m[0])
 
 
     def Setup(self, modparams):

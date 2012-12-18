@@ -118,6 +118,21 @@ measurement profiles, based on their characteristics"""
         self.__modules_root = "modules.measurement"
         self.__iter_item = None
 
+        # Temporary module container, which is used to evalute measurement modules.
+        # This will container will be destroyed after Setup() has been called
+        self.__container = ModuleContainer(self.__modules_root, self.__logger)
+        self.__LoadModules(self.__cfg.GetSection("measurement"))
+
+
+    def __LoadModules(self, modcfg):
+        "Loads and imports all the configured modules"
+
+        for m in modcfg:
+            # hope to eventually have different kinds but module is only on
+            # for now (jcw)
+            if m[1].lower() == 'module':
+                self.__container.LoadModule(m[0])
+
 
     def GetProfile(self, with_load, run_parallel):
         "Returns the appropriate MeasurementProfile object, based on the profile type"
@@ -129,20 +144,22 @@ measurement profiles, based on their characteristics"""
         return None
 
 
+    def SetupModuleOptions(self, parser):
+        "Sets up all the measurement modules' parameters for the option parser"
+        self.__container.SetupModuleOptions(parser)
+
+
     def Setup(self, modparams):
         "Loads all measurement modules and group them into different measurement profiles"
 
         if not isinstance(modparams, dict):
             raise TypeError("modparams attribute is not of a dictionary type")
 
-        # Temporary module container, which is used to evalute measurement modules
-        container = ModuleContainer(self.__modules_root, self.__logger)
-
         modcfg = self.__cfg.GetSection("measurement")
         for (modname, modtype) in modcfg:
             if modtype.lower() == 'module':  # Only 'module' will be supported (ds)
                 # Extract the measurement modules info
-                modinfo = container.ModuleInfo(modname)
+                modinfo = self.__container.ModuleInfo(modname)
 
                 # Get the correct measurement profile container for this module
                 mp = self.GetProfile(modinfo["loads"], modinfo["parallel"])
@@ -154,13 +171,13 @@ measurement profiles, based on their characteristics"""
 
                     # Export the module imported here and transfer it to the
                     # measurement profile
-                    mp.ImportModule(container.ExportModule(modname))
+                    mp.ImportModule(self.__container.ExportModule(modname))
 
                 # Setup this imported module inside the appropriate measurement profile
                 self.__cfg.AppendConfig(modname, modparams)
                 mp.Setup(modname, self.__cfg.GetSection(modname))
 
-        del container
+        del self.__container
 
 
     def MakeReport(self):

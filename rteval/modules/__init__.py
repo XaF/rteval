@@ -24,7 +24,7 @@
 
 from rteval.Log import Log
 from rteval.rtevalConfig import rtevalCfgSection
-import time, libxml2, threading
+import time, libxml2, threading, optparse
 
 __all__ = ["rtevalModulePrototype", "ModuleContainer", "RtEvalModules"]
 
@@ -187,7 +187,7 @@ objects during module import."""
         self.__iter_list = None
 
 
-    def __importmod(self, modname, modroot=None):
+    def LoadModule(self, modname, modroot=None):
         """Imports a module and saves references to the imported module.
 If the same module is tried imported more times, it will return the module
 reference from the first import"""
@@ -212,8 +212,32 @@ reference from the first import"""
         """Imports a module and calls the modules' ModuleInfo() function and returns
 the information provided by the module"""
 
-        mod = self.__importmod(modname, modroot)
+        mod = self.LoadModule(modname, modroot)
         return mod.ModuleInfo()
+
+
+    def SetupModuleOptions(self, parser):
+        """Sets up a separate optptarse OptionGroup per module with its supported parameters"""
+
+        for (modname, mod) in self.__modsloaded.items():
+            opts = mod.ModuleParameters()
+            if len(opts) == 0:
+                continue
+
+            shortmod = modname.split('.')[-1]
+            grparser = optparse.OptionGroup(parser, "Options for the %s module" % shortmod)
+            for (o, s) in opts.items():
+                descr   = s.has_key('descr') and s['descr'] or ""
+                default = s.has_key('default') and s['default'] or None
+                metavar = s.has_key('metavar') and s['metavar'] or None
+                grparser.add_option('--%s-%s' % (shortmod, o),
+                                    dest="%s_%s" % (shortmod, o),
+                                    action='store',
+                                    help='%s%s' % (descr,
+                                                   default and '(default: %s)' % default or ''),
+                                    default=default,
+                                    metavar=metavar)
+            parser.add_option_group(grparser)
 
 
     def InstantiateModule(self, modname, modcfg, modroot = None):
@@ -223,7 +247,7 @@ The instantiated object is returned in this call"""
         if modcfg and not isinstance(modcfg, rtevalCfgSection):
             raise TypeError("modcfg attribute is not a rtevalCfgSection() object")
 
-        mod = self.__importmod(modname, modroot)
+        mod = self.LoadModule(modname, modroot)
         return mod.create(modcfg, self.__logger)
 
 
@@ -313,6 +337,10 @@ and will also be given to the instantiated objects during module import."""
         "Registers an instantiated module object which RtEvalModules will control"
         return self.__modules.RegisterModuleObject(modname, modobj)
 
+    def _LoadModule(self, modname, modroot=None):
+        "Loads and imports a module"
+        return self.__modules.LoadModule(modname, modroot)
+
     def ModulesLoaded(self):
         "Returns number of imported modules"
         return self.__modules.ModulesLoaded()
@@ -320,6 +348,10 @@ and will also be given to the instantiated objects during module import."""
     def GetModulesList(self):
         "Returns a list of module names"
         return self.__modules.GetModulesList()
+
+    def SetupModuleOptions(self, parser):
+        "Sets up optparse based option groups for the loaded modules"
+        return self.__modules.SetupModuleOptions(parser)
 
     def GetNamedModuleObject(self, modname):
         "Returns a list of module names"
