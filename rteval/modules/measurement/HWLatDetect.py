@@ -121,6 +121,24 @@ def ModuleInfo():
             "loads": False}
 
 
+
+def ModuleParameters():
+    return {"threshold": {"descr": "Specify the TSC gap in microseconds used to detect an SMI",
+                          "default": 15,
+                          "metavar": "MICROSEC"},
+            "window":    {"descr": "Sample window size (in microseconds)",
+                          "default": 1000000,
+                          "metavar": "MICROSEC"},
+            "width":     {"descr": "Sampling width inside the sampling window (in microseconds)",
+                          "default": 800000,
+                          "metavar": "MICROSEC"},
+            "duration":  {"descr": "How long in seconds to run hwlatdetect",
+                          "default": 15,
+                          "metavar": "SEC"}
+        }
+
+
+
 def create(params, logger):
     return HWLatDetectRunner(params, logger)
 

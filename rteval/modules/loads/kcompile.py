@@ -175,5 +175,16 @@ class Kcompile(CommandLineLoad):
         self._setFinished()
 
 
+
+def ModuleParameters():
+    return {"tarball":  {"descr": "Source tar ball",
+                         "default": "linux-2.6.21.tar.bz2",
+                         "metavar": "TARBALL"},
+            "jobspercore": {"descr": "Number of working threads per core",
+                            "metavar": "NUM"}
+            }
+
+
+
 def create(config, logger):
     return Kcompile(config, logger)

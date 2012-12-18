@@ -296,9 +296,29 @@ class Cyclictest(rtevalModulePrototype):
         return rep_n
 
 
+
 def ModuleInfo():
     return {"parallel": True,
             "loads": True}
+
+
+
+def ModuleParameters():
+    return {"interval": {"descr": "Base interval of the threads in microseconds",
+                         "default": 100,
+                         "metavar": "INTV_US"},
+            "buckets":  {"descr": "Histogram width",
+                         "default": 2000,
+                         "metavar": "NUM"},
+            "distance": {"descr": "The distance of the thread intervals in microseconds",
+                         "default": 0,
+                         "metavar": "DIST_US"},
+            "priority": {"descr": "Run cyclictest with the given priority",
+                         "default": 95,
+                         "metavar": "PRIO"}
+            }
+
+
 
 def create(params, logger):
     return Cyclictest(params, logger)

@@ -126,6 +126,14 @@ class Hackbench(CommandLineLoad):
         del self.__nullfp
 
 
+
+def ModuleParameters():
+    return {"jobspercore": {"descr": "Number of working threads per CPU core",
+                            "metavar": "NUM"}
+            }
+
+
+
 def create(config, logger):
     return Hackbench(config, logger)
 
