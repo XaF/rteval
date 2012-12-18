@@ -46,15 +46,14 @@ import rtevalConfig, rtevalMailer
 RTEVAL_VERSION = "2.0_pre"
 
 sigint_received = False
-def sigint_handler(signum, frame):
-    global sigint_received
-    sigint_received = True
-    print "*** SIGINT received - stopping rteval run ***"
+def sig_handler(signum, frame):
 
-
-
-def sigterm_handler(signum, frame):
-    raise RuntimeError,  "SIGTERM received!"
+    if signum == signal.SIGINT:
+        global sigint_received
+        sigint_received = True
+        print "*** SIGINT received - stopping rteval run ***"
+    elif signum == signal.SIGTERM:
+        raise RuntimeError("SIGTERM received!")
 
 
 
@@ -194,8 +193,8 @@ class RtEval(rtevalReport):
             measure_start = datetime.now()
 
             # wait for time to expire or thread to die
-            signal.signal(signal.SIGINT, sigint_handler)
-            signal.signal(signal.SIGTERM, sigterm_handler)
+            signal.signal(signal.SIGINT, sig_handler)
+            signal.signal(signal.SIGTERM, sig_handler)
             self.__logger.log(Log.INFO, "waiting for duration (%f)" % self.__rtevcfg.duration)
             stoptime = (time.time() + self.__rtevcfg.duration)
             currtime = time.time()
