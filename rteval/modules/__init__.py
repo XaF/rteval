@@ -231,7 +231,7 @@ the information provided by the module"""
                 default = s.has_key('default') and s['default'] or None
                 metavar = s.has_key('metavar') and s['metavar'] or None
                 grparser.add_option('--%s-%s' % (shortmod, o),
-                                    dest="%s_%s" % (shortmod, o),
+                                    dest="%s___%s" % (shortmod, o),
                                     action='store',
                                     help='%s%s' % (descr,
                                                    default and '(default: %s)' % default or ''),

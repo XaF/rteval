@@ -210,6 +210,20 @@ class rtevalConfig(object):
         return self.__config_files.__contains__(fname)
 
 
+    def UpdateFromOptionParser(self, parser):
+        "Parse through the command line options and update the appropriate config settings"
+
+        last_sect = None
+        for sk,v in sorted(vars(parser.values).items()):
+            # optparse key template: {sectionname}___{key}
+            k = sk.split('___')
+            if k[0] != last_sect:
+                # If the section name changed, retrieve the section variables
+                sect = self.GetSection(k[0])
+                last_sect = k[0]
+            setattr(sect, k[1], v)
+
+
     def AppendConfig(self, section, cfgvars):
         "Add more config parameters to a section.  cfgvars must be a dictionary of parameters"
         self.__update_section(section, cfgvars)
