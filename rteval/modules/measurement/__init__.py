@@ -146,7 +146,7 @@ measurement profiles, based on their characteristics"""
 
     def SetupModuleOptions(self, parser):
         "Sets up all the measurement modules' parameters for the option parser"
-        self.__container.SetupModuleOptions(parser)
+        self.__container.SetupModuleOptions(parser, self.__cfg)
 
 
     def Setup(self, modparams):

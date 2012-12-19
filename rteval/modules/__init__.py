@@ -216,7 +216,7 @@ the information provided by the module"""
         return mod.ModuleInfo()
 
 
-    def SetupModuleOptions(self, parser):
+    def SetupModuleOptions(self, parser, config):
         """Sets up a separate optptarse OptionGroup per module with its supported parameters"""
 
         for (modname, mod) in self.__modsloaded.items():
@@ -225,16 +225,32 @@ the information provided by the module"""
                 continue
 
             shortmod = modname.split('.')[-1]
+            try:
+                cfg = config.GetSection(shortmod)
+            except KeyError:
+                # Ignore if a section is not found
+                cfg = None
+
             grparser = optparse.OptionGroup(parser, "Options for the %s module" % shortmod)
             for (o, s) in opts.items():
                 descr   = s.has_key('descr') and s['descr'] or ""
-                default = s.has_key('default') and s['default'] or None
                 metavar = s.has_key('metavar') and s['metavar'] or None
+
+                try:
+                    default = cfg and getattr(cfg, o) or None
+                except AttributeError:
+                    # Ignore if this isn't found in the configuration object
+                    default = None
+
+                if default is None:
+                    default = s.has_key('default') and s['default'] or None
+
+
                 grparser.add_option('--%s-%s' % (shortmod, o),
                                     dest="%s___%s" % (shortmod, o),
                                     action='store',
                                     help='%s%s' % (descr,
-                                                   default and '(default: %s)' % default or ''),
+                                                   default and ' (default: %s)' % default or ''),
                                     default=default,
                                     metavar=metavar)
             parser.add_option_group(grparser)
@@ -349,9 +365,9 @@ and will also be given to the instantiated objects during module import."""
         "Returns a list of module names"
         return self.__modules.GetModulesList()
 
-    def SetupModuleOptions(self, parser):
+    def SetupModuleOptions(self, parser, config):
         "Sets up optparse based option groups for the loaded modules"
-        return self.__modules.SetupModuleOptions(parser)
+        return self.__modules.SetupModuleOptions(parser, config)
 
     def GetNamedModuleObject(self, modname):
         "Returns a list of module names"
