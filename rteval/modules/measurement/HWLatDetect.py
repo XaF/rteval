@@ -25,8 +25,8 @@
 #
 
 import os, sys, libxml2
-from modules import rtevalModulePrototype
-from Log import Log
+from rteval.modules import rtevalModulePrototype
+from rteval.Log import Log
 
 
 class HWLatDetectRunner(rtevalModulePrototype):
@@ -54,7 +54,7 @@ class HWLatDetectRunner(rtevalModulePrototype):
 
 
     def _WorkloadPrepare(self):
-	self._log(Log.DEBUG, "Preparing hwlatdetect")
+        self._log(Log.DEBUG, "Preparing hwlatdetect")
         self.__hwlat.set('threshold', int(self.__cfg.setdefault('threshold', 15)))
         self.__hwlat.set('window', int(self.__cfg.setdefault('window', 1000000)))
         self.__hwlat.set('width', int(self.__cfg.setdefault('width', 800000)))
@@ -81,7 +81,7 @@ class HWLatDetectRunner(rtevalModulePrototype):
         if not self.__running:
             return
 
-	self._log(Log.DEBUG, "Parsing results")
+        self._log(Log.DEBUG, "Parsing results")
         # Grab the measurement results
         self.__exceeding = self.__hwlat.get("count")
         for s in self.__hwlat.samples:
