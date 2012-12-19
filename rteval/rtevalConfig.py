@@ -219,8 +219,15 @@ class rtevalConfig(object):
             k = sk.split('___')
             if k[0] != last_sect:
                 # If the section name changed, retrieve the section variables
-                sect = self.GetSection(k[0])
+                try:
+                    sect = self.GetSection(k[0])
+                except KeyError:
+                    # If section does not exist, create it
+                    self.AppendConfig(k[0], {k[1]: v})
+                    sect = self.GetSection(k[0])
+
                 last_sect = k[0]
+
             setattr(sect, k[1], v)
 
 
