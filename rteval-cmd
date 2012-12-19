@@ -197,13 +197,6 @@ if __name__ == '__main__':
                 'xslt_report': '/usr/share/rteval/rteval_text.xsl',
                 'report_interval': '600',
                 'logging'    : False,
-                },
-           'loads' : {
-                'kcompile'   : 'module',
-                'hackbench'  : 'module',
-                },
-            'measurement' : {
-                'cyclictest' : 'module',
                 }
             }
 
@@ -225,6 +218,15 @@ if __name__ == '__main__':
         except ValueError:
             # No configuration file given
             pass
+
+        if not config.HasSection('loads'):
+            config.AppendConfig('loads',{
+                    'kcompile'   : 'module',
+                    'hackbench'  : 'module' })
+
+        if not config.HasSection('measurement'):
+            config.AppendConfig('measurement', {
+                    'cyclictest' : 'module'})
 
         loadmods = LoadModules(config, logger=logger)
         measuremods = MeasurementModules(config, logger=logger)
