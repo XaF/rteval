@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
         # parse command line options
         parser = optparse.OptionParser()
-        loadmods.SetupModuleOptions(parser, config)
+        loadmods.SetupModuleOptions(parser)
         measuremods.SetupModuleOptions(parser)
         cmd_args = parse_options(config, parser, sys.argv[1:])
 

@@ -29,7 +29,7 @@ from rteval.modules import RtEvalModules, ModuleContainer
 class MeasurementProfile(RtEvalModules):
     """Keeps and controls all the measurement modules with the same measurement profile"""
 
-    def __init__(self, with_load, run_parallel, modules_root, logger):
+    def __init__(self, config, with_load, run_parallel, modules_root, logger):
         self.__with_load = with_load
         self.__run_parallel = run_parallel
 
@@ -39,7 +39,7 @@ class MeasurementProfile(RtEvalModules):
         self._module_type = "measurement"
         self._module_config = "measurement"
         self._report_tag = "Profile"
-        RtEvalModules.__init__(self, modules_root, logger)
+        RtEvalModules.__init__(self, config, modules_root, logger)
 
 
     def GetProfile(self):
@@ -52,10 +52,10 @@ class MeasurementProfile(RtEvalModules):
         return self._ImportModule(module)
 
 
-    def Setup(self, modname, modcfg):
+    def Setup(self, modname):
         "Instantiates and prepares a measurement module"
 
-        modobj = self._InstantiateModule(modname, modcfg)
+        modobj = self._InstantiateModule(modname, self._cfg.GetSection(modname))
         self._RegisterModuleObject(modname, modobj)
 
 
@@ -165,7 +165,8 @@ measurement profiles, based on their characteristics"""
                 mp = self.GetProfile(modinfo["loads"], modinfo["parallel"])
                 if mp is None:
                     # If not found, create a new measurement profile
-                    mp = MeasurementProfile(modinfo["loads"], modinfo["parallel"],
+                    mp = MeasurementProfile(self.__cfg,
+                                            modinfo["loads"], modinfo["parallel"],
                                             self.__modules_root, self.__logger)
                     self.__measureprofiles.append(mp)
 
@@ -175,7 +176,7 @@ measurement profiles, based on their characteristics"""
 
                 # Setup this imported module inside the appropriate measurement profile
                 self.__cfg.AppendConfig(modname, modparams)
-                mp.Setup(modname, self.__cfg.GetSection(modname))
+                mp.Setup(modname)
 
         del self.__container
 

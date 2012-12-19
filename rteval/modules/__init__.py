@@ -328,12 +328,13 @@ class RtEvalModules(object):
     This class takes care of managing imported modules and have methods for starting
     and stopping the workload these modules contains."""
 
-    def __init__(self, modules_root, logger):
+    def __init__(self, config, modules_root, logger):
         """Initialises the RtEvalModules() internal variables.  The modules_root
 argument should point at the root directory where the modules will be loaded from.
 The logger argument should point to a Log() object which will be used for logging
 and will also be given to the instantiated objects during module import."""
 
+        self._cfg = config
         self._logger = logger
         self.__modules = ModuleContainer(modules_root, logger)
 
@@ -365,9 +366,9 @@ and will also be given to the instantiated objects during module import."""
         "Returns a list of module names"
         return self.__modules.GetModulesList()
 
-    def SetupModuleOptions(self, parser, config):
+    def SetupModuleOptions(self, parser):
         "Sets up optparse based option groups for the loaded modules"
-        return self.__modules.SetupModuleOptions(parser, config)
+        return self.__modules.SetupModuleOptions(parser, self._cfg)
 
     def GetNamedModuleObject(self, modname):
         "Returns a list of module names"
