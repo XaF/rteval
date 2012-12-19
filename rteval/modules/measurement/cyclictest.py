@@ -311,7 +311,7 @@ def ModuleParameters():
                          "default": 2000,
                          "metavar": "NUM"},
             "distance": {"descr": "The distance of the thread intervals in microseconds",
-                         "default": 0,
+                         "default": 25,
                          "metavar": "DIST_US"},
             "priority": {"descr": "Run cyclictest with the given priority",
                          "default": 95,

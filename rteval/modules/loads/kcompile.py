@@ -177,10 +177,11 @@ class Kcompile(CommandLineLoad):
 
 
 def ModuleParameters():
-    return {"tarball":  {"descr": "Source tar ball",
+    return {"source":   {"descr": "Source tar ball",
                          "default": "linux-2.6.21.tar.bz2",
                          "metavar": "TARBALL"},
             "jobspercore": {"descr": "Number of working threads per core",
+                            "default": 2,
                             "metavar": "NUM"}
             }
 

@@ -202,19 +202,6 @@ if __name__ == '__main__':
                 'kcompile'   : 'module',
                 'hackbench'  : 'module',
                 },
-            'kcompile' : {
-                'source'     : 'linux-2.6.21.tar.bz2',
-                'jobspercore': '2',
-                },
-            'hackbench' : {
-                'source'     : 'hackbench.tar.bz2',
-                'jobspercore': '5',
-                },
-            'cyclictest' : {
-                'interval' : '100',
-                'buckets'  : '2000',
-                'distance' : '25',
-                },
             'measurement' : {
                 'cyclictest' : 'module',
                 }

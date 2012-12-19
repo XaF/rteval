@@ -129,6 +129,7 @@ class Hackbench(CommandLineLoad):
 
 def ModuleParameters():
     return {"jobspercore": {"descr": "Number of working threads per CPU core",
+                            "default": 5,
                             "metavar": "NUM"}
             }
 
