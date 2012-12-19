@@ -46,7 +46,6 @@ class HWLatDetectRunner(rtevalModulePrototype):
         except Exception, e:
             self._log(Log.WARN, "hwlatdetect could not be loaded.  Will not run hwlatdetect")
             self._log(Log.DEBUG, str(e))
-            return
 
 
     def _WorkloadBuild(self):
@@ -54,13 +53,16 @@ class HWLatDetectRunner(rtevalModulePrototype):
 
 
     def _WorkloadPrepare(self):
+        self.__running = False
+        if self.__hwlat is None:
+            return
+
         self._log(Log.DEBUG, "Preparing hwlatdetect")
         self.__hwlat.set('threshold', int(self.__cfg.setdefault('threshold', 15)))
         self.__hwlat.set('window', int(self.__cfg.setdefault('window', 1000000)))
         self.__hwlat.set('width', int(self.__cfg.setdefault('width', 800000)))
         self.__hwlat.testduration = int(self.__cfg.setdefault('duration', 10))
         self.__hwlat.setup()
-        self.__running = False
 
 
     def _WorkloadTask(self):
@@ -78,7 +80,8 @@ class HWLatDetectRunner(rtevalModulePrototype):
 
 
     def _WorkloadCleanup(self):
-        if not self.__running:
+        if not self.__hwlat or not self.__running:
+            self._setFinished()
             return
 
         self._log(Log.DEBUG, "Parsing results")
@@ -92,11 +95,12 @@ class HWLatDetectRunner(rtevalModulePrototype):
 
 
     def MakeReport(self):
-        if self.__hwlat is None:
-            return
-
         rep_n = libxml2.newNode('hwlatdetect')
         rep_n.newProp('format', '1.0')
+
+        if self.__hwlat is None:
+            rep_n.newProp('aborted', '1')
+            return rep_n
 
         runp_n = rep_n.newChild(None, 'RunParams', None)
         runp_n.newProp('threshold', str(self.__hwlat.get('threshold')))

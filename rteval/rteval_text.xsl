@@ -277,8 +277,8 @@
 
 
   <!-- Format the hwlatdetect test section of the report -->
-  <xsl:template match="/rteval/Measurements/Profile/hwlatdetect[@format='1.0']">
-    <xsl:text>  Hardware latency detector&#10;</xsl:text>
+  <xsl:template match="/rteval/Measurements/Profile/hwlatdetect[@format='1.0' and not(@aborted)]">
+    <xsl:text>     Hardware latency detector&#10;</xsl:text>
 
     <xsl:text>       Run duration: </xsl:text>
     <xsl:value-of select="RunParams/@duration"/>
@@ -300,6 +300,11 @@
     <xsl:value-of select="samples/@count"/>
     <xsl:text> times&#10;</xsl:text>
     <xsl:apply-templates select="samples/sample"/>
+  </xsl:template>
+
+  <xsl:template match="/rteval/Measurements/Profile/hwlatdetect[@format='1.0' and @aborted > 0]">
+    <xsl:text>     Hardware latency detector&#10;</xsl:text>
+    <xsl:text>        ** WARNING ** hwlatedect failed to run&#10;</xsl:text>
   </xsl:template>
 
   <xsl:template match="/rteval/Measurements/Profile/hwlatdetect[@format='1.0']/samples/sample">
