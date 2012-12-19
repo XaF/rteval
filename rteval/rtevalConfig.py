@@ -73,6 +73,7 @@ class rtevalCfgSection(object):
 
     def next(self):
         "Function used by the iterator"
+
         if not self.__dict__['_rtevalCfgSection__iter_list'] \
                 or len(self.__dict__['_rtevalCfgSection__iter_list']) == 0:
             raise StopIteration
@@ -84,8 +85,6 @@ class rtevalCfgSection(object):
                     (len(self.__dict__['_rtevalCfgSection__iter_list']) > 0):
                 elmt = self.__dict__['_rtevalCfgSection__iter_list'].pop()
 
-            if len(self.__dict__['_rtevalCfgSection__iter_list']) == 0:
-                raise StopIteration
             return (elmt, self.__cfgdata[elmt])
 
 
