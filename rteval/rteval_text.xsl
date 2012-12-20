@@ -286,15 +286,15 @@
 
     <xsl:text>       Threshold:    </xsl:text>
     <xsl:value-of select="RunParams/@threshold"/>
-    <xsl:text>ms&#10;</xsl:text>
+    <xsl:text>us&#10;</xsl:text>
 
     <xsl:text>       Width:       </xsl:text>
     <xsl:value-of select="RunParams/@width"/>
-    <xsl:text>ms&#10;</xsl:text>
+    <xsl:text>us&#10;</xsl:text>
 
     <xsl:text>       Window size: </xsl:text>
     <xsl:value-of select="RunParams/@window"/>
-    <xsl:text>ms&#10;&#10;</xsl:text>
+    <xsl:text>us&#10;&#10;</xsl:text>
 
     <xsl:text>       Threshold exceeded </xsl:text>
     <xsl:value-of select="samples/@count"/>
