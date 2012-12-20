@@ -103,6 +103,7 @@ CREATE LANGUAGE 'plpgsql';
     ) WITH OIDS;
 
     GRANT SELECT,INSERT ON rtevalruns TO rtevparser;
+    GRANT SELECT ON rtevalruns TO rtevxmlrpc;
     GRANT USAGE ON rtevalruns_rterid_seq TO rtevparser;
 
 -- TABLE rtevalruns_details

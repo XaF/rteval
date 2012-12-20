@@ -116,6 +116,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
     ) WITH OIDS;
 
     GRANT SELECT,INSERT ON rtevalruns TO rtevparser;
+    GRANT SELECT ON rtevalruns TO rtevxmlrpc;
     GRANT USAGE ON rtevalruns_rterid_seq TO rtevparser;
 
 -- TABLE rtevalruns_details
@@ -198,7 +199,7 @@ CREATE DATABASE rteval ENCODING 'utf-8';
        rterid         INTEGER REFERENCES rtevalruns(rterid) NOT NULL,
        duration       INTEGER NOT NULL,
        threshold      INTEGER NOT NULL,
-       window         INTEGER NOT NULL,
+       timewindow     INTEGER NOT NULL,
        width          INTEGER NOT NULL,
        samplecount    INTEGER NOT NULL,
        hwlat_min      REAL NOT NULL,
