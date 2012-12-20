@@ -140,7 +140,7 @@ class RunData(object):
         n = stat_n.newTextChild(None, 'maximum', str(self.max))
         n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mediam', str(self.median))
+        n = stat_n.newTextChild(None, 'median', str(self.median))
         n.newProp('unit', 'us')
 
         n = stat_n.newTextChild(None, 'mode', str(self.mode))
