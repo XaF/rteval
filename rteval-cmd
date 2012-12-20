@@ -105,19 +105,19 @@ def parse_options(cfg, parser, cmdargs):
     # See rteval/rtevalConfig::UpdateFromOptionParser() method for more info
     #
     parser.add_option("-d", "--duration", dest="rteval___duration",
-                      type="string", default=rtevcfg.duration,
+                      type="string", default=rtevcfg.duration, metavar="DURATION",
                       help="specify length of test run (default: %default)")
     parser.add_option("-v", "--verbose", dest="rteval___verbose",
                       action="store_true", default=rtevcfg.verbose,
                       help="turn on verbose prints (default: %default)")
     parser.add_option("-w", "--workdir", dest="rteval___workdir",
-                      type="string", default=rtevcfg.workdir,
+                      type="string", default=rtevcfg.workdir, metavar="DIRECTORY",
                       help="top directory for rteval data (default: %default)")
     parser.add_option("-l", "--loaddir", dest="rteval___srcdir",
-                      type="string", default=rtevcfg.srcdir,
+                      type="string", default=rtevcfg.srcdir, metavar="DIRECTORY",
                       help="directory for load source tarballs (default: %default)")
     parser.add_option("-i", "--installdir", dest="rteval___installdir",
-                      type="string", default=rtevcfg.installdir,
+                      type="string", default=rtevcfg.installdir, metavar="DIRECTORY",
                       help="place to locate installed templates (default: %default)")
     parser.add_option("-s", "--sysreport", dest="rteval___sysreport",
                       action="store_true", default=rtevcfg.sysreport,
@@ -138,10 +138,10 @@ def parse_options(cfg, parser, cmdargs):
                       action='store_true', default=False,
                       help='Generate raw histogram data for an already existing XML report')
     parser.add_option("-f", "--inifile", dest="rteval___inifile",
-                      type='string', default=None,
+                      type='string', default=None, metavar="FILE",
                       help="initialization file for configuring loads and behavior")
     parser.add_option("-a", "--annotate", dest="rteval___annotate",
-                      type="string", default=None,
+                      type="string", default=None, metavar="STRING",
                       help="Add a little annotation which is stored in the report")
     parser.add_option("-L", "--logging", dest="rteval___logging",
                       action='store_true', default=False,
