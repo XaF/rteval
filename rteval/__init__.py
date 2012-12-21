@@ -42,7 +42,7 @@ from Log import Log
 import rtevalConfig, rtevalMailer
 
 
-RTEVAL_VERSION = "2.0_pre"
+RTEVAL_VERSION = "2.0"
 
 sigint_received = False
 def sig_handler(signum, frame):
