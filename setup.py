@@ -2,7 +2,7 @@
 from distutils.sysconfig import get_python_lib
 from distutils.core import setup
 from os.path import isfile, join
-import glob, os, shutil
+import glob, os, shutil, gzip
 from rteval import RTEVAL_VERSION
 
 
@@ -21,6 +21,15 @@ except OSError, e:
         raise e
 shutil.copy('rteval-cmd','dist/rteval')
 
+# Compress the man page, so distutil will only care for the compressed file
+mangz = gzip.GzipFile('dist/rteval.8.gz', 'w', 9)
+man = open('doc/rteval.8', 'r')
+mangz.writelines(man)
+man.close()
+mangz.close()
+
+
+# Do the distutils stuff
 setup(name="rteval",
       version = RTEVAL_VERSION,
       description = "Evaluate system performance for Realtime",
@@ -54,13 +63,16 @@ mean, variance and standard deviation) and a report is generated.
       data_files = [("share/rteval", ["rteval/rteval_dmi.xsl",
                                       "rteval/rteval_histogram_raw.xsl",
                                       "rteval/rteval_text.xsl"]),
-                    ("/etc", ["rteval.conf"])
+                    ("/etc", ["rteval.conf"]),
+                    ("share/man/man8", ["dist/rteval.8.gz"])
                     ],
       scripts = ["dist/rteval"]
       )
 
+
 # Clean-up from our little hack
 os.unlink('dist/rteval')
+os.unlink('dist/rteval.8.gz')
 if distcreated:
     try:
         os.rmdir('dist')
