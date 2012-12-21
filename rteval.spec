@@ -2,7 +2,7 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	1.36
+Version:	2.0
 Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
@@ -34,23 +34,17 @@ to the screen.
 %setup -q
 
 # version sanity check (make sure specfile and rteval.py match)
-srcver=$(awk '/version =/ { print $3; }' rteval/rteval.py | sed -e 's/"\(.*\)"/\1/')
+srcver=$(%{__python} -c "from rteval import RTEVAL_VERSION; print RTEVAL_VERSION")
 if [ $srcver != %{version} ]; then
    printf "\n***\n*** rteval spec file version do not match the rteval/rteval.py version\n***\n\n"
    exit -1
 fi
 
 %build
-
+%{__python} setup.py build
 
 %install
-rm -rf ${RPM_BUILD_ROOT}
-mkdir -p ${RPM_BUILD_ROOT}
-make DESTDIR=${RPM_BUILD_ROOT} install_rteval
-mkdir -p ${RPM_BUILD_ROOT}/usr/bin
-# note that python_sitelib has a leading slash...
-ln -s ../..%{python_sitelib}/rteval/rteval.py ${RPM_BUILD_ROOT}/usr/bin/rteval
-
+%{__python} setup.py install --root=$RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -63,14 +57,17 @@ rm -rf $RPM_BUILD_ROOT
 
 %dir %{_datadir}/%{name}
 
-%doc COPYING doc/rteval.txt
-%{_mandir}/man8/rteval.8*
+%doc COPYING README doc/rteval.txt
+%{_mandir}/man8/rteval.8.gz
 %{_datadir}/%{name}/rteval_*.xsl
 %config(noreplace) %{_sysconfdir}/rteval.conf
 %{python_sitelib}/rteval/
 /usr/bin/rteval
 
 %changelog
+* Fri Dec 21 2012 David Sommerseth <davids@redhat.com> - 2.0-1
+- Updated to rteval v2.0 and reworked spec file to use setup.py directly
+
 * Tue Oct 23 2012 Clark Williams <williams@redhat.com> - 1.36-1
 - deal with system not having dmidecode python module
 - make sure to cast priority parameter to int
