@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	2.0
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -18,6 +18,7 @@ Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.65
 Requires:	rteval-loads >= 1.2
+Requires:	rteval-common
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
 
@@ -29,6 +30,14 @@ compiling a kernel tree. During that loop the cyclictest program
 is run to measure event response time. After the run time completes,
 a statistical analysis of the event response times is done and printed
 to the screen.
+i
+
+%package common
+Summary: Common rteval files
+BuildArch: noarch
+
+%description common
+Common files used by rteva, rteval-xmlrpc and rteval-parser
 
 %prep
 %setup -q
@@ -49,22 +58,37 @@ fi
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%files common
+%doc COPYING
+%dir %{_datadir}/%{name}
+%{python_sitelib}/rteval/rtevalclient.py*
+%{python_sitelib}/rteval/rtevalConfig.py*
+%{python_sitelib}/rteval/rtevalXMLRPC.py*
+%{python_sitelib}/rteval/Log.py*
+
+
 %files
 %defattr(-,root,root,-)
 %if "%{python_ver}" >= "2.5"
 %{python_sitelib}/*.egg-info
 %endif
 
-%dir %{_datadir}/%{name}
-
 %doc COPYING README doc/rteval.txt
 %{_mandir}/man8/rteval.8.gz
-%{_datadir}/%{name}/rteval_*.xsl
 %config(noreplace) %{_sysconfdir}/rteval.conf
-%{python_sitelib}/rteval/
+%{_datadir}/%{name}/rteval_*.xsl
+%{python_sitelib}/rteval/__init__.py*
+%{python_sitelib}/rteval/rtevalMailer.py*
+%{python_sitelib}/rteval/rtevalReport.py*
+%{python_sitelib}/rteval/xmlout.py*
+%{python_sitelib}/rteval/modules
+%{python_sitelib}/rteval/sysinfo
 /usr/bin/rteval
 
 %changelog
+* Fri Dec 21 2012 David Sommerseth <davids@redhat.com> - 2.0-2
+- Split out common files into rteval-common
+
 * Fri Dec 21 2012 David Sommerseth <davids@redhat.com> - 2.0-1
 - Updated to rteval v2.0 and reworked spec file to use setup.py directly
 
