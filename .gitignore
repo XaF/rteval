@@ -20,3 +20,4 @@ missing
 build
 rpm*
 usr
+dist/

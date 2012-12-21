@@ -1,0 +1,2 @@
+include COPYING MANIFEST.in rteval-cmd
+exclude dist/rteval

@@ -4,21 +4,29 @@ from distutils.core import setup
 from os.path import isfile, join
 import glob, os, shutil
 from rteval import RTEVAL_VERSION
-from rteval.sysinfo import dmi         # Just to get rid of a warning
+
 
 # Get PYTHONLIB with no prefix so --prefix installs work.
 PYTHONLIB = join(get_python_lib(standard_lib=1, prefix=''), 'site-packages')
 
-
-# DMI module might be loaded, so ignore any warnings it may have
-dmi.ProcessWarnings()
-
+# Tiny hack to make rteval-cmd become a rteval when building/installing the package
+try:
+    os.mkdir('dist', 0755)
+    distcreated = True
+except OSError, e:
+    if e.errno == 17:
+        # If it already exists, ignore this error
+        distcreated = False
+    else:
+        raise e
+shutil.copy('rteval-cmd','dist/rteval')
 
 setup(name="rteval",
       version = RTEVAL_VERSION,
       description = "Evaluate system performance for Realtime",
       author = "Clark Williams, David Sommerseth",
       author_email = "williams@redhat.com, davids@redhat.com",
+      url = "https://git.kernel.org/?p=linux/kernel/git/clrkwllms/rteval.git;a=summary",
       license = "GPLv2",
       long_description =
 """\
@@ -37,5 +45,25 @@ mean, variance and standard deviation) and a report is generated.
                   "rteval.modules.loads",
                   "rteval.modules.measurement",
                   "rteval.sysinfo"],
-      scripts = ["rteval-cmd"],
+      package_dir = { "rteval": "rteval",
+                      "rteval.modules": "rteval/modules",
+                      "rteval.modules.loads": "rteval/modules/loads",
+                      "rteval.modules.measurement": "rteval/modules/measurement",
+                      "rteval.sysinfo": "rteval/sysinfo"
+                      },
+      data_files = [("share/rteval", ["rteval/rteval_dmi.xsl",
+                                      "rteval/rteval_histogram_raw.xsl",
+                                      "rteval/rteval_text.xsl"]),
+                    ("/etc", ["rteval.conf"])
+                    ],
+      scripts = ["dist/rteval"]
       )
+
+# Clean-up from our little hack
+os.unlink('dist/rteval')
+if distcreated:
+    try:
+        os.rmdir('dist')
+    except OSError:
+        # Ignore any errors
+        pass
