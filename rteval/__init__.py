@@ -34,7 +34,6 @@ __license__ = "GPLv2 License"
 import os, signal, sys, threading, time
 from datetime import datetime
 from distutils import sysconfig
-from sysinfo import SystemInfo
 from modules.loads import LoadModules
 from modules.measurement import MeasurementModules, MeasurementProfile
 from rtevalReport import rtevalReport
@@ -81,6 +80,8 @@ class RtEval(rtevalReport):
         self.__rtevcfg = self.__cfg.GetSection('rteval')
         self.__reportdir = None
 
+        # Import SystemInfo here, to avoid DMI warnings if RtEval() is not used
+        from sysinfo import SystemInfo
         self._sysinfo = SystemInfo(self.__rtevcfg, logger=self.__logger)
 
         # prepare a mailer, if that's configured
