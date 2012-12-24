@@ -438,7 +438,8 @@ start their workloads yet"""
             mod.setStop()
             try:
                 self._logger.log(Log.DEBUG, "\t - Stopping %s" % modname)
-                mod.join(2.0)
+                if mod.is_alive():
+                    mod.join(2.0)
             except RuntimeError, e:
                 self._logger.log(Log.ERR, "\t\tFailed stopping %s: %s" % (modname, str(e)))
 
