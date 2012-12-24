@@ -252,7 +252,7 @@ def unit_test(rootdir):
         l = Log()
         l.SetLogVerbosity(Log.INFO)
         cfg = rtevalConfig(logger=l)
-        cfg.Load(rootdir + '/rteval.conf')
+        cfg.Load(os.path.join(rootdir, 'rteval.conf'))
         print cfg
         return 0
     except Exception, e:

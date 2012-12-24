@@ -30,7 +30,7 @@ class CPUtopology:
     "Retrieves an overview over the installed CPU cores and the system topology"
 
     def __init__(self, root="/"):
-        self.sysdir = root + "/sys/devices/system/cpu"
+        self.sysdir = os.path.join(root, 'sys', 'devices', 'system', 'cpu')
         self.__cputop_n = None
         self.__cpu_cores = 0
         self.__online_cores = 0
