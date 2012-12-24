@@ -26,7 +26,14 @@ from rteval.Log import Log
 from rteval.rtevalConfig import rtevalCfgSection
 import time, libxml2, threading, optparse
 
-__all__ = ["rtevalModulePrototype", "ModuleContainer", "RtEvalModules"]
+__all__ = ["rtevalRuntimeError", "rtevalModulePrototype", "ModuleContainer", "RtEvalModules"]
+
+class rtevalRuntimeError(RuntimeError):
+    def __init__(self, mod, message):
+        RuntimeError.__init__(self, message)
+
+        # The module had a RuntimeError, we set the flag
+        mod._setRuntimeError()
 
 
 class rtevalModulePrototype(threading.Thread):
@@ -42,6 +49,7 @@ class rtevalModulePrototype(threading.Thread):
         self._name = name
         self.__logger = logger
         self.__ready = False
+        self.__runtimeError = False
         self.__events = {"start": threading.Event(),
                          "stop": threading.Event(),
                          "finished": threading.Event()}
@@ -61,6 +69,16 @@ class rtevalModulePrototype(threading.Thread):
     def _setReady(self, state=True):
         "Sets the ready flag for the module"
         self.__ready = state
+
+
+    def hadRuntimeError(self):
+        "Returns a boolean if the module had a RuntimeError"
+        return self.__runtimeError
+
+
+    def _setRuntimeError(self, state=True):
+        "Sets the runtimeError flag for the module"
+        self.__runtimeError = state
 
 
     def setStart(self):
@@ -381,7 +399,7 @@ and will also be given to the instantiated objects during module import."""
 start their workloads yet"""
 
         if self.__modules.ModulesLoaded() == 0:
-            raise RuntimeError("No %s modules configured" % self._module_type)
+            raise rtevalRuntimeError("No %s modules configured" % self._module_type)
 
         self._logger.log(Log.INFO, "Starting %s modules" % self._module_type)
         for (modname, mod) in self.__modules:
@@ -394,13 +412,21 @@ start their workloads yet"""
             busy = False
             for (modname, mod) in self.__modules:
                 if not mod.isReady():
-                    busy = True
-                    self._logger.log(Log.DEBUG, "Waiting for %s" % modname)
+                    if not mod.hadRuntimeError():
+                        busy = True
+                        self._logger.log(Log.DEBUG, "Waiting for %s" % modname)
+                    else:
+                        raise RuntimeError("Runtime error starting the %s %s module" % (modname, self._module_type))
 
             if busy:
                 time.sleep(1)
 
         self._logger.log(Log.DEBUG, "All %s modules are ready" % self._module_type)
+
+
+    def hadError(self):
+        "Returns True if one or more modules had a RuntimeError"
+        return self.__runtimeError
 
 
     def Unleash(self):
@@ -424,7 +450,6 @@ start their workloads yet"""
             if not mod.WorkloadAlive():
                 return False
         return True
-
 
 
     def Stop(self):

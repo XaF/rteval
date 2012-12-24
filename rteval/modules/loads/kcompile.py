@@ -24,6 +24,7 @@
 #
 import sys, os, glob, subprocess
 from signal import SIGTERM
+from rteval.modules import rtevalRuntimeError
 from rteval.modules.loads import CommandLineLoad
 from rteval.Log import Log
 
@@ -39,14 +40,14 @@ class Kcompile(CommandLineLoad):
         if self._cfg.has_key('tarball'):
             tarfile = os.path.join(self.srcdir, self._cfg.tarfile)
             if not os.path.exists(tarfile):
-                raise RuntimeError, " tarfile %s does not exist!" % tarfile
+                raise rtevalRuntimeError(self, " tarfile %s does not exist!" % tarfile)
             self.source = tarfile
         else:
             tarfiles = glob.glob(os.path.join(self.srcdir, "%s*" % kernel_prefix))
             if len(tarfiles):
                 self.source = tarfiles[0]
             else:
-                raise RuntimeError, " no kernel tarballs found in %s" % self.srcdir
+                raise rtevalRuntimeError(self, " no kernel tarballs found in %s" % self.srcdir)
 
         # check for existing directory
         kdir=None
@@ -76,7 +77,7 @@ class Kcompile(CommandLineLoad):
                     kdir=d
                     break
         if kdir == None:
-            raise RuntimeError, "Can't find kernel directory!"
+            raise rtevalRuntimeError(self, "Can't find kernel directory!")
         self.jobs = 1 # We only run one instance of the kcompile job
         self.mydir = os.path.join(self.builddir, kdir)
         self._log(Log.DEBUG, "mydir = %s" % self.mydir)
@@ -96,7 +97,7 @@ class Kcompile(CommandLineLoad):
             ret = subprocess.call(["make", "-C", self.mydir, "mrproper", "allmodconfig"], 
                                   stdin=null, stdout=out, stderr=err)
             if ret:
-                raise RuntimeError, "kcompile setup failed: %d" % ret
+                raise rtevalRuntimeError(self, "kcompile setup failed: %d" % ret)
         except KeyboardInterrupt, m:
             self._log(Log.DEBUG, "keyboard interrupt, aborting")
             return
