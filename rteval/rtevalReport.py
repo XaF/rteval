@@ -87,7 +87,7 @@ class rtevalReport(object):
         self.__xmlreport.Write("-", xslt_tpl)
 
 
-    def _XMLreport(self):
+    def GetXMLreport(self):
         "Retrieves the complete rteval XML report as a libxml2.xmlDoc object"
         return self.__xmlreport.GetXMLdocument()
 

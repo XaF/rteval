@@ -263,9 +263,8 @@ class RtEval(rtevalReport):
 
         # if --xmlrpc-submit | -X was given, send our report to the given host
         if self.__xmlrpc:
-            retvalres = self.__xmlrpc.SendReport(self._XMLreport())
+            retvalres = self.__xmlrpc.SendReport(self.GetXMLreport())
 
         self._sysinfo.copy_dmesg(self.__reportdir)
         self._tar_results()
         return rtevalres
-
