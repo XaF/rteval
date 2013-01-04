@@ -180,32 +180,12 @@ if __name__ == '__main__':
     dmi.ProcessWarnings()
 
     try:
-        default_config = {
-            'rteval': {
-                'quiet'      : False,
-                'verbose'    : False,
-                'keepdata'   : True,
-                'debugging'  : False,
-                'duration'   : '60',
-                'sysreport'  : False,
-                'reportdir'  : None,
-                'reportfile' : None,
-                'workdir'    : os.getcwd(),
-                'installdir' : '/usr/share/rteval',
-                'srcdir'     : '/usr/share/rteval/loadsource',
-                'xmlrpc'     : None,
-                'xslt_report': '/usr/share/rteval/rteval_text.xsl',
-                'report_interval': '600',
-                'logging'    : False,
-                }
-            }
-
         # Prepare logging
         logger = Log()
         logger.SetLogVerbosity(Log.INFO)
 
         # setup initial configuration
-        config = rtevalConfig.rtevalConfig(default_config, logger=logger)
+        config = rtevalConfig.rtevalConfig(logger=logger)
 
         # Before really parsing options, see if we have been given a config file in the args
         # and load it - just so that default values are according to the config file

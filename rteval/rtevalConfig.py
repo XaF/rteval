@@ -34,6 +34,26 @@ import os
 import ConfigParser
 from Log import Log
 
+default_config = {
+    'rteval': {
+        'quiet'      : False,
+        'verbose'    : False,
+        'keepdata'   : True,
+        'debugging'  : False,
+        'duration'   : '60',
+        'sysreport'  : False,
+        'reportdir'  : None,
+        'reportfile' : None,
+        'workdir'    : os.getcwd(),
+        'installdir' : '/usr/share/rteval',
+        'srcdir'     : '/usr/share/rteval/loadsource',
+        'xmlrpc'     : None,
+        'xslt_report': '/usr/share/rteval/rteval_text.xsl',
+        'report_interval': '600',
+        'logging'    : False,
+        }
+    }
+
 
 class rtevalCfgSection(object):
     def __init__(self, section_cfg):
@@ -125,6 +145,11 @@ class rtevalConfig(object):
         self.__config_files = []
         self.__logger = logger
 
+        # Import the default config first
+        for sect, vals in default_config.items():
+            self.__update_section(sect, vals)
+
+        # Set the runtime provided init variables
         if initvars:
             if type(initvars) is not dict:
                 raise TypeError('initvars argument is not a dict variable')
