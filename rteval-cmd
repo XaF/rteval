@@ -110,6 +110,9 @@ def parse_options(cfg, parser, cmdargs):
     parser.add_option("-v", "--verbose", dest="rteval___verbose",
                       action="store_true", default=rtevcfg.verbose,
                       help="turn on verbose prints (default: %default)")
+    parser.add_option("-q", "--quiet", dest="rteval___quiet",
+                      action="store_true", default=rtevcfg.quiet,
+                      help="turn on quiet mode (default: %default)")
     parser.add_option("-w", "--workdir", dest="rteval___workdir",
                       type="string", default=rtevcfg.workdir, metavar="DIRECTORY",
                       help="top directory for rteval data (default: %default)")
@@ -214,6 +217,8 @@ if __name__ == '__main__':
             rtevcfg.verbose = True
         if (sys.argv.count('-D')+sys.argv.count('--debug')) > 0:
             rtevcfg.debugging = True
+        if (sys.argv.count('-q')+sys.argv.count('--quiet')) > 0:
+            rtevcfg.quiet = True
         loglev = (not rtevcfg.quiet and (Log.ERR | Log.WARN)) \
                 | (rtevcfg.verbose and Log.INFO) \
                 | (rtevcfg.debugging and Log.DEBUG)
