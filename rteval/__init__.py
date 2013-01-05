@@ -90,10 +90,6 @@ class RtEval(rtevalReport):
         else:
             self.__mailer = None
 
-        # Prepare XSLT processing, if enabled
-        if not self.__rtevcfg.xslt_report.startswith(self.__rtevcfg.installdir):
-            self.__rtevcfg.xslt_report = os.path.join(self.__rtevcfg.installdir, "rteval_text.xsl")
-
         if not os.path.exists(self.__rtevcfg.xslt_report):
             raise RuntimeError("can't find XSL template (%s)!" % self.__rtevcfg.xslt_report)
 

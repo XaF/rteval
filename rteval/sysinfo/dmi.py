@@ -27,6 +27,7 @@
 
 import sys, os
 import libxml2, libxslt
+from rteval import rtevalConfig
 from rteval.Log import Log
 
 try:
@@ -64,7 +65,6 @@ class DMIinfo(object):
 
     def __init__(self, config, logger):
         self.__version = '0.4'
-        self.__sharedir = config.installdir
 
         if not dmidecode_loaded:
             logger.log(Log.DEBUG|Log.WARN, "No dmidecode module found, ignoring DMI tables")
@@ -79,13 +79,12 @@ class DMIinfo(object):
 
 
     def __load_xslt(self, fname):
-        if os.path.exists(fname):
+        if os.path.isfile(fname):
             return libxml2.parseFile(fname)
-        elif os.path.exists(self.__sharedir + '/' + fname):
-            return libxml2.parseFile(self.__sharedir + '/' + fname)
+        elif rtevalConfig.default_config_search([fname], os.path.isfile):
+            return libxml2.parseFile(rtevalConfig.default_config_search([fname], os.path.isfile))
         else:
-            raise RuntimeError, 'Could not locate XSLT template for DMI data (%s/%s)' % \
-                (self.__sharedir, fname)
+            raise RuntimeError('Could not locate XSLT template for DMI data (%s/%s)' % (fname))
 
 
     def MakeReport(self):

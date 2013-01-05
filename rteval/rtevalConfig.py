@@ -34,6 +34,33 @@ import os
 import ConfigParser
 from Log import Log
 
+
+def default_config_search(relative_path, verifdef=os.path.isdir):
+    ConfigDirectories=[
+            os.path.join(os.path.expanduser("~" + \
+                    (os.getenv('SUDO_USER') or os.getenv('USER'))), '.rteval'),
+            '/etc/rteval',
+            '/usr/share/rteval'
+            ]
+
+    if os.path.dirname(os.path.abspath(__file__)) != '/usr/share/rteval':
+        ConfigDirectories = [
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'rteval')
+                ] + ConfigDirectories
+
+        for path in ConfigDirectories:
+            if verifdef(os.path.join(path, *relative_path)):
+                return os.path.join(path, *relative_path)
+
+    return False
+
+
+if os.path.dirname(os.path.abspath(__file__)) != '/usr/local/bin':
+    installdir = os.path.dirname(os.path.abspath(__file__))
+else:
+    installdir = '/usr/share/rteval'
+
 default_config = {
     'rteval': {
         'quiet'      : False,
@@ -45,10 +72,10 @@ default_config = {
         'reportdir'  : None,
         'reportfile' : None,
         'workdir'    : os.getcwd(),
-        'installdir' : '/usr/share/rteval',
-        'srcdir'     : '/usr/share/rteval/loadsource',
+        'installdir' : installdir,
+        'srcdir'     : default_config_search(['loadsource']),
         'xmlrpc'     : None,
-        'xslt_report': '/usr/share/rteval/rteval_text.xsl',
+        'xslt_report': default_config_search(['rteval_text.xsl'], os.path.isfile),
         'report_interval': '600',
         'logging'    : False,
         }
