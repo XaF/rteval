@@ -182,7 +182,7 @@ if __name__ == '__main__':
     try:
         # Prepare logging
         logger = Log()
-        logger.SetLogVerbosity(Log.INFO)
+        logger.SetLogVerbosity(Log.NONE)
 
         # setup initial configuration
         config = rtevalConfig.rtevalConfig(logger=logger)
@@ -208,6 +208,18 @@ if __name__ == '__main__':
             config.AppendConfig('measurement', {
                     'cyclictest' : 'module'})
 
+        # Prepare log levels before loading modules, not to have unwanted log messages
+        rtevcfg = config.GetSection('rteval')
+        if (sys.argv.count('-v')+sys.argv.count('--verbose')) > 0:
+            rtevcfg.verbose = True
+        if (sys.argv.count('-D')+sys.argv.count('--debug')) > 0:
+            rtevcfg.debugging = True
+        loglev = (not rtevcfg.quiet and (Log.ERR | Log.WARN)) \
+                | (rtevcfg.verbose and Log.INFO) \
+                | (rtevcfg.debugging and Log.DEBUG)
+        logger.SetLogVerbosity(loglev)
+
+        # Load modules
         loadmods = LoadModules(config, logger=logger)
         measuremods = MeasurementModules(config, logger=logger)
 
@@ -216,13 +228,6 @@ if __name__ == '__main__':
         loadmods.SetupModuleOptions(parser)
         measuremods.SetupModuleOptions(parser)
         cmd_args = parse_options(config, parser, sys.argv[1:])
-
-        # Update log level, based on config/command line args
-        rtevcfg = config.GetSection('rteval')
-        loglev = (not rtevcfg.quiet and (Log.ERR | Log.WARN)) \
-            | (rtevcfg.verbose and Log.INFO) \
-            | (rtevcfg.debugging and Log.DEBUG)
-        logger.SetLogVerbosity(loglev)
 
         logger.log(Log.DEBUG, "workdir: %s" % rtevcfg.workdir)
 
