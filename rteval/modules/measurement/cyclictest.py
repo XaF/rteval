@@ -223,8 +223,7 @@ class Cyclictest(rtevalModulePrototype):
 
 
     def _WorkloadPrepare(self):
-        if self.__cfg.has_key('interval'):
-            self.__interval = '-i%d' % int(self.__cfg.interval)
+        self.__interval = self.__cfg.has_key('interval') and '-i%d' % int(self.__cfg.interval) or ""
 
         self.__cmd = ['cyclictest',
                       self.__interval,
