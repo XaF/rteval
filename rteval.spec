@@ -43,7 +43,9 @@ Common files used by rteva, rteval-xmlrpc and rteval-parser
 %setup -q
 
 # version sanity check (make sure specfile and rteval.py match)
-srcver=$(%{__python} -c "from rteval.version import RTEVAL_VERSION; print RTEVAL_VERSION")
+cp rteval/version.py rtevalversion.py
+srcver=$(%{__python} -c "from rtevalversion import RTEVAL_VERSION; print RTEVAL_VERSION")
+rm -rf rtevalversion.py
 if [ $srcver != %{version} ]; then
    printf "\n***\n*** rteval spec file version do not match the rteval/rteval.py version\n***\n\n"
    exit -1
@@ -64,6 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/rteval/rtevalclient.py*
 %{python_sitelib}/rteval/rtevalConfig.py*
 %{python_sitelib}/rteval/rtevalXMLRPC.py*
+%{python_sitelib}/rteval/version.py*
 %{python_sitelib}/rteval/Log.py*
 
 
@@ -86,7 +89,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
-* Thu Jan 10 2013 David Sommerseth <dazo@users.sourceforge.net> - 2.0-3
+* Thu Jan 10 2013 David Sommerseth <davids@redhat.com> - 2.0-3
 - Separate out RTEVAL_VERSION into rteval.version, to avoid
   massive BuildRequirements
 

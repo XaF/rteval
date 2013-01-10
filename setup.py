@@ -3,7 +3,6 @@ from distutils.sysconfig import get_python_lib
 from distutils.core import setup
 from os.path import isfile, join
 import glob, os, shutil, gzip
-from rteval import RTEVAL_VERSION
 
 
 # Get PYTHONLIB with no prefix so --prefix installs work.
@@ -20,6 +19,12 @@ except OSError, e:
     else:
         raise e
 shutil.copy('rteval-cmd','dist/rteval')
+
+# Hack to avoid importing libxml2 and a lot of other stuff
+# when getting the rteval version.  These are modules which
+# might not be available on the build box.
+shutil.copy('rteval/version.py','dist/__init__.py')
+from dist import RTEVAL_VERSION
 
 # Compress the man page, so distutil will only care for the compressed file
 mangz = gzip.GzipFile('dist/rteval.8.gz', 'w', 9)
@@ -73,6 +78,9 @@ mean, variance and standard deviation) and a report is generated.
 # Clean-up from our little hack
 os.unlink('dist/rteval')
 os.unlink('dist/rteval.8.gz')
+os.unlink('dist/__init__.py')
+os.unlink('dist/__init__.pyc')
+
 if distcreated:
     try:
         os.rmdir('dist')
