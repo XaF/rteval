@@ -40,9 +40,9 @@ from rtevalReport import rtevalReport
 from rtevalXMLRPC import rtevalXMLRPC
 from Log import Log
 import rtevalConfig, rtevalMailer
+import version
 
-
-RTEVAL_VERSION = "2.0"
+RTEVAL_VERSION = version.RTEVAL_VERSION
 
 sigint_received = False
 def sig_handler(signum, frame):

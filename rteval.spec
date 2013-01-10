@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	2.0
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -43,7 +43,7 @@ Common files used by rteva, rteval-xmlrpc and rteval-parser
 %setup -q
 
 # version sanity check (make sure specfile and rteval.py match)
-srcver=$(%{__python} -c "from rteval import RTEVAL_VERSION; print RTEVAL_VERSION")
+srcver=$(%{__python} -c "from rteval.version import RTEVAL_VERSION; print RTEVAL_VERSION")
 if [ $srcver != %{version} ]; then
    printf "\n***\n*** rteval spec file version do not match the rteval/rteval.py version\n***\n\n"
    exit -1
@@ -86,6 +86,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Jan 10 2013 David Sommerseth <dazo@users.sourceforge.net> - 2.0-3
+- Separate out RTEVAL_VERSION into rteval.version, to avoid
+  massive BuildRequirements
+
 * Fri Dec 21 2012 David Sommerseth <davids@redhat.com> - 2.0-2
 - Split out common files into rteval-common
 
