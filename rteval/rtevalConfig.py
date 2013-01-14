@@ -30,7 +30,7 @@
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
 #
-import os
+import os, sys
 import ConfigParser
 from Log import Log
 
@@ -56,9 +56,15 @@ def default_config_search(relative_path, verifdef=os.path.isdir):
     return False
 
 
-if os.path.dirname(os.path.abspath(__file__)) != '/usr/local/bin':
-    installdir = os.path.dirname(os.path.abspath(__file__))
-else:
+# HACK: A temporary hack to try to figure out where the install dir is.
+typical_install_paths = ('/usr/bin','/usr/local/bin')
+try:
+    if typical_install_paths.index(os.path.dirname(os.path.abspath(sys.argv[0]))):
+        installdir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    else:
+        installdir = '/usr/share/rteval'
+
+except ValueError:
     installdir = '/usr/share/rteval'
 
 default_config = {
