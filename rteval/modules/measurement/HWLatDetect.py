@@ -64,6 +64,12 @@ class HWLatDetectRunner(rtevalModulePrototype):
         self.__hwlat.testduration = int(self.__cfg.setdefault('duration', 10))
         self.__hwlat.setup()
 
+        self._log(Log.DEBUG, "HWLatDetect settings: \n"
+                  + "\t threshold: %i\n" % (self.__cfg.threshold)
+                  + "\t window:    %i\n" % (self.__cfg.window)
+                  + "\t width:     %i\n" % (self.__cfg.width)
+                  + "\t duration:  %i" % (self.__cfg.duration))
+
 
     def _WorkloadTask(self):
         if self.__hwlat is None:
