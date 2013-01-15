@@ -41,7 +41,9 @@ A summary of options is included below.
 .\" For a complete description, see the Info files.
 .TP
 .B \-h, \-\-help
-print a help message
+Print a help message with a complete list of commands. In this man page,
+we only present the native commands provided by rteval. The modules
+provided commands will only be readable in the help message.
 .TP
 .B -d, \-\-duration=DURATION
 Specify the length of the measurement run. DURATION is an integer with
@@ -63,6 +65,9 @@ for example to execute a ten minute run of rteval:
 .B \-v, \-\-verbose
 Increase the verbosity of output during the test run
 .TP
+.B \-q, \-\-quiet
+Turn of the quiet mode which will disable error and warning messages
+.TP
 .B \-w, \-\-workdir=WORKDIR
 Tell rteval to change directory to WORKDIR before creating any
 subdirectories for report files. The default WORKDIR is the directory
@@ -70,6 +75,13 @@ in which rteval was started.
 .TP
 .B \-l, \-\-loaddir=LOADDIR
 Tell rteval where to find the source for the loads
+.TP
+.B \-i, \-\-installdir=INSTALLDIR
+Tell rteval to locate installed templates in INSTALLDIR instead of
+the default install directory.
+.TP
+.B \-P, \-\-xmlrpc\-no\-abort
+Do not abort if XML-RPC server do not respond to ping request
 .TP
 .B \-s, \-\-sysreport
 Have rteval run the sysreport utility after a run to gather
@@ -83,7 +95,21 @@ Have rteval send report data to HOST following the run, using XML-RPC
 .TP
 .B \-Z, \-\-summarize
 Have rteval summarize an existing report. This will not cause loads or
-meausurement utilities to be run. 
+measurement utilities to be run.
+.B \-H, \-\-raw-histogram
+Generate raw histogram data for an already existing XML report
+.TP
+.B \-f FILE, \-\-inifile=FILE
+Sets FILE as the initialization file for configuring loads and behavior
+.TP
+.B \-a STRING, \-\-annotate=STRING
+Add a little annotation which is stored in the report
+.TP
+.B \-L, \-\-logging
+Sets a flag to log the output of the loads in the report directory
+.TP
+.B \-O, \-\-onlyload
+Sets a flag to only run the loads (don't run measurement threads)
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).
@@ -106,7 +132,7 @@ system boot. It is copied from /var/log/dmesg.
 .SH SEE ALSO
 .BR cyclictest(8).
 .br
-.SH AUTHOR
+.SH AUTHORS
 rteval was written by Clark Williams <williams@redhat.com>
 .PP
 XML-RPC and database code by David Sommerseth <davids@redhat.com>
