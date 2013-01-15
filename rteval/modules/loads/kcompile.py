@@ -122,7 +122,7 @@ class Kcompile(CommandLineLoad):
         if ratio > 1.0:
             njobs = self.num_cpus * mult
         else:
-            self._log(Log.DEBUG, "low memory system (%f GB/core)! Dropping jobs to one per core\n" % ratio)
+            self._log(Log.DEBUG, "Low memory system (%f GB/core)! Dropping jobs to one per core" % ratio)
             njobs = self.num_cpus
         return njobs
 
