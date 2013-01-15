@@ -53,6 +53,7 @@ class rtevalModulePrototype(threading.Thread):
         self.__events = {"start": threading.Event(),
                          "stop": threading.Event(),
                          "finished": threading.Event()}
+        self._donotrun = False
 
 
     def _log(self, logtype, msg):
@@ -63,6 +64,8 @@ class rtevalModulePrototype(threading.Thread):
 
     def isReady(self):
         "Returns a boolean if the module is ready to run"
+        if self._donotrun:
+            return True
         return self.__ready
 
 
@@ -118,6 +121,7 @@ class rtevalModulePrototype(threading.Thread):
         "Required module method, which purpose is to do the initial workload setup, preparing for _WorkloadBuild()"
         raise NotImplementedError("_WorkloadSetup() method must be implemented in the %s module" % self._name)
 
+
     def _WorkloadBuild(self):
         "Required module method, which purpose is to compile additional code needed for the worklaod"
         raise NotImplementedError("_WorkloadBuild() method must be implemented in the %s module" % self._name)
@@ -143,6 +147,11 @@ class rtevalModulePrototype(threading.Thread):
         raise NotImplementedError("_WorkloadCleanup() method must be implemented in the %s module" % self._name)
 
 
+    def WorkloadWillRun(self):
+        "Returns True if this workload will be run"
+        return self._donotrun is False
+
+
     def run(self):
         "Workload thread runner - takes care of keeping the workload running as long as needed"
         if self.shouldStop():
@@ -151,32 +160,36 @@ class rtevalModulePrototype(threading.Thread):
         # Initial workload setups
         self._WorkloadSetup()
 
-        # Compile the workload
-        self._WorkloadBuild()
+        if not self._donotrun:
+            # Compile the workload
+            self._WorkloadBuild()
 
-        # Do final preparations of workload  before we're ready to start running
-        self._WorkloadPrepare()
+            # Do final preparations of workload  before we're ready to start running
+            self._WorkloadPrepare()
 
-        # Wait until we're released
-        while True:
-            if self.shouldStop():
-                return
-            self.__events["start"].wait(1.0)
-            if self.shouldStart():
-                break
+            # Wait until we're released
+            while True:
+                if self.shouldStop():
+                    return
+                self.__events["start"].wait(1.0)
+                if self.shouldStart():
+                    break
 
-        self._log(Log.DEBUG, "Starting %s workload" % self._module_type)
-        while not self.shouldStop():
-            # Run the workload
-            self._WorkloadTask()
+            self._log(Log.DEBUG, "Starting %s workload" % self._module_type)
+            while not self.shouldStop():
+                # Run the workload
+                self._WorkloadTask()
 
-            if self.shouldStop():
-                break
-            if not self.WorkloadAlive():
-                self._log(Log.DEBUG, "%s workload stopped running." % self._module_type)
-                break
-            time.sleep(1.0)
-        self._log(Log.DEBUG, "stopping %s workload" % self._module_type)
+                if self.shouldStop():
+                    break
+                if not self.WorkloadAlive():
+                    self._log(Log.DEBUG, "%s workload stopped running." % self._module_type)
+                    break
+                time.sleep(1.0)
+            self._log(Log.DEBUG, "stopping %s workload" % self._module_type)
+        else:
+            self._log(Log.DEBUG, "Workload was not started")
+
         self._WorkloadCleanup()
 
 
@@ -404,7 +417,8 @@ start their workloads yet"""
         self._logger.log(Log.INFO, "Starting %s modules" % self._module_type)
         for (modname, mod) in self.__modules:
             mod.start()
-            self._logger.log(Log.DEBUG, "\t - %s started" % modname)
+            if mod.WorkloadWillRun():
+                self._logger.log(Log.DEBUG, "\t - %s started" % modname)
 
         self._logger.log(Log.DEBUG, "Waiting for all %s modules to get ready" % self._module_type)
         busy = True
@@ -460,6 +474,9 @@ start their workloads yet"""
 
         self._logger.log(Log.INFO, "Stopping %s modules" % self._module_type)
         for (modname, mod) in self.__modules:
+            if not mod.WorkloadWillRun():
+                continue
+
             mod.setStop()
             try:
                 self._logger.log(Log.DEBUG, "\t - Stopping %s" % modname)

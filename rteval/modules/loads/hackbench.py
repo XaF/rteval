@@ -51,6 +51,8 @@ class Hackbench(CommandLineLoad):
         else:
             self._log(Log.INFO, "hackbench: low memory system (%f GB/core)! Not running\n" % ratio)
             mult = 0
+            self._donotrun = True
+
         self.jobs = self.num_cpus * mult
 
         self.args = ['hackbench',  '-P',
@@ -67,11 +69,6 @@ class Hackbench(CommandLineLoad):
 
 
     def _WorkloadPrepare(self):
-        # if we don't have any jobs just wait for the stop event and return
-        if self.jobs == 0:
-            self.WaitForCompletion()
-            return
-
         self.__nullfp = os.open("/dev/null", os.O_RDWR)
         if self._logging:
             self.__out = self.open_logfile("hackbench.stdout")
@@ -111,6 +108,9 @@ class Hackbench(CommandLineLoad):
 
 
     def _WorkloadCleanup(self):
+        if self._donotrun:
+            return
+
         if self.__hbproc.poll() == None:
             os.kill(self.__hbproc.pid, SIGKILL)
         self.__hbproc.wait()

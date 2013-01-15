@@ -70,7 +70,7 @@ class CommandLineLoad(LoadThread):
 
 
     def MakeReport(self):
-        if not (self.jobs and self.args):
+        if not (self.jobs and self.args) or self._donotrun:
             return None
 
         rep_n = libxml2.newNode("command_line")
