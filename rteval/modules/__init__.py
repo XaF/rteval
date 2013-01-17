@@ -414,11 +414,11 @@ start their workloads yet"""
         if self.__modules.ModulesLoaded() == 0:
             raise rtevalRuntimeError("No %s modules configured" % self._module_type)
 
-        self._logger.log(Log.INFO, "Starting %s modules" % self._module_type)
+        self._logger.log(Log.INFO, "Preparing %s modules" % self._module_type)
         for (modname, mod) in self.__modules:
             mod.start()
             if mod.WorkloadWillRun():
-                self._logger.log(Log.DEBUG, "\t - %s started" % modname)
+                self._logger.log(Log.DEBUG, "\t - Started %s preparations" % modname)
 
         self._logger.log(Log.DEBUG, "Waiting for all %s modules to get ready" % self._module_type)
         busy = True
@@ -448,7 +448,7 @@ start their workloads yet"""
 
         # turn loose the loads
         nthreads = 0
-        self._logger.log(Log.INFO, "sending start event to all %s modules" % self._module_type)
+        self._logger.log(Log.INFO, "Sending start event to all %s modules" % self._module_type)
         for (modname, mod) in self.__modules:
             mod.setStart()
             nthreads += 1
