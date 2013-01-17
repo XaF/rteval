@@ -21,5 +21,5 @@
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
 
-RTEVAL_VERSION = '2.0'
+RTEVAL_VERSION = '2.0.1'
 
