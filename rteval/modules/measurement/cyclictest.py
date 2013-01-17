@@ -25,7 +25,7 @@
 #   are deemed to be part of the source code.
 #
 
-import os, sys, subprocess, signal, libxml2
+import os, sys, subprocess, signal, libxml2, shutil
 from rteval.Log import Log
 from rteval.modules import rtevalModulePrototype
 
@@ -213,6 +213,18 @@ class Cyclictest(rtevalModulePrototype):
         return '--smp'
 
 
+    def __get_debugfs_mount(self):
+        ret = None
+        mounts = open('/proc/mounts')
+        for l in mounts:
+            field = l.split()
+            if field[2] == "debugfs":
+                ret = field[1]
+                break
+        mounts.close()
+        return ret
+
+
     def _WorkloadSetup(self):
         self.__cyclicprocess = None
         pass
@@ -234,8 +246,11 @@ class Cyclictest(rtevalModulePrototype):
                       self.__getmode(),
                       ]
 
-        if self.__cfg.has_key('threads') and __cfg.threads:
+        if self.__cfg.has_key('threads') and self.__cfg.threads:
             self.__cmd.append("-t%d" % int(self.__cfg.threads))
+
+        if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace:
+            self.__cmd.append("-b%d" % int(self.__cfg.breaktrace))
 
 
     def _WorkloadTask(self):
@@ -245,6 +260,16 @@ class Cyclictest(rtevalModulePrototype):
 
         self._log(Log.DEBUG, "starting with cmd: %s" % " ".join(self.__cmd))
         self.__nullfp = os.open('/dev/null', os.O_RDWR)
+
+        debugdir = self.__get_debugfs_mount()
+        if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace and debugdir:
+            # Ensure that the trace log is clean
+            trace = os.path.join(debugdir, 'tracing', 'trace')
+            fp = open(os.path.join(trace), "w")
+            fp.write("0")
+            fp.flush()
+            fp.close()
+
         self.__cyclicprocess = subprocess.Popen(self.__cmd,
                                                 stdout=subprocess.PIPE,
                                                 stderr=self.__nullfp,
@@ -274,6 +299,15 @@ class Cyclictest(rtevalModulePrototype):
                 self.__cyclicdata['system'].bucket(index, int(vals[i+1]))
         for n in self.__cyclicdata.keys():
             self.__cyclicdata[n].reduce()
+
+        # If the breaktrace feature of cyclictest was enabled, put the trace
+        # into the log directory
+        debugdir = self.__get_debugfs_mount()
+        if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace and debugdir:
+            trace = os.path.join(debugdir, 'tracing', 'trace')
+            cyclicdir = os.path.join(self.__cfg.reportdir, 'cyclictest')
+            os.mkdir(cyclicdir)
+            shutil.copyfile(trace, os.path.join(cyclicdir, 'breaktrace.log'))
 
         self._setFinished()
         self.__started = False
@@ -314,7 +348,10 @@ def ModuleParameters():
                          "metavar": "DIST_US"},
             "priority": {"descr": "Run cyclictest with the given priority",
                          "default": 95,
-                         "metavar": "PRIO"}
+                         "metavar": "PRIO"},
+            "breaktrace": {"descr": "Send a break trace command when latency > USEC",
+                           "default": None,
+                           "metavar": "USEC"}
             }
 
 
