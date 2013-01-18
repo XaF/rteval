@@ -25,7 +25,7 @@
 #   are deemed to be part of the source code.
 #
 
-import os, sys, subprocess, signal, libxml2, shutil
+import os, sys, subprocess, signal, libxml2, shutil, tempfile, time
 from rteval.Log import Log
 from rteval.modules import rtevalModulePrototype
 
@@ -202,6 +202,7 @@ class Cyclictest(rtevalModulePrototype):
         self.__cyclicdata['system'].description = ("(%d cores) " % self.__numcores) + self.__cyclicdata['0'].description
         self._log(Log.DEBUG, "system has %d cpu cores" % self.__numcores)
         self.__started = False
+        self.__cyclicoutput = None
 
 
     def __getmode(self):
@@ -238,7 +239,7 @@ class Cyclictest(rtevalModulePrototype):
 
         self.__cmd = ['cyclictest',
                       self.__interval,
-                      '-qm',
+                      '-qmu',
                       '-h %d' % self.__buckets,
                       "-p%d" % int(self.__priority),
                       self.__getmode(),
@@ -249,6 +250,9 @@ class Cyclictest(rtevalModulePrototype):
 
         if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace:
             self.__cmd.append("-b%d" % int(self.__cfg.breaktrace))
+
+        # Buffer for cyclictest data written to stdout
+        self.__cyclicoutput = tempfile.SpooledTemporaryFile(mode='rw+b')
 
 
     def _WorkloadTask(self):
@@ -268,8 +272,9 @@ class Cyclictest(rtevalModulePrototype):
             fp.flush()
             fp.close()
 
+        self.__cyclicoutput.seek(0)
         self.__cyclicprocess = subprocess.Popen(self.__cmd,
-                                                stdout=subprocess.PIPE,
+                                                stdout=self.__cyclicoutput,
                                                 stderr=self.__nullfp,
                                                 stdin=self.__nullfp)
         self.__started = True
@@ -283,11 +288,14 @@ class Cyclictest(rtevalModulePrototype):
 
 
     def _WorkloadCleanup(self):
-        if self.__cyclicprocess.poll() == None:
+        while self.__cyclicprocess.poll() == None:
+            self._log(Log.DEBUG, "Sending SIGINT")
             os.kill(self.__cyclicprocess.pid, signal.SIGINT)
+            time.sleep(2)
 
         # now parse the histogram output
-        for line in self.__cyclicprocess.stdout:
+        self.__cyclicoutput.seek(0)
+        for line in self.__cyclicoutput:
             if line.startswith('#'): continue
             vals = line.split()
             index = int(vals[0])
