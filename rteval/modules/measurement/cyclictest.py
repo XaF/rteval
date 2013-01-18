@@ -385,7 +385,34 @@ def create(params, logger):
 
 
 if __name__ == '__main__':
-    c = CyclicTest()
-    c.run()
-
+    from rteval.rtevalConfig import rtevalConfig
     
+    l = Log()
+    l.SetLogVerbosity(Log.INFO|Log.DEBUG|Log.ERR|Log.WARN)
+
+    cfg = rtevalConfig({}, logger=l)
+    prms = {}
+    modprms = ModuleParameters()
+    for c, p in modprms.items():
+        prms[c] = p['default']
+    cfg.AppendConfig('cyclictest', prms)
+
+    cfg_ct = cfg.GetSection('cyclictest')
+    cfg_ct.reportdir = "."
+    cfg_ct.buckets = 200
+    # cfg_ct.breaktrace = 30
+
+    runtime = 10
+
+    c = Cyclictest(cfg_ct, l)
+    c._WorkloadSetup()
+    c._WorkloadPrepare()
+    c._WorkloadTask()
+    print "Running for %i seconds" % runtime
+    time.sleep(runtime)
+    c._WorkloadCleanup()
+    rep_n = c.MakeReport()
+
+    xml = libxml2.newDoc('1.0')
+    xml.setRootElement(rep_n)
+    xml.saveFormatFileEnc('-','UTF-8',1)
