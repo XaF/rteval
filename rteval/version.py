@@ -22,5 +22,5 @@
 #   are deemed to be part of the source code.
 #
 
-RTEVAL_VERSION = '2.0.1'
+RTEVAL_VERSION = '2.1'
 
