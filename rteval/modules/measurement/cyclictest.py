@@ -134,41 +134,42 @@ class RunData(object):
 
         stat_n.newTextChild(None, 'samples', str(self.numsamples))
 
-        n = stat_n.newTextChild(None, 'minimum', str(self.min))
-        n.newProp('unit', 'us')
+        if self.numsamples > 0:
+            n = stat_n.newTextChild(None, 'minimum', str(self.min))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'maximum', str(self.max))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'maximum', str(self.max))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'median', str(self.median))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'median', str(self.median))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mode', str(self.mode))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'mode', str(self.mode))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'range', str(self.range))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'range', str(self.range))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mean', str(self.mean))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'mean', str(self.mean))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.mad))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.mad))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'variance', str(self.variance))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'variance', str(self.variance))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'standard_deviation', str(self.stddev))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'standard_deviation', str(self.stddev))
+            n.newProp('unit', 'us')
 
-        hist_n = rep_n.newChild(None, 'histogram', None)
-        hist_n.newProp('nbuckets', str(len(self.samples)))
-        keys = self.samples.keys()
-        keys.sort()
-        for k in keys:
-            b_n = hist_n.newChild(None, 'bucket', None)
-            b_n.newProp('index', str(k))
-            b_n.newProp('value', str(self.samples[k]))
+            hist_n = rep_n.newChild(None, 'histogram', None)
+            hist_n.newProp('nbuckets', str(len(self.samples)))
+            keys = self.samples.keys()
+            keys.sort()
+            for k in keys:
+                b_n = hist_n.newChild(None, 'bucket', None)
+                b_n.newProp('index', str(k))
+                b_n.newProp('value', str(self.samples[k]))
 
         return rep_n
 

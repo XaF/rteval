@@ -230,51 +230,53 @@
     <xsl:value-of select="samples"/>
     <xsl:text>&#10;</xsl:text>
 
-    <xsl:text>            Mean:              </xsl:text>
-    <xsl:value-of select="mean"/>
-    <xsl:value-of select="mean/@unit"/>
+    <xsl:if test="samples > 0">
+      <xsl:text>            Mean:              </xsl:text>
+      <xsl:value-of select="mean"/>
+      <xsl:value-of select="mean/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Median:            </xsl:text>
+      <xsl:value-of select="median"/>
+      <xsl:value-of select="median/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Mode:              </xsl:text>
+      <xsl:value-of select="mode"/>
+      <xsl:value-of select="mode/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Range:             </xsl:text>
+      <xsl:value-of select="range"/>
+      <xsl:value-of select="range/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Min:               </xsl:text>
+      <xsl:value-of select="minimum"/>
+      <xsl:value-of select="minimum/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Max:               </xsl:text>
+      <xsl:value-of select="maximum"/>
+      <xsl:value-of select="maximum/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Mean Absolute Dev: </xsl:text>
+      <xsl:value-of select="mean_absolute_deviation"/>
+      <xsl:value-of select="mean_absolute_deviation/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Variance:          </xsl:text>
+      <xsl:value-of select="variance"/>
+      <xsl:value-of select="variance/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:text>            Std.dev:           </xsl:text>
+      <xsl:value-of select="standard_deviation"/>
+      <xsl:value-of select="standard_deviation/@unit"/>
+      <xsl:text>&#10;</xsl:text>
+    </xsl:if>
     <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Median:            </xsl:text>
-    <xsl:value-of select="median"/>
-    <xsl:value-of select="median/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Mode:              </xsl:text>
-    <xsl:value-of select="mode"/>
-    <xsl:value-of select="mode/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Range:             </xsl:text>
-    <xsl:value-of select="range"/>
-    <xsl:value-of select="range/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Min:               </xsl:text>
-    <xsl:value-of select="minimum"/>
-    <xsl:value-of select="minimum/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Max:               </xsl:text>
-    <xsl:value-of select="maximum"/>
-    <xsl:value-of select="maximum/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Mean Absolute Dev: </xsl:text>
-    <xsl:value-of select="mean_absolute_deviation"/>
-    <xsl:value-of select="mean_absolute_deviation/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Variance:          </xsl:text>
-    <xsl:value-of select="variance"/>
-    <xsl:value-of select="variance/@unit"/>
-    <xsl:text>&#10;</xsl:text>
-
-    <xsl:text>            Std.dev:           </xsl:text>
-    <xsl:value-of select="standard_deviation"/>
-    <xsl:value-of select="standard_deviation/@unit"/>
-    <xsl:text>&#10;&#10;</xsl:text>
-
   </xsl:template>
 
 
