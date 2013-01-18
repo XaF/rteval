@@ -195,6 +195,8 @@
     <xsl:value-of select="@command_line"/>
     <xsl:text>&#10;&#10;</xsl:text>
 
+    <xsl:apply-templates select="abort_report"/>
+
     <xsl:text>          System:  </xsl:text>
     <xsl:value-of select="system/@description"/>
     <xsl:text>&#10;</xsl:text>
@@ -314,4 +316,24 @@
     <xsl:value-of select="@duration"/>
     <xsl:text>us&#10;</xsl:text>
   </xsl:template>
+
+
+  <!-- Format information about aborts - if present -->
+  <xsl:template match="abort_report">
+      <xsl:text>      Run aborted: </xsl:text>
+      <xsl:value-of select="@reason"/>
+      <xsl:text>&#10;</xsl:text>
+
+      <xsl:if test="breaktrace">
+        <xsl:text>                   </xsl:text>
+        <xsl:text>Aborted due to latency exceeding </xsl:text>
+        <xsl:value-of select="breaktrace/@latency_threshold"/>
+        <xsl:text>us.&#10;</xsl:text>
+        <xsl:text>                   </xsl:text>
+        <xsl:text>Measured latency when stopping was </xsl:text>
+        <xsl:value-of select="breaktrace/@measured_latency"/>
+        <xsl:text>us.&#10;&#10;</xsl:text>
+      </xsl:if>
+  </xsl:template>
+
 </xsl:stylesheet>

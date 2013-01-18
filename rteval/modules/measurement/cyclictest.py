@@ -203,6 +203,7 @@ class Cyclictest(rtevalModulePrototype):
         self._log(Log.DEBUG, "system has %d cpu cores" % self.__numcores)
         self.__started = False
         self.__cyclicoutput = None
+        self.__breaktraceval = None
 
 
     def __getmode(self):
@@ -296,7 +297,12 @@ class Cyclictest(rtevalModulePrototype):
         # now parse the histogram output
         self.__cyclicoutput.seek(0)
         for line in self.__cyclicoutput:
-            if line.startswith('#'): continue
+            if line.startswith('#'):
+                # Catch if cyclictest stopped due to a breaktrace
+                if line.startswith('# Break value: '):
+                    self.__breaktraceval = int(line.split(':')[1])
+                continue
+
             vals = line.split()
             index = int(vals[0])
             for i in range(0, len(self.__cyclicdata)-1):
@@ -306,10 +312,10 @@ class Cyclictest(rtevalModulePrototype):
         for n in self.__cyclicdata.keys():
             self.__cyclicdata[n].reduce()
 
-        # If the breaktrace feature of cyclictest was enabled, put the trace
-        # into the log directory
+        # If the breaktrace feature of cyclictest was enabled and triggered,
+        # put the trace into the log directory
         debugdir = self.__get_debugfs_mount()
-        if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace and debugdir:
+        if self.__breaktraceval and debugdir:
             trace = os.path.join(debugdir, 'tracing', 'trace')
             cyclicdir = os.path.join(self.__cfg.reportdir, 'cyclictest')
             os.mkdir(cyclicdir)
@@ -324,6 +330,21 @@ class Cyclictest(rtevalModulePrototype):
     def MakeReport(self):
         rep_n = libxml2.newNode('cyclictest')
         rep_n.newProp('command_line', ' '.join(self.__cmd))
+
+        # If it was detected cyclictest was aborted somehow,
+        # report the reason
+        abrt_n = libxml2.newNode('abort_report')
+        abrt = False
+        if self.__breaktraceval:
+            abrt_n.newProp('reason', 'breaktrace')
+            btv_n = abrt_n.newChild(None, 'breaktrace', None)
+            btv_n.newProp('latency_threshold', str(self.__cfg.breaktrace))
+            btv_n.newProp('measured_latency', str(self.__breaktraceval))
+            abrt = True
+
+        # Only add the <abort_report/> node if an abortion happened
+        if abrt:
+            rep_n.addChild(abrt_n)
 
         rep_n.addChild(self.__cyclicdata["system"].MakeReport())
         for thr in range(0, self.__numcores):
