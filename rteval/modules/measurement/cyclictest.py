@@ -1,8 +1,8 @@
 #
 #   cyclictest.py - object to manage a cyclictest executable instance
 #
-#   Copyright 2009 - 2012  Clark Williams <williams@redhat.com>
-#   Copyright 2012         David Sommerseth <davids@redhat.com>
+#   Copyright 2009 - 2013   Clark Williams <williams@redhat.com>
+#   Copyright 2012 - 2013   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 #
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 #   For the avoidance of doubt the "preferred form" of this code is one which
 #   is in an open unpatent encumbered format. Where cryptographic key signing
@@ -25,7 +25,7 @@
 #   are deemed to be part of the source code.
 #
 
-import os, sys, subprocess, signal, libxml2
+import os, sys, subprocess, signal, libxml2, shutil, tempfile, time
 from rteval.Log import Log
 from rteval.modules import rtevalModulePrototype
 
@@ -134,41 +134,42 @@ class RunData(object):
 
         stat_n.newTextChild(None, 'samples', str(self.numsamples))
 
-        n = stat_n.newTextChild(None, 'minimum', str(self.min))
-        n.newProp('unit', 'us')
+        if self.numsamples > 0:
+            n = stat_n.newTextChild(None, 'minimum', str(self.min))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'maximum', str(self.max))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'maximum', str(self.max))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'median', str(self.median))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'median', str(self.median))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mode', str(self.mode))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'mode', str(self.mode))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'range', str(self.range))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'range', str(self.range))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mean', str(self.mean))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'mean', str(self.mean))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.mad))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.mad))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'variance', str(self.variance))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'variance', str(self.variance))
+            n.newProp('unit', 'us')
 
-        n = stat_n.newTextChild(None, 'standard_deviation', str(self.stddev))
-        n.newProp('unit', 'us')
+            n = stat_n.newTextChild(None, 'standard_deviation', str(self.stddev))
+            n.newProp('unit', 'us')
 
-        hist_n = rep_n.newChild(None, 'histogram', None)
-        hist_n.newProp('nbuckets', str(len(self.samples)))
-        keys = self.samples.keys()
-        keys.sort()
-        for k in keys:
-            b_n = hist_n.newChild(None, 'bucket', None)
-            b_n.newProp('index', str(k))
-            b_n.newProp('value', str(self.samples[k]))
+            hist_n = rep_n.newChild(None, 'histogram', None)
+            hist_n.newProp('nbuckets', str(len(self.samples)))
+            keys = self.samples.keys()
+            keys.sort()
+            for k in keys:
+                b_n = hist_n.newChild(None, 'bucket', None)
+                b_n.newProp('index', str(k))
+                b_n.newProp('value', str(self.samples[k]))
 
         return rep_n
 
@@ -183,7 +184,6 @@ class Cyclictest(rtevalModulePrototype):
         self.__numanodes = int(self.__cfg.setdefault('numanodes', 0))
         self.__priority = int(self.__cfg.setdefault('priority', 95))
         self.__buckets = int(self.__cfg.setdefault('buckets', 2000))
-        self.__distance = int(self.__cfg.setdefault('distance', 25))
         self.__numcores = 0
         self.__cyclicdata = {}
         for line in f:
@@ -203,6 +203,8 @@ class Cyclictest(rtevalModulePrototype):
         self.__cyclicdata['system'].description = ("(%d cores) " % self.__numcores) + self.__cyclicdata['0'].description
         self._log(Log.DEBUG, "system has %d cpu cores" % self.__numcores)
         self.__started = False
+        self.__cyclicoutput = None
+        self.__breaktraceval = None
 
 
     def __getmode(self):
@@ -211,6 +213,18 @@ class Cyclictest(rtevalModulePrototype):
             return '--numa'
         self._log(Log.DEBUG, "running in SMP mode")
         return '--smp'
+
+
+    def __get_debugfs_mount(self):
+        ret = None
+        mounts = open('/proc/mounts')
+        for l in mounts:
+            field = l.split()
+            if field[2] == "debugfs":
+                ret = field[1]
+                break
+        mounts.close()
+        return ret
 
 
     def _WorkloadSetup(self):
@@ -227,15 +241,20 @@ class Cyclictest(rtevalModulePrototype):
 
         self.__cmd = ['cyclictest',
                       self.__interval,
-                      '-qm',
-                      '-d%d' % self.__distance,
+                      '-qmu',
                       '-h %d' % self.__buckets,
                       "-p%d" % int(self.__priority),
                       self.__getmode(),
                       ]
 
-        if self.__cfg.has_key('threads') and __cfg.threads:
+        if self.__cfg.has_key('threads') and self.__cfg.threads:
             self.__cmd.append("-t%d" % int(self.__cfg.threads))
+
+        if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace:
+            self.__cmd.append("-b%d" % int(self.__cfg.breaktrace))
+
+        # Buffer for cyclictest data written to stdout
+        self.__cyclicoutput = tempfile.SpooledTemporaryFile(mode='rw+b')
 
 
     def _WorkloadTask(self):
@@ -245,8 +264,19 @@ class Cyclictest(rtevalModulePrototype):
 
         self._log(Log.DEBUG, "starting with cmd: %s" % " ".join(self.__cmd))
         self.__nullfp = os.open('/dev/null', os.O_RDWR)
+
+        debugdir = self.__get_debugfs_mount()
+        if self.__cfg.has_key('breaktrace') and self.__cfg.breaktrace and debugdir:
+            # Ensure that the trace log is clean
+            trace = os.path.join(debugdir, 'tracing', 'trace')
+            fp = open(os.path.join(trace), "w")
+            fp.write("0")
+            fp.flush()
+            fp.close()
+
+        self.__cyclicoutput.seek(0)
         self.__cyclicprocess = subprocess.Popen(self.__cmd,
-                                                stdout=subprocess.PIPE,
+                                                stdout=self.__cyclicoutput,
                                                 stderr=self.__nullfp,
                                                 stdin=self.__nullfp)
         self.__started = True
@@ -260,12 +290,20 @@ class Cyclictest(rtevalModulePrototype):
 
 
     def _WorkloadCleanup(self):
-        if self.__cyclicprocess.poll() == None:
+        while self.__cyclicprocess.poll() == None:
+            self._log(Log.DEBUG, "Sending SIGINT")
             os.kill(self.__cyclicprocess.pid, signal.SIGINT)
+            time.sleep(2)
 
         # now parse the histogram output
-        for line in self.__cyclicprocess.stdout:
-            if line.startswith('#'): continue
+        self.__cyclicoutput.seek(0)
+        for line in self.__cyclicoutput:
+            if line.startswith('#'):
+                # Catch if cyclictest stopped due to a breaktrace
+                if line.startswith('# Break value: '):
+                    self.__breaktraceval = int(line.split(':')[1])
+                continue
+
             vals = line.split()
             index = int(vals[0])
             for i in range(0, len(self.__cyclicdata)-1):
@@ -274,6 +312,15 @@ class Cyclictest(rtevalModulePrototype):
                 self.__cyclicdata['system'].bucket(index, int(vals[i+1]))
         for n in self.__cyclicdata.keys():
             self.__cyclicdata[n].reduce()
+
+        # If the breaktrace feature of cyclictest was enabled and triggered,
+        # put the trace into the log directory
+        debugdir = self.__get_debugfs_mount()
+        if self.__breaktraceval and debugdir:
+            trace = os.path.join(debugdir, 'tracing', 'trace')
+            cyclicdir = os.path.join(self.__cfg.reportdir, 'cyclictest')
+            os.mkdir(cyclicdir)
+            shutil.copyfile(trace, os.path.join(cyclicdir, 'breaktrace.log'))
 
         self._setFinished()
         self.__started = False
@@ -284,6 +331,21 @@ class Cyclictest(rtevalModulePrototype):
     def MakeReport(self):
         rep_n = libxml2.newNode('cyclictest')
         rep_n.newProp('command_line', ' '.join(self.__cmd))
+
+        # If it was detected cyclictest was aborted somehow,
+        # report the reason
+        abrt_n = libxml2.newNode('abort_report')
+        abrt = False
+        if self.__breaktraceval:
+            abrt_n.newProp('reason', 'breaktrace')
+            btv_n = abrt_n.newChild(None, 'breaktrace', None)
+            btv_n.newProp('latency_threshold', str(self.__cfg.breaktrace))
+            btv_n.newProp('measured_latency', str(self.__breaktraceval))
+            abrt = True
+
+        # Only add the <abort_report/> node if an abortion happened
+        if abrt:
+            rep_n.addChild(abrt_n)
 
         rep_n.addChild(self.__cyclicdata["system"].MakeReport())
         for thr in range(0, self.__numcores):
@@ -309,12 +371,12 @@ def ModuleParameters():
             "buckets":  {"descr": "Histogram width",
                          "default": 2000,
                          "metavar": "NUM"},
-            "distance": {"descr": "The distance of the thread intervals in microseconds",
-                         "default": 25,
-                         "metavar": "DIST_US"},
             "priority": {"descr": "Run cyclictest with the given priority",
                          "default": 95,
-                         "metavar": "PRIO"}
+                         "metavar": "PRIO"},
+            "breaktrace": {"descr": "Send a break trace command when latency > USEC",
+                           "default": None,
+                           "metavar": "USEC"}
             }
 
 
@@ -324,7 +386,34 @@ def create(params, logger):
 
 
 if __name__ == '__main__':
-    c = CyclicTest()
-    c.run()
-
+    from rteval.rtevalConfig import rtevalConfig
     
+    l = Log()
+    l.SetLogVerbosity(Log.INFO|Log.DEBUG|Log.ERR|Log.WARN)
+
+    cfg = rtevalConfig({}, logger=l)
+    prms = {}
+    modprms = ModuleParameters()
+    for c, p in modprms.items():
+        prms[c] = p['default']
+    cfg.AppendConfig('cyclictest', prms)
+
+    cfg_ct = cfg.GetSection('cyclictest')
+    cfg_ct.reportdir = "."
+    cfg_ct.buckets = 200
+    # cfg_ct.breaktrace = 30
+
+    runtime = 10
+
+    c = Cyclictest(cfg_ct, l)
+    c._WorkloadSetup()
+    c._WorkloadPrepare()
+    c._WorkloadTask()
+    print "Running for %i seconds" % runtime
+    time.sleep(runtime)
+    c._WorkloadCleanup()
+    rep_n = c.MakeReport()
+
+    xml = libxml2.newDoc('1.0')
+    xml.setRootElement(rep_n)
+    xml.saveFormatFileEnc('-','UTF-8',1)

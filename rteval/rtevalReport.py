@@ -1,7 +1,7 @@
 #  rtevalReport.py - Takes care of the report generation
 #
-#   Copyright 2009 - 2012   Clark Williams <williams@redhat.com>
-#   Copyright 2009 - 2012   David Sommerseth <davids@redhat.com>
+#   Copyright 2009 - 2013   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2013   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -13,15 +13,16 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 #
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 #   For the avoidance of doubt the "preferred form" of this code is one which
 #   is in an open unpatent encumbered format. Where cryptographic key signing
 #   forms part of the process of creating an executable the information
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
+#
 
 import os, tarfile
 from datetime import datetime

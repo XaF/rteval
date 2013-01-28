@@ -1,8 +1,8 @@
 #  
 #   hackbench.py - class to manage an instance of hackbench load
 #
-#   Copyright 2009 - 2012  Clark Williams <williams@redhat.com>
-#   Copyright 2009 - 2012  David Sommerseth <davids@redhat.com>
+#   Copyright 2009 - 2013   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2013   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 #
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 #   For the avoidance of doubt the "preferred form" of this code is one which
 #   is in an open unpatent encumbered format. Where cryptographic key signing
@@ -49,8 +49,10 @@ class Hackbench(CommandLineLoad):
         if ratio >= 0.75:
             mult = float(self._cfg.setdefault('jobspercore', 2))
         else:
-            self._log(Log.INFO, "hackbench: low memory system (%f GB/core)! Not running\n" % ratio)
+            self._log(Log.INFO, "Low memory system (%f GB/core)! Not running" % ratio)
             mult = 0
+            self._donotrun = True
+
         self.jobs = self.num_cpus * mult
 
         self.args = ['hackbench',  '-P',
@@ -67,11 +69,6 @@ class Hackbench(CommandLineLoad):
 
 
     def _WorkloadPrepare(self):
-        # if we don't have any jobs just wait for the stop event and return
-        if self.jobs == 0:
-            self.WaitForCompletion()
-            return
-
         self.__nullfp = os.open("/dev/null", os.O_RDWR)
         if self._logging:
             self.__out = self.open_logfile("hackbench.stdout")
@@ -97,7 +94,7 @@ class Hackbench(CommandLineLoad):
                 raise e
             # Catch out-of-memory errors and wait a bit to (hopefully)
             # ease memory pressure
-            self._log(Log.DEBUG, "hackbench: %s, sleeping for %f seconds" % (e.strerror, self.__err_sleep))
+            self._log(Log.DEBUG, "ERROR: %s, sleeping for %f seconds" % (e.strerror, self.__err_sleep))
             time.sleep(self.__err_sleep)
             if self.__err_sleep < 60.0:
                 self.__err_sleep *= 2.0
@@ -111,6 +108,9 @@ class Hackbench(CommandLineLoad):
 
 
     def _WorkloadCleanup(self):
+        if self._donotrun:
+            return
+
         if self.__hbproc.poll() == None:
             os.kill(self.__hbproc.pid, SIGKILL)
         self.__hbproc.wait()

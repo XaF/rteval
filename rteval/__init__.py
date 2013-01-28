@@ -1,6 +1,6 @@
 #
-#   Copyright 2009,2010,2011,2012   Clark Williams <williams@redhat.com>
-#   Copyright 2009,2010,2011,2012   David Sommerseth <davids@redhat.com>
+#   Copyright 2009 - 2013   Clark Williams <williams@redhat.com>
+#   Copyright 2009 - 2013   David Sommerseth <davids@redhat.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -12,19 +12,19 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 #
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 #   For the avoidance of doubt the "preferred form" of this code is one which
 #   is in an open unpatent encumbered format. Where cryptographic key signing
 #   forms part of the process of creating an executable the information
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
-
+#
 
 """
-Copyright (c) 2008-2012  Red Hat Inc.
+Copyright (c) 2008-2013  Red Hat Inc.
 
 Realtime verification utility
 """
@@ -149,7 +149,7 @@ class RtEval(rtevalReport):
                   'logging':self.__rtevcfg.logging,
                   'memsize':self._sysinfo.mem_get_size(),
                   'numanodes':self._sysinfo.mem_get_numa_nodes(),
-                  'duration':self.__rtevcfg.duration,
+                  'duration': float(self.__rtevcfg.duration),
                   }
         self._loadmods.Setup(params)
 
@@ -178,7 +178,7 @@ class RtEval(rtevalReport):
                 print " with %d numa nodes" % self._sysinfo.mem_get_numa_nodes()
             else:
                 print ""
-            print "Run duration: %d seconds" % self.__rtevcfg.duration
+            print "Run duration: %s seconds" % str(self.__rtevcfg.duration)
 
             # start the cyclictest thread
             measure_profile.Start()
@@ -186,14 +186,16 @@ class RtEval(rtevalReport):
             # Uleash the loads and measurement threads
             report_interval = int(self.__rtevcfg.report_interval)
             nthreads = with_loads and self._loadmods.Unleash() or None
+            self.__logger.log(Log.INFO, "Waiting 30 seconds to let load modules settle down")
+            time.sleep(30)
             measure_profile.Unleash()
             measure_start = datetime.now()
 
             # wait for time to expire or thread to die
             signal.signal(signal.SIGINT, sig_handler)
             signal.signal(signal.SIGTERM, sig_handler)
-            self.__logger.log(Log.INFO, "waiting for duration (%f)" % self.__rtevcfg.duration)
-            stoptime = (time.time() + self.__rtevcfg.duration)
+            self.__logger.log(Log.INFO, "waiting for duration (%s)" % str(self.__rtevcfg.duration))
+            stoptime = (time.time() + float(self.__rtevcfg.duration))
             currtime = time.time()
             rpttime = currtime + report_interval
             load_avg_checked = 5

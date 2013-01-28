@@ -2,8 +2,8 @@
 %{!?python_ver: %define python_ver %(%{__python} -c "import sys ; print sys.version[:3]")}
 
 Name:		rteval
-Version:	2.0
-Release:	3%{?dist}
+Version:	2.1
+Release:	1%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -18,7 +18,7 @@ Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.65
 Requires:	rteval-loads >= 1.2
-Requires:	rteval-common
+Requires:	rteval-common => %{version}-%{release}
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
 
@@ -30,7 +30,7 @@ compiling a kernel tree. During that loop the cyclictest program
 is run to measure event response time. After the run time completes,
 a statistical analysis of the event response times is done and printed
 to the screen.
-i
+
 
 %package common
 Summary: Common rteval files
@@ -89,6 +89,23 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Fri Jan 18 2013 David Sommerseth <davids@redhat.com> - 2.1-1
+- Made some log lines clearer
+- cyclictest: Added --cyclictest-breaktrace feature
+- cyclictest: Removed --cyclictest-distance option
+- cyclictest: Use a tempfile buffer for cyclictest's stdout data
+- cyclictest: Report if breaktrace was triggered
+- cyclictest: Make the unit test work again
+- cyclictest: Only log and show statistic data when samples are collected
+- Copyright updates
+
+* Thu Jan 17 2013 David Sommerseth <davids@redhat.com> - 2.0.1-1
+- Fix up type casting in the core module code
+- hwlatdetect: Add some more useful debug info
+- Reworked the run logic for modules - allow them to flag they won't run
+- Fixed a few log messages in load modules
+- Add a 30 seconds sleep before unleashing the measurement threads
+
 * Thu Jan 10 2013 David Sommerseth <davids@redhat.com> - 2.0-3
 - Separate out RTEVAL_VERSION into rteval.version, to avoid
   massive BuildRequirements
