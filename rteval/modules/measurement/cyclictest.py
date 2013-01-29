@@ -32,36 +32,36 @@ from rteval.modules import rtevalModulePrototype
 
 class RunData(object):
     '''class to keep instance data from a cyclictest run'''
-    def __init__(self, id, type, priority, logfnc):
-        self.id = id
-        self.type = type
-        self.priority = int(priority)
-        self.description = ''
+    def __init__(self, coreid, datatype, priority, logfnc):
+        self.__id = coreid
+        self.__type = datatype
+        self.__priority = int(priority)
+        self.__description = ''
         # histogram of data
-        self.samples = {}
-        self.numsamples = 0
-        self.min = 100000000
-        self.max = 0
-        self.stddev = 0.0
-        self.mean = 0.0
-        self.mode = 0.0
-        self.median = 0.0
-        self.range = 0.0
-        self.mad = 0.0
-        self.variance = 0.0
+        self.__samples = {}
+        self.__numsamples = 0
+        self.__min = 100000000
+        self.__max = 0
+        self.__stddev = 0.0
+        self.__mean = 0.0
+        self.__mode = 0.0
+        self.__median = 0.0
+        self.__range = 0.0
+        self.__mad = 0.0
+        self.__variance = 0.0
         self._log = logfnc
 
     def sample(self, value):
-        self.samples[value] += self.samples.setdefault(value, 0) + 1
-        if value > self.max: self.max = value
-        if value < self.min: self.min = value
-        self.numsamples += 1
+        self.__samples[value] += self.__samples.setdefault(value, 0) + 1
+        if value > self.__max: self.__max = value
+        if value < self.__min: self.__min = value
+        self.__numsamples += 1
 
     def bucket(self, index, value):
-        self.samples[index] = self.samples.setdefault(index, 0) + value
-        if value and index > self.max: self.max = index
-        if value and index < self.min: self.min = index
-        self.numsamples += value
+        self.__samples[index] = self.__samples.setdefault(index, 0) + value
+        if value and index > self.__max: self.__max = index
+        if value and index < self.__min: self.__min = index
+        self.__numsamples += value
 
     def reduce(self):
         import math
@@ -69,107 +69,107 @@ class RunData(object):
         # check to see if we have any samples and if we
         # only have 1 (or none) set the calculated values
         # to zero and return
-        if self.numsamples <= 1:
-            self._log(Log.DEBUG, "skipping %s (%d samples)" % (self.id, self.numsamples))
-            self.variance = 0
-            self.mad = 0
-            self.stddev = 0
+        if self.__numsamples <= 1:
+            self._log(Log.DEBUG, "skipping %s (%d samples)" % (self.__id, self.__numsamples))
+            self.__variance = 0
+            self.__mad = 0
+            self.__stddev = 0
             return
 
-        self._log(Log.INFO, "reducing %s" % self.id)
+        self._log(Log.INFO, "reducing %s" % self.__id)
         total = 0
-        keys = self.samples.keys()
+        keys = self.__samples.keys()
         keys.sort()
         sorted = []
 
-        mid = self.numsamples / 2
+        mid = self.__numsamples / 2
 
         # mean, mode, and median
         occurances = 0
         lastkey = -1
         for i in keys:
-            if mid > total and mid <= (total + self.samples[i]):
-                if self.numsamples & 1 and mid == total+1:
-                    self.median = (lastkey + i) / 2
+            if mid > total and mid <= (total + self.__samples[i]):
+                if self.__numsamples & 1 and mid == total+1:
+                    self.__median = (lastkey + i) / 2
                 else:
-                    self.median = i
-            total += (i * self.samples[i])
-            if self.samples[i] > occurances:
-                occurances = self.samples[i]
-                self.mode = i
-        self.mean = float(total) / float(self.numsamples)
+                    self.__median = i
+            total += (i * self.__samples[i])
+            if self.__samples[i] > occurances:
+                occurances = self.__samples[i]
+                self.__mode = i
+        self.__mean = float(total) / float(self.__numsamples)
 
         # range
         for i in keys:
-            if self.samples[i]:
+            if self.__samples[i]:
                 low = i
                 break
         high = keys[-1]
-        while high and self.samples[high] == 0:
+        while high and self.__samples[high] == 0:
             high -= 1
-        self.range = high - low
+        self.__range = high - low
 
         # Mean Absolute Deviation and Variance
         madsum = 0
         varsum = 0
         for i in keys:
-            madsum += float(abs(float(i) - self.mean) * self.samples[i])
-            varsum += float(((float(i) - self.mean) ** 2) * self.samples[i])
-        self.mad = madsum / self.numsamples
-        self.variance = varsum / (self.numsamples - 1)
+            madsum += float(abs(float(i) - self.__mean) * self.__samples[i])
+            varsum += float(((float(i) - self.__mean) ** 2) * self.__samples[i])
+        self.__mad = madsum / self.__numsamples
+        self.__variance = varsum / (self.__numsamples - 1)
         
         # standard deviation
-        self.stddev = math.sqrt(self.variance)
+        self.__stddev = math.sqrt(self.__variance)
 
 
     def MakeReport(self):
-        rep_n = libxml2.newNode(self.type)
-        if self.type == 'system':
-            rep_n.newProp('description', self.description)
+        rep_n = libxml2.newNode(self.__type)
+        if self.__type == 'system':
+            rep_n.newProp('description', self.__description)
         else:
-            rep_n.newProp('id', str(self.id))
-            rep_n.newProp('priority', str(self.priority))
+            rep_n.newProp('id', str(self.__id))
+            rep_n.newProp('priority', str(self.__priority))
 
         stat_n = rep_n.newChild(None, 'statistics', None)
 
-        stat_n.newTextChild(None, 'samples', str(self.numsamples))
+        stat_n.newTextChild(None, 'samples', str(self.__numsamples))
 
-        if self.numsamples > 0:
-            n = stat_n.newTextChild(None, 'minimum', str(self.min))
+        if self.__numsamples > 0:
+            n = stat_n.newTextChild(None, 'minimum', str(self.__min))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'maximum', str(self.max))
+            n = stat_n.newTextChild(None, 'maximum', str(self.__max))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'median', str(self.median))
+            n = stat_n.newTextChild(None, 'median', str(self.__median))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'mode', str(self.mode))
+            n = stat_n.newTextChild(None, 'mode', str(self.__mode))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'range', str(self.range))
+            n = stat_n.newTextChild(None, 'range', str(self.__range))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'mean', str(self.mean))
+            n = stat_n.newTextChild(None, 'mean', str(self.__mean))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.mad))
+            n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.__mad))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'variance', str(self.variance))
+            n = stat_n.newTextChild(None, 'variance', str(self.__variance))
             n.newProp('unit', 'us')
 
-            n = stat_n.newTextChild(None, 'standard_deviation', str(self.stddev))
+            n = stat_n.newTextChild(None, 'standard_deviation', str(self.__stddev))
             n.newProp('unit', 'us')
 
             hist_n = rep_n.newChild(None, 'histogram', None)
-            hist_n.newProp('nbuckets', str(len(self.samples)))
-            keys = self.samples.keys()
+            hist_n.newProp('nbuckets', str(len(self.__samples)))
+            keys = self.__samples.keys()
             keys.sort()
             for k in keys:
                 b_n = hist_n.newChild(None, 'bucket', None)
                 b_n.newProp('index', str(k))
-                b_n.newProp('value', str(self.samples[k]))
+                b_n.newProp('value', str(self.__samples[k]))
 
         return rep_n
 
