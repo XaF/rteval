@@ -462,7 +462,7 @@
         <field fid="12">variance</field>
       </fields>
       <records>
-        <xsl:for-each select="core/statistics|system/statistics">
+        <xsl:for-each select="core/statistics[samples > 0]|system/statistics[samples > 0]">
           <record>
             <value fid="0"><xsl:value-of select="$rterid"/></value>
             <value fid="1"><xsl:choose>
