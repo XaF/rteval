@@ -89,6 +89,8 @@ class Hackbench(CommandLineLoad):
                                              stdin=self.__nullfp,
                                              stdout=self.__out,
                                              stderr=self.__err)
+            self.__hbproc.wait()
+
         except OSError, e:
             if e.errno != errno.ENOMEM:
                 raise e
