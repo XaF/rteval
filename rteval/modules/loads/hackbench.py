@@ -26,7 +26,7 @@
 #
 
 import sys, os, time, glob, subprocess, errno
-from signal import SIGTERM, SIGKILL
+from signal import SIGKILL
 from rteval.modules.loads import CommandLineLoad
 from rteval.Log import Log
 
@@ -89,6 +89,8 @@ class Hackbench(CommandLineLoad):
                                              stdin=self.__nullfp,
                                              stdout=self.__out,
                                              stderr=self.__err)
+            self.__hbproc.wait()
+
         except OSError, e:
             if e.errno != errno.ENOMEM:
                 raise e
@@ -111,8 +113,11 @@ class Hackbench(CommandLineLoad):
         if self._donotrun:
             return
 
-        if self.__hbproc.poll() == None:
-            os.kill(self.__hbproc.pid, SIGKILL)
+        while self.__hbproc.poll() == None:
+            self._log(Log.DEBUG, "Forcing it to stop")
+            self.__hbproc.send_signal(SIGKILL)
+            if self.__hbproc.poll() == None:
+                time.sleep(2)
         self.__hbproc.wait()
 
         os.close(self.__nullfp)
