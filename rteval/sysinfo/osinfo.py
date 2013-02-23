@@ -2,6 +2,7 @@
 #
 #   Copyright 2009 - 2013   Clark Williams <williams@redhat.com>
 #   Copyright 2012 - 2013   David Sommerseth <davids@redhat.com>
+#   Copyright 2013          Raphaël Beamonte <raphael.beamonte@gmail.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -25,6 +26,7 @@
 #
 
 import os, shutil, subprocess, libxml2
+import platform
 from glob import glob
 from rteval.Log import Log
 
@@ -35,15 +37,7 @@ class OSInfo(object):
 
     def get_base_os(self):
         '''record what userspace we're running on'''
-        distro = "unknown"
-        for f in ('redhat-release', 'fedora-release'):
-            p = os.path.join('/etc', f)
-            if os.path.exists(p):
-                f = open(p, 'r')
-                distro = f.readline().strip()
-                f.close()
-                break
-        return distro
+        return ' '.join([i for i in platform.dist() if i])
 
 
     def copy_dmesg(self, repdir):
