@@ -27,6 +27,7 @@
 import os, tarfile
 from datetime import datetime
 import xmlout
+from sysinfo.tools import mkdir, chown
 
 
 class rtevalReport(object):
@@ -82,6 +83,7 @@ class rtevalReport(object):
         # Write the XML to the report directory
         if self.__xmlfname != None:
             self.__xmlreport.Write(self.__xmlfname, None)
+            chown(self.__xmlfname)
 
         # Write a text report to stdout as well, using the
         # rteval_text.xsl template
@@ -117,8 +119,8 @@ class rtevalReport(object):
             self.__reportdir = os.path.join(workdir,
                                           t.strftime('rteval-%Y%m%d-'+str(i)))
         if not os.path.isdir(self.__reportdir):
-            os.mkdir(self.__reportdir)
-            os.mkdir(os.path.join(self.__reportdir, "logs"))
+            mkdir(self.__reportdir)
+            mkdir(os.path.join(self.__reportdir, "logs"))
 
         self.__xmlfname = os.path.join(self.__reportdir, reportfile)
         return self.__reportdir
@@ -133,9 +135,11 @@ class rtevalReport(object):
         cwd = os.getcwd()
         os.chdir(dirname)
         try:
-            t = tarfile.open(rptdir + ".tar.bz2", "w:bz2")
+            tarpath = rptdir + ".tar.bz2"
+            t = tarfile.open(tarpath, "w:bz2")
             t.add(rptdir)
             t.close()
+            chown(tarpath)
         except:
             os.chdir(cwd)
 
