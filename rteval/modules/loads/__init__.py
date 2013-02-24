@@ -30,6 +30,7 @@ import libxml2
 from rteval.Log import Log
 from rteval.rtevalConfig import rtevalCfgSection
 from rteval.modules import RtEvalModules, rtevalModulePrototype
+from rteval.sysinfo.tools import chown
 
 class LoadThread(rtevalModulePrototype):
     def __init__(self, name, config, logger=None):
@@ -61,7 +62,10 @@ class LoadThread(rtevalModulePrototype):
 
 
     def open_logfile(self, name):
-        return os.open(os.path.join(self.reportdir, "logs", name), os.O_CREAT|os.O_WRONLY)
+        logfilepath = os.path.join(self.reportdir, "logs", name)
+        logfile = os.open(logfilepath, os.O_CREAT|os.O_WRONLY)
+        chown(logfilepath)
+        return logfile
 
 
 class CommandLineLoad(LoadThread):

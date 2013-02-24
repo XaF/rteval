@@ -42,3 +42,20 @@ def getcmdpath(which):
             raise RuntimeError, "Command '%s' is unknown on this system" % which
     return pathSave[which]
 
+
+def chown(path):
+    """
+    setting the right owner permission
+    """
+    UID=int(os.getenv('SUDO_UID') or os.getuid())
+    GID=int(os.getenv('SUDO_GID') or os.getgid())
+
+    os.chown(path, UID, GID)
+
+
+def mkdir(path):
+    """
+    creating directory and setting the right owner permission
+    """
+    os.mkdir(path)
+    chown(path)

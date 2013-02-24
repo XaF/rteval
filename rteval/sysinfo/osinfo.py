@@ -29,6 +29,7 @@ import os, shutil, subprocess, libxml2
 import platform
 from glob import glob
 from rteval.Log import Log
+from tools import chown
 
 class OSInfo(object):
     def __init__(self, logger):
@@ -43,7 +44,9 @@ class OSInfo(object):
     def copy_dmesg(self, repdir):
         dpath = "/var/log/dmesg"
         if os.path.exists(dpath):
-            shutil.copyfile(dpath, os.path.join(repdir, "dmesg"))
+            ndpath = os.path.join(repdir, "dmesg")
+            shutil.copyfile(dpath, ndpath)
+            chown(ndpath)
             return
         if os.path.exists('/usr/bin/dmesg'):
             subprocess.call('/usr/bin/dmesg > %s' % os.path.join(repdir, "dmesg"), shell=True)

@@ -38,6 +38,7 @@ from modules.loads import LoadModules
 from modules.measurement import MeasurementModules, MeasurementProfile
 from rtevalReport import rtevalReport
 from rtevalXMLRPC import rtevalXMLRPC
+from sysinfo.tools import mkdir
 from Log import Log
 import rtevalConfig, rtevalMailer
 import version
@@ -127,7 +128,8 @@ class RtEval(rtevalReport):
 
     def Prepare(self, onlyload = False):
         builddir = os.path.join(self.__rtevcfg.workdir, 'rteval-build')
-        if not os.path.isdir(builddir): os.mkdir(builddir)
+        if not os.path.isdir(builddir):
+            mkdir(builddir)
 
         # create our report directory
         try:
