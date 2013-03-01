@@ -38,8 +38,8 @@ class Kcompile(CommandLineLoad):
 
     def _WorkloadSetup(self):
         # find our source tarball
-        if self._cfg.has_key('tarball'):
-            tarfile = os.path.join(self.srcdir, self._cfg.tarfile)
+        if self._cfg.has_key('tarball') and self._cfg.tarball is not None:
+            tarfile = os.path.join(self.srcdir, self._cfg.tarball)
             if not os.path.exists(tarfile):
                 raise rtevalRuntimeError(self, " tarfile %s does not exist!" % tarfile)
             self.source = tarfile
@@ -179,8 +179,7 @@ class Kcompile(CommandLineLoad):
 
 
 def ModuleParameters():
-    return {"source":   {"descr": "Source tar ball",
-                         "default": "linux-2.6.21.tar.bz2",
+    return {"tarball":   {"descr": "Source tar ball",
                          "metavar": "TARBALL"},
             "jobspercore": {"descr": "Number of working threads per core",
                             "default": 2,
