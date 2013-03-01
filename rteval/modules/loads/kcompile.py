@@ -39,7 +39,7 @@ class Kcompile(CommandLineLoad):
     def _WorkloadSetup(self):
         # find our source tarball
         if self._cfg.has_key('tarball') and self._cfg.tarball is not None:
-            tarfile = os.path.join(self.srcdir, self._cfg.tarball)
+            tarfile = os.path.abspath(self._cfg.tarball)
             if not os.path.exists(tarfile):
                 raise rtevalRuntimeError(self, " tarfile %s does not exist!" % tarfile)
             self.source = tarfile
