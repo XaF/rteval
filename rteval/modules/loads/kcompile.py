@@ -30,6 +30,7 @@ from signal import SIGTERM
 from rteval.modules import rtevalRuntimeError
 from rteval.modules.loads import CommandLineLoad
 from rteval.Log import Log
+from rteval.sysinfo.tools import set_usergroup_ids
 
 kernel_prefix="linux-2.6"
 
@@ -76,7 +77,7 @@ class Kcompile(CommandLineLoad):
                 tarargs.append("-f")
                 tarargs.append(self.source)
                 try:
-                    subprocess.call(tarargs)
+                    subprocess.call(tarargs, preexec_fn=set_usergroup_ids)
                 except:
                     self._log(Log.DEBUG, "untar'ing kernel '%s' failed!" % self.source)
                     sys.exit(-1)
@@ -105,7 +106,8 @@ class Kcompile(CommandLineLoad):
         # clean up from potential previous run
         try:
             ret = subprocess.call(["make", "-C", self.mydir, "mrproper", "allmodconfig"], 
-                                  stdin=null, stdout=out, stderr=err)
+                                  stdin=null, stdout=out, stderr=err,
+                                  preexec_fn=set_usergroup_ids)
             if ret:
                 raise rtevalRuntimeError(self, "kcompile setup failed: %d" % ret)
         except KeyboardInterrupt, m:
@@ -160,7 +162,8 @@ class Kcompile(CommandLineLoad):
             self.__kcompileproc = subprocess.Popen(self.args,
                                                    stdin=self.__nullfd,
                                                    stdout=self.__outfd,
-                                                   stderr=self.__errfd)
+                                                   stderr=self.__errfd,
+                                                   preexec_fn=set_usergroup_ids)
 
 
     def WorkloadAlive(self):
