@@ -43,13 +43,27 @@ def getcmdpath(which):
     return pathSave[which]
 
 
-def chown(path):
+def get_usergroup_ids():
     """
-    setting the right owner permission
+    returns the UID and GID of the real caller
     """
     UID=int(os.getenv('SUDO_UID') or os.getuid())
     GID=int(os.getenv('SUDO_GID') or os.getgid())
 
+    return (UID, GID)
+
+
+def set_usergroup_ids():
+    UID, GID = get_usergroup_ids()
+    os.setgid(GID)
+    os.setuid(UID)
+
+
+def chown(path):
+    """
+    setting the right owner permission
+    """
+    UID, GID = get_usergroup_ids()
     os.chown(path, UID, GID)
 
 
