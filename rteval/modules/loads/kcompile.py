@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 #
 #   Copyright 2009 - 2013   Clark Williams <williams@redhat.com>
 #   Copyright 2012 - 2013   David Sommerseth <davids@redhat.com>
+#   Copyright 2013          Raphaël Beamonte <raphael.beamonte@gmail.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -38,49 +40,56 @@ class Kcompile(CommandLineLoad):
 
     def _WorkloadSetup(self):
         # find our source tarball
-        if self._cfg.has_key('tarball') and self._cfg.tarball is not None:
-            tarfile = os.path.abspath(self._cfg.tarball)
-            if not os.path.exists(tarfile):
-                raise rtevalRuntimeError(self, " tarfile %s does not exist!" % tarfile)
-            self.source = tarfile
+        if self._cfg.has_key('source') and self._cfg.source is not None:
+            source = os.path.abspath(self._cfg.source)
+            if not os.path.exists(source):
+                raise rtevalRuntimeError(self, " source directory %s does not exist!" % source)
+            self.source = source
+            self.mydir = source
         else:
-            tarfiles = glob.glob(os.path.join(self.srcdir, "%s*" % kernel_prefix))
-            if len(tarfiles):
-                self.source = tarfiles[0]
+            if self._cfg.has_key('tarball') and self._cfg.tarball is not None:
+                tarfile = os.path.abspath(self._cfg.tarball)
+                if not os.path.exists(tarfile):
+                    raise rtevalRuntimeError(self, " tarfile %s does not exist!" % tarfile)
+                self.source = tarfile
             else:
-                raise rtevalRuntimeError(self, " no kernel tarballs found in %s" % self.srcdir)
+                tarfiles = glob.glob(os.path.join(self.srcdir, "%s*" % kernel_prefix))
+                if len(tarfiles):
+                    self.source = tarfiles[0]
+                else:
+                    raise rtevalRuntimeError(self, " no kernel tarballs found in %s" % self.srcdir)
 
-        # check for existing directory
-        kdir=None
-        names=os.listdir(self.builddir)
-        for d in names:
-            if d.startswith(kernel_prefix):
-                kdir=d
-                break
-        if kdir == None:
-            self._log(Log.DEBUG, "unpacking kernel tarball")
-            tarargs = ['tar', '-C', self.builddir, '-x']
-            if self.source.endswith(".bz2"):
-                tarargs.append("-j")
-            elif self.source.endswith(".gz"):
-                tarargs.append("-z")
-            tarargs.append("-f")
-            tarargs.append(self.source)
-            try:
-                subprocess.call(tarargs)
-            except:
-                self._log(Log.DEBUG, "untar'ing kernel '%s' failed!" % self.source)
-                sys.exit(-1)
-            names = os.listdir(self.builddir)
+            # check for existing directory
+            kdir=None
+            names=os.listdir(self.builddir)
             for d in names:
-                self._log(Log.DEBUG, "checking %s" % d)
                 if d.startswith(kernel_prefix):
                     kdir=d
                     break
-        if kdir == None:
-            raise rtevalRuntimeError(self, "Can't find kernel directory!")
+            if kdir == None:
+                self._log(Log.DEBUG, "unpacking kernel tarball")
+                tarargs = ['tar', '-C', self.builddir, '-x']
+                if self.source.endswith(".bz2"):
+                    tarargs.append("-j")
+                elif self.source.endswith(".gz"):
+                    tarargs.append("-z")
+                tarargs.append("-f")
+                tarargs.append(self.source)
+                try:
+                    subprocess.call(tarargs)
+                except:
+                    self._log(Log.DEBUG, "untar'ing kernel '%s' failed!" % self.source)
+                    sys.exit(-1)
+                names = os.listdir(self.builddir)
+                for d in names:
+                    self._log(Log.DEBUG, "checking %s" % d)
+                    if d.startswith(kernel_prefix):
+                        kdir=d
+                        break
+            if kdir == None:
+                raise rtevalRuntimeError(self, "Can't find kernel directory!")
+            self.mydir = os.path.join(self.builddir, kdir)
         self.jobs = 1 # We only run one instance of the kcompile job
-        self.mydir = os.path.join(self.builddir, kdir)
         self._log(Log.DEBUG, "mydir = %s" % self.mydir)
 
 
@@ -179,11 +188,13 @@ class Kcompile(CommandLineLoad):
 
 
 def ModuleParameters():
-    return {"tarball":   {"descr": "Source tar ball",
-                         "metavar": "TARBALL"},
-            "jobspercore": {"descr": "Number of working threads per core",
-                            "default": 2,
-                            "metavar": "NUM"}
+    return {"tarball":      {"descr": "Source tar ball",
+                             "metavar": "TARBALL"},
+            "source":       {"descr": "Source of already extracted kernel",
+                             "metavar": "SOURCE"},
+            "jobspercore":  {"descr": "Number of working threads per core",
+                             "default": 2,
+                             "metavar": "NUM"}
             }
 
 
