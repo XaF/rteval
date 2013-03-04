@@ -79,8 +79,7 @@ class Kcompile(CommandLineLoad):
                 try:
                     subprocess.call(tarargs, preexec_fn=set_usergroup_ids)
                 except:
-                    self._log(Log.DEBUG, "untar'ing kernel '%s' failed!" % self.source)
-                    sys.exit(-1)
+                    raise rtevalRuntimeError(self, " untar'ing kernel '%s' failed!" % self.source)
                 names = os.listdir(self.builddir)
                 for d in names:
                     self._log(Log.DEBUG, "checking %s" % d)
