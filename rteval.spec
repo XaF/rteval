@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	2.1
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -14,7 +14,7 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:	python
 Requires:	python
-Requires:	python-schedutils python-ethtool libxslt-python >= 1.1.17
+Requires:	python-schedutils python-ethtool python-lxml
 Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.65
 Requires:	rteval-loads >= 1.2
@@ -89,6 +89,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Tue Mar 12 2013 David Sommerseth <davids@redhat.com> - 2.1-2
+- Migrated from libxslt-python to python-lxml
+
 * Fri Jan 18 2013 David Sommerseth <davids@redhat.com> - 2.1-1
 - Made some log lines clearer
 - cyclictest: Added --cyclictest-breaktrace feature

@@ -26,8 +26,8 @@
 #
 
 import sys, os
-import libxml2, libxslt
-from rteval import rtevalConfig
+import libxml2, lxml.etree
+from rteval import rtevalConfig, xmlout
 from rteval.Log import Log
 
 try:
@@ -64,7 +64,7 @@ class DMIinfo(object):
     '''class used to obtain DMI info via python-dmidecode'''
 
     def __init__(self, config, logger):
-        self.__version = '0.4'
+        self.__version = '0.5'
 
         if not dmidecode_loaded:
             logger.log(Log.DEBUG|Log.WARN, "No dmidecode module found, ignoring DMI tables")
@@ -74,17 +74,23 @@ class DMIinfo(object):
         self.__fake = False
         self.__dmixml = dmidecode.dmidecodeXML()
 
-        xsltdoc = self.__load_xslt('rteval_dmi.xsl')
-        self.xsltparser = libxslt.parseStylesheetDoc(xsltdoc)
+        self.__xsltparser = self.__load_xslt('rteval_dmi.xsl')
 
 
     def __load_xslt(self, fname):
-        if os.path.isfile(fname):
-            return libxml2.parseFile(fname)
+        xsltfile = None
+        if os.path.exists(fname):
+            xsltfile = open(fname, "r")
         elif rtevalConfig.default_config_search([fname], os.path.isfile):
-            return libxml2.parseFile(rtevalConfig.default_config_search([fname], os.path.isfile))
-        else:
-            raise RuntimeError('Could not locate XSLT template for DMI data (%s/%s)' % (fname))
+            xsltfile = open(rtevalConfig.default_config_search([fname], os.path.isfile), "r")
+
+        if xsltfile:
+            xsltdoc = lxml.etree.parse(xsltfile)
+            ret = lxml.etree.XSLT(xsltdoc)
+            xsltfile.close()
+            return ret
+
+        raise RuntimeError, 'Could not locate XSLT template for DMI data (%s)' % (self.sharedir + '/' + fname)
 
 
     def MakeReport(self):
@@ -95,8 +101,9 @@ class DMIinfo(object):
             rep_n.newProp("not_available", "1")
         else:
             self.__dmixml.SetResultType(dmidecode.DMIXML_DOC)
-            resdoc = self.xsltparser.applyStylesheet(self.__dmixml.QuerySection('all'), None)
-            dmi_n = resdoc.getRootElement().copyNode(1)
+            dmiqry = xmlout.convert_libxml2_to_lxml_doc(self.__dmixml.QuerySection('all'))
+            resdoc = self.__xsltparser(dmiqry)
+            dmi_n = xmlout.convert_lxml_to_libxml2_nodes(resdoc.getroot())
             rep_n.addChild(dmi_n)
         return rep_n
 
@@ -107,7 +114,7 @@ def unit_test(rootdir):
 
     class unittest_ConfigDummy(object):
         def __init__(self, rootdir):
-            self.config = {'installdir': '%s/rteval'}
+            self.config = {'installdir': '/usr/share/rteval'}
             self.__update_vars()
 
         def __update_vars(self):

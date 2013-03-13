@@ -35,7 +35,7 @@
 #
 
 import sys, os, time, optparse, tempfile
-import libxml2, libxslt
+import libxml2, lxml.etree
 from datetime import datetime
 from rteval.Log import Log
 from rteval import RtEval, rtevalConfig
@@ -68,25 +68,24 @@ def summarize(repfile, xslt):
         isarchive = True
 
     # Load the XSLT template
-    xsltdoc = libxml2.parseFile(xslt)
-    xsltprs = libxslt.parseStylesheetDoc(xsltdoc)
+    xsltfp = open(xslt, "r")
+    xsltdoc = lxml.etree.parse(xsltfp)
+    xsltprs = lxml.etree.XSLT(xsltdoc)
+    xsltfp.close()
 
     # Load the summay.xml report - with some simple sanity checks
-    xmldoc = libxml2.parseFile(summaryfile)
-    if xmldoc.name != summaryfile:
-        raise RuntimeError("Failed to load the report")
-    if xmldoc.children.name != 'rteval':
+    xmlfp = open(summaryfile, "r")
+    xmldoc = lxml.etree.parse(xmlfp)
+    xmlfp.close()
+
+    if xmldoc.docinfo.root_name != 'rteval':
         raise RuntimeError("The report doesn't seem like a rteval summary report")
 
-    # Parse the report through the XSLT template - preserve proper encoding
-    resdoc = xsltprs.applyStylesheet(xmldoc, None)
-    report = xsltprs.saveResultToString(resdoc).encode(xsltprs.encoding())
-
-    # Dump the report to stdout - as UTF-8
-    print report.encode('UTF-8')
+    # Parse and print the report through the XSLT template - preserve proper encoding
+    resdoc = xsltprs(xmldoc)
+    print unicode(resdoc).encode('UTF-8')
 
     # Clean up
-    del report
     del resdoc
     del xmldoc
     del xsltprs
