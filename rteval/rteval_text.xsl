@@ -191,6 +191,14 @@
   <xsl:template match="/rteval/Measurements/Profile/cyclictest">
     <xsl:text>       Latency test&#10;</xsl:text>
 
+    <xsl:text>          Started: </xsl:text>
+    <xsl:value-of select="timestamps/runloop_start"/>
+    <xsl:text>&#10;</xsl:text>
+
+    <xsl:text>          Stopped: </xsl:text>
+    <xsl:value-of select="timestamps/runloop_stop"/>
+    <xsl:text>&#10;</xsl:text>
+
     <xsl:text>          Command: </xsl:text>
     <xsl:value-of select="@command_line"/>
     <xsl:text>&#10;&#10;</xsl:text>

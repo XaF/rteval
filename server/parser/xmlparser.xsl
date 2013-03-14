@@ -397,6 +397,7 @@
                     <xsl:if test="@command_line">
                       <command_line><xsl:value-of select="@command_line"/></command_line>
                     </xsl:if>
+                    <xsl:copy-of select="timestamps"/>
                   </module>
                 </xsl:for-each>
               </Measurement>
