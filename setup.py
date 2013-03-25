@@ -18,12 +18,12 @@ except OSError, e:
         distcreated = False
     else:
         raise e
-shutil.copy('rteval-cmd','dist/rteval')
+shutil.copy('rteval-cmd', 'dist/rteval')
 
 # Hack to avoid importing libxml2 and a lot of other stuff
 # when getting the rteval version.  These are modules which
 # might not be available on the build box.
-shutil.copy('rteval/version.py','dist/__init__.py')
+shutil.copy('rteval/version.py', 'dist/__init__.py')
 from dist import RTEVAL_VERSION
 
 # Compress the man page, so distutil will only care for the compressed file
