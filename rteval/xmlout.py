@@ -26,10 +26,34 @@
 import os
 import sys
 import libxml2
-import libxslt
+import lxml.etree
 import codecs
 import re
 from string import maketrans
+
+
+def convert_libxml2_to_lxml_doc(inxml):
+    "Converts a libxml2.xmlDoc into a lxml.etree document object"
+
+    if not isinstance(inxml, libxml2.xmlDoc):
+        raise TypeError('Function requires an libxml2.xmlDoc as input')
+
+    root = inxml.getRootElement()
+    ret = lxml.etree.XML(root.serialize('UTF-8'))
+    del root
+    return ret
+
+
+
+def convert_lxml_to_libxml2_nodes(inlxml):
+    "Converts a lxml.etree elements tree into a libxml2.xmlNode object"
+
+    if not isinstance(inlxml,lxml.etree._Element) and not isinstance(inlxml, lxml.etree._XSLTResultTree):
+        raise TypeError('Function requires an lxml.etree object as input')
+
+    return libxml2.parseDoc(lxml.etree.tostring(inlxml)).getRootElement()
+
+
 
 class XMLOut(object):
     '''Class to create XML output'''
@@ -171,6 +195,7 @@ class XMLOut(object):
 
         self.status = 2 # Confirm that we have loaded a report from file
 
+
     def Write(self, filename, xslt = None):
         if self.status != 2 and self.status != 3:
             raise RuntimeError, "XMLOut: XML document is not closed"
@@ -181,8 +206,10 @@ class XMLOut(object):
             return
         else:
             # Load XSLT file and prepare the XSLT parser
-            xsltdoc = libxml2.parseFile(xslt)
-            parser = libxslt.parseStylesheetDoc(xsltdoc)
+            xsltfile = open(xslt, 'r')
+            xsltdoc = lxml.etree.parse(xsltfile)
+            parser = lxml.etree.XSLT(xsltdoc)
+            xsltfile.close()
 
             # imitate libxml2's filename interpretation
             if filename != "-":
@@ -192,18 +219,22 @@ class XMLOut(object):
             #
             # Parse XML+XSLT and write the result to file
             #
-            resdoc = parser.applyStylesheet(self.xmldoc, None)
-            # Decode the result string according to the charset declared in the XSLT file
-            xsltres = parser.saveResultToString(resdoc).decode(parser.encoding())
+            xmldoc = convert_libxml2_to_lxml_doc(self.xmldoc)
+            resdoc = parser(xmldoc)
+
             #  Write the file with the requested output encoding
-            dstfile.write(xsltres.encode(self.encoding))
+            dstfile.write(unicode(resdoc).encode(self.encoding))
 
             if dstfile != sys.stdout:
                 dstfile.close()
 
             # Clean up
-            resdoc.freeDoc()
-            xsltdoc.freeDoc()
+            del resdoc
+            del xsltdoc
+            del parser
+            del xsltfile
+            del xmldoc
+
 
     def GetXMLdocument(self):
         if self.status != 2 and self.status != 3:

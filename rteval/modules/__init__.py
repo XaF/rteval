@@ -24,6 +24,7 @@
 
 from rteval.Log import Log
 from rteval.rtevalConfig import rtevalCfgSection
+from datetime import datetime
 import time, libxml2, threading, optparse
 
 __all__ = ["rtevalRuntimeError", "rtevalModulePrototype", "ModuleContainer", "RtEvalModules"]
@@ -54,6 +55,7 @@ class rtevalModulePrototype(threading.Thread):
                          "stop": threading.Event(),
                          "finished": threading.Event()}
         self._donotrun = False
+        self.__timestamps = {}
 
 
     def _log(self, logtype, msg):
@@ -87,6 +89,7 @@ class rtevalModulePrototype(threading.Thread):
     def setStart(self):
         "Sets the start event state"
         self.__events["start"].set()
+        self.__timestamps["start_set"] = datetime.now()
 
 
     def shouldStart(self):
@@ -97,6 +100,7 @@ class rtevalModulePrototype(threading.Thread):
     def setStop(self):
         "Sets the stop event state"
         self.__events["stop"].set()
+        self.__timestamps["stop_set"] = datetime.now()
 
 
     def shouldStop(self):
@@ -107,6 +111,7 @@ class rtevalModulePrototype(threading.Thread):
     def _setFinished(self):
         "Sets the finished event state - indicating the module has completed"
         self.__events["finished"].set()
+        self.__timestamps["finished_set"] = datetime.now()
 
 
     def WaitForCompletion(self, wtime = None):
@@ -176,6 +181,7 @@ class rtevalModulePrototype(threading.Thread):
                     break
 
             self._log(Log.DEBUG, "Starting %s workload" % self._module_type)
+            self.__timestamps["runloop_start"] = datetime.now()
             while not self.shouldStop():
                 # Run the workload
                 self._WorkloadTask()
@@ -186,6 +192,7 @@ class rtevalModulePrototype(threading.Thread):
                     self._log(Log.DEBUG, "%s workload stopped running." % self._module_type)
                     break
                 time.sleep(1.0)
+            self.__timestamps["runloop_stop"] = datetime.now()
             self._log(Log.DEBUG, "stopping %s workload" % self._module_type)
         else:
             self._log(Log.DEBUG, "Workload was not started")
@@ -196,6 +203,16 @@ class rtevalModulePrototype(threading.Thread):
     def MakeReport(self):
         "required module method, needs to return an libxml2.xmlNode object with the the results from running"
         raise NotImplementedError("MakeReport() method must be implemented in the%s module" % self._name)
+
+
+    def GetTimestamps(self):
+        "Return libxml2.xmlNode object with the gathered timestamps"
+
+        ts_n = libxml2.newNode("timestamps")
+        for k in self.__timestamps.keys():
+            ts_n.newChild(None, k, str(self.__timestamps[k]))
+
+        return ts_n
 
 
 
@@ -368,6 +385,7 @@ and will also be given to the instantiated objects during module import."""
         self._cfg = config
         self._logger = logger
         self.__modules = ModuleContainer(modules_root, logger)
+        self.__timestamps = {}
 
 
     # Export some of the internal module container methods
@@ -453,6 +471,7 @@ start their workloads yet"""
             mod.setStart()
             nthreads += 1
 
+        self.__timestamps['unleash'] = datetime.now()
         return nthreads
 
 
@@ -484,6 +503,7 @@ start their workloads yet"""
                     mod.join(2.0)
             except RuntimeError, e:
                 self._logger.log(Log.ERR, "\t\tFailed stopping %s: %s" % (modname, str(e)))
+        self.__timestamps['stop'] = datetime.now()
 
 
     def WaitForCompletion(self, wtime = None):
@@ -505,6 +525,11 @@ start their workloads yet"""
             self._logger.log(Log.DEBUG, "Getting report from %s" % modname)
             modrep_n = mod.MakeReport()
             if modrep_n is not None:
+                if self._module_type != 'load':
+                    # Currently the <loads/> tag will not easily integrate
+                    # timestamps. Not sure it makes sense to track this on
+                    # load modules.
+                    modrep_n.addChild(mod.GetTimestamps())
                 rep_n.addChild(modrep_n)
 
         return rep_n

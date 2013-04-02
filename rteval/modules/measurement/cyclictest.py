@@ -167,6 +167,9 @@ class RunData(object):
             keys = self.__samples.keys()
             keys.sort()
             for k in keys:
+                if self.__samples[k] == 0:
+                    # Don't report buckets without any samples
+                    continue
                 b_n = hist_n.newChild(None, 'bucket', None)
                 b_n.newProp('index', str(k))
                 b_n.newProp('value', str(self.__samples[k]))

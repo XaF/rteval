@@ -25,11 +25,14 @@ python-schedtils
 python-ethtools
     git://git.kernel.org/pub/scm/linux/kernel/git/acme/python-ethtool.git
 
-libxslt-python
-    http://xmlsoft.org/XSLT/python.html
+python-lxml
+  http://lxml.de/
 
 python-dmidecode
     http://www.ohloh.net/p/python-dmidecode
+
+libxml2-python
+  http://xmlsoft.org/
 
 rt-tests
    git://git.kernel.org/pub/scm/linux/kernel/git/clrkwllms/rt-tests.git
