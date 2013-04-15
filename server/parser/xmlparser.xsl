@@ -460,7 +460,6 @@
         <field fid="9">median</field>
         <field fid="10">stddev</field>
         <field fid="11">mean_abs_dev</field>
-        <field fid="12">variance</field>
       </fields>
       <records>
         <xsl:for-each select="core/statistics[samples > 0]|system/statistics[samples > 0]">
@@ -483,7 +482,6 @@
             <value fid="9"><xsl:value-of select="mean"/></value>
             <value fid="10"><xsl:value-of select="standard_deviation"/></value>
             <value fid="11"><xsl:value-of select="mean_absolute_deviation"/></value>
-            <value fid="12"><xsl:value-of select="variance"/></value>
           </record>
         </xsl:for-each>
       </records>

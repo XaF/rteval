@@ -274,11 +274,6 @@
       <xsl:value-of select="mean_absolute_deviation/@unit"/>
       <xsl:text>&#10;</xsl:text>
 
-      <xsl:text>            Variance:          </xsl:text>
-      <xsl:value-of select="variance"/>
-      <xsl:value-of select="variance/@unit"/>
-      <xsl:text>&#10;</xsl:text>
-
       <xsl:text>            Std.dev:           </xsl:text>
       <xsl:value-of select="standard_deviation"/>
       <xsl:value-of select="standard_deviation/@unit"/>

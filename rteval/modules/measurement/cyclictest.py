@@ -48,7 +48,6 @@ class RunData(object):
         self.__median = 0.0
         self.__range = 0.0
         self.__mad = 0.0
-        self.__variance = 0.0
         self._log = logfnc
 
     def sample(self, value):
@@ -71,7 +70,6 @@ class RunData(object):
         # to zero and return
         if self.__numsamples <= 1:
             self._log(Log.DEBUG, "skipping %s (%d samples)" % (self.__id, self.__numsamples))
-            self.__variance = 0
             self.__mad = 0
             self.__stddev = 0
             return
@@ -109,17 +107,14 @@ class RunData(object):
             high -= 1
         self.__range = high - low
 
-        # Mean Absolute Deviation and Variance
+        # Mean Absolute Deviation and standard deviation
         madsum = 0
         varsum = 0
         for i in keys:
             madsum += float(abs(float(i) - self.__mean) * self.__samples[i])
             varsum += float(((float(i) - self.__mean) ** 2) * self.__samples[i])
         self.__mad = madsum / self.__numsamples
-        self.__variance = varsum / (self.__numsamples - 1)
-        
-        # standard deviation
-        self.__stddev = math.sqrt(self.__variance)
+        self.__stddev = math.sqrt(varsum / (self.__numsamples - 1))
 
 
     def MakeReport(self):
@@ -154,9 +149,6 @@ class RunData(object):
             n.newProp('unit', 'us')
 
             n = stat_n.newTextChild(None, 'mean_absolute_deviation', str(self.__mad))
-            n.newProp('unit', 'us')
-
-            n = stat_n.newTextChild(None, 'variance', str(self.__variance))
             n.newProp('unit', 'us')
 
             n = stat_n.newTextChild(None, 'standard_deviation', str(self.__stddev))
