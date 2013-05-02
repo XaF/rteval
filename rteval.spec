@@ -19,6 +19,7 @@ Requires:	python-dmidecode >= 3.10
 Requires:	rt-tests >= 0.65
 Requires:	rteval-loads >= 1.2
 Requires:	rteval-common => %{version}-%{release}
+Requires:	trace-cmd
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
 

@@ -317,6 +317,16 @@ class Cyclictest(rtevalModulePrototype):
             os.mkdir(cyclicdir)
             shutil.copyfile(trace, os.path.join(cyclicdir, 'breaktrace.log'))
 
+            # Call trace-cmd extract to save an exportable binary blob with trace data
+            # FIXME: For some odd reason, running trace-cmd outside a shell makes it fail on my test system
+            tracecmd = ['sh', '-c', 'trace-cmd extract -o %s' % os.path.join(cyclicdir,'trace.dat')]
+            self._log(Log.DEBUG, 'Executing: %s' % ' '.join(tracecmd))
+            tracecmdproc = subprocess.Popen(tracecmd,
+                                            stdout=self.__nullfp,
+                                            stderr=self.__nullfp,
+                                            stdin=self.__nullfp)
+            tracecmdproc.wait()
+
         self._setFinished()
         self.__started = False
         os.close(self.__nullfp)
