@@ -200,7 +200,7 @@ class RtEval(rtevalReport):
             rpttime = currtime + report_interval
             load_avg_checked = 5
             while (currtime <= stoptime) and not sigint_received:
-                time.sleep(1.0)
+                time.sleep(60.0)
                 if not measure_profile.isAlive():
                     stoptime = currtime
                     self.__logger.log(Log.WARN,

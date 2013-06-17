@@ -183,7 +183,7 @@
     <!--                                                                        -->
     <!--       select="cyclictest|new_foo_section|another_section"              -->
     <!--                                                                        -->
-    <xsl:apply-templates select="cyclictest|hwlatdetect[@format='1.0']"/>
+    <xsl:apply-templates select="cyclictest|hwlatdetect[@format='1.0']|sysstat"/>
     <xsl:text>&#10;</xsl:text>
   </xsl:template>
 
@@ -322,6 +322,22 @@
     <xsl:text>us&#10;</xsl:text>
   </xsl:template>
 
+  <!-- Format the cyclic test section of the report -->
+  <xsl:template match="/rteval/Measurements/Profile/sysstat">
+    <xsl:text>       sysstat measurements&#10;</xsl:text>
+
+    <xsl:text>          Started: </xsl:text>
+    <xsl:value-of select="timestamps/runloop_start"/>
+    <xsl:text>&#10;</xsl:text>
+
+    <xsl:text>          Stopped: </xsl:text>
+    <xsl:value-of select="timestamps/runloop_stop"/>
+    <xsl:text>&#10;</xsl:text>
+
+    <xsl:text>          Records saved: </xsl:text>
+    <xsl:value-of select="@num_entries"/>
+    <xsl:text>&#10;</xsl:text>
+  </xsl:template>
 
   <!-- Format information about aborts - if present -->
   <xsl:template match="abort_report">
