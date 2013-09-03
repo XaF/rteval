@@ -168,7 +168,7 @@ rm -rf $RPM_BUILD_ROOT
   of memory per core
 
 * Wed Jul 14 2010 Clark Williams <williams@redhat.com> - 1.27-1
-- modified hackbench to go back to using threads rather than 
+- modified hackbench to go back to using threads rather than
   processes for units of work
 - added memory size, number of numa nodes and run duration to the
   parameter dictionary passed to all loads and cyclictest
@@ -181,16 +181,16 @@ rm -rf $RPM_BUILD_ROOT
 - updated source copyrights to 2010
 
 * Fri Jul  9 2010 Clark Williams <williams@redhat.com> - 1.24-1
-- modified hackbench arguments and added new parameters for 
+- modified hackbench arguments and added new parameters for
   hackbench in rteval.conf
 
 * Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.23-1
 - version bump to deal with out-of-sync cvs issue
- 
+
 * Thu Jul  8 2010 Clark Williams <williams@redhat.com> - 1.22-1
 - merged David Sommerseth <davids@redhat.com> changes to use
   hackbench from rt-tests packages rather than carry local copy
-- converted all loads and cyclictest to pass __init__ parameters 
+- converted all loads and cyclictest to pass __init__ parameters
   in a dictionary rather than as discrete parameters
 - added logging for load output
 
@@ -210,7 +210,7 @@ rm -rf $RPM_BUILD_ROOT
 * Thu Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
 - code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
 - from David Sommerseth <davids@redhat.com>:
-  - xmlrpc server updates 
+  - xmlrpc server updates
   - cputopology.py for recording topology in xml
   - added NUMA node recording for run data
   - rpmlint fixes
@@ -253,7 +253,7 @@ rm -rf $RPM_BUILD_ROOT
     '/rteval'
   - Send program arguments via RtEval() constructor
   - Added more DMI data into the summary.xml report
-  - Fixed issue with not including all devices in the 
+  - Fixed issue with not including all devices in the
     OnBoardDeviceInfo tag
 
 * Thu Dec  3 2009 David Sommerseth <davids@redhat.com> - 1.12-2
@@ -270,10 +270,10 @@ rm -rf $RPM_BUILD_ROOT
   path for /usr/bin/rteval (problem with rpmdiff)
 
 * Tue Nov 10 2009 Clark Williams <williams@redhat.com> - 1.11-4
-- changed symlink back to install and tracked by %files
+- changed symlink back to install and tracked by %%files
 
 * Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-3
-- changed symlink generation from %post to %posttrans
+- changed symlink generation from %%post to %%posttrans
 
 * Mon Nov  9 2009 Clark Williams <williams@redhat.com> - 1.11-2
 - fixed incorrect dependency for libxslt
@@ -316,7 +316,7 @@ rm -rf $RPM_BUILD_ROOT
 * Mon Oct 12 2009 Clark Williams <williams@redhat.com> - 1.5-1
 - changed cyclictest to use less memory when doing statisics
   calculations
-- updated debug output to use module name prefixes 
+- updated debug output to use module name prefixes
 - changed option processing to only process config file once
 
 * Fri Oct  9 2009 Clark Williams <williams@redhat.com> - 1.4-1
