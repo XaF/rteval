@@ -140,7 +140,7 @@ class RtEval(rtevalReport):
 
         self.__logger.log(Log.INFO, "Preparing load modules")
         params = {'workdir':self.__rtevcfg.workdir,
-                  'reportdir':self.__reportdir,
+                  'reportdir':self.__reportdir and self.__reportdir or "",
                   'builddir':builddir,
                   'srcdir':self.__rtevcfg.srcdir,
                   'verbose': self.__rtevcfg.verbose,
