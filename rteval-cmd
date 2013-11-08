@@ -270,7 +270,7 @@ if __name__ == '__main__':
                 rtevcfg.duration, rtevcfg.sysreport))
 
         if not os.path.isdir(rtevcfg.workdir):
-            raise RuntimeError, "work directory %d does not exist" % rtevcfg.workdir
+            raise RuntimeError, "work directory %s does not exist" % rtevcfg.workdir
 
 
         rteval = RtEval(config, loadmods, measuremods, logger)
