@@ -73,6 +73,7 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Tue Sep 17 2013 Clark Williams <williams@redhat.com> - 1.38-1
 - cleaned up incorrect usage of percent signs in changelog
+- added data validation checks to histogram parsing code
 
 * Thu Dec 13 2012 Clark Williams <williams@redhat.com> - 1.37-1
 - added module specific command line options
@@ -90,7 +91,7 @@ rm -rf $RPM_BUILD_ROOT
 * Mon Apr  2 2012 Clark Williams <williams@redhat.com> - 1.35-1
 - fix thinko where SIGINT and SIGTERM handlers were commented out
 
-* Mon Jan 12 2012 Clark Williams <williams@redhat.com> - 1.34-1
+* Thu Jan 12 2012 Clark Williams <williams@redhat.com> - 1.34-1
 - fix missing config merge in rteval.py to pass parameters
   down to cyclictest
 - modify hackbench to use helper function to start process
@@ -153,7 +154,7 @@ rm -rf $RPM_BUILD_ROOT
   in a dictionary rather than as discrete parameters
 - added logging for load output
 
-* Thu Apr 13 2010 Clark Williams <williams@redhat.com> - 1.21-1
+* Tue Apr 13 2010 Clark Williams <williams@redhat.com> - 1.21-1
 - from Luis Claudio Goncalves <lgoncalv@redhat.com>:
   - remove unecessary wait() call in cyclictest.py
   - close /dev/null after using it
@@ -166,7 +167,7 @@ rm -rf $RPM_BUILD_ROOT
   - added --annotate feature to rteval
   - updates to xmlrpc code
 
-* Thu Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
+* Tue Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
 - code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
 - from David Sommerseth <davids@redhat.com>:
   - xmlrpc server updates
@@ -331,7 +332,7 @@ rm -rf $RPM_BUILD_ROOT
 - added --summarize option to display summary of existing report
 - added helpfile target to Makefile
 
-* Tue Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
+* Thu Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
 - added require for python-schedutils to specfile
 - added default for cyclictest output file
 - added help parameter to option parser data

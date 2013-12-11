@@ -94,7 +94,7 @@ def sigterm_handler(signum, frame):
 
 class RtEval(object):
     def __init__(self, cmdargs):
-        self.version = "1.37"
+        self.version = "1.38"
         self.load_modules = []
         self.workdir = os.getcwd()
         self.reportdir = os.getcwd()
@@ -296,7 +296,7 @@ class RtEval(object):
                 else:
                     ret_services[servicename] = 'unknown'
         return ret_services
-        
+
     def __get_services_systemd(self):
         ret_services = {}
         cmd = '%s list-unit-files -t service --no-legend' % getcmdpath('systemctl')
@@ -335,7 +335,7 @@ class RtEval(object):
             kcmd = v.pop(0)
             try:
                 if int(v[0]) > 0 and kcmd.startswith('[') and kcmd.endswith(']'):
-                    ret_kthreads[v[0]] = {'policy' : policies[v[1]], 
+                    ret_kthreads[v[0]] = {'policy' : policies[v[1]],
                                           'priority' : v[2], 'name' : v[3] }
             except ValueError:
                 pass    # Ignore lines which don't have a number in the first row
@@ -413,7 +413,7 @@ class RtEval(object):
                           action="store", type="int",
                           help="cyclictest measurement interval in microseconds")
         parser.add_option("", "--cyclictest-distance", dest="cyclictest_distance",
-                          action="store", type="int", 
+                          action="store", type="int",
                           help="cyclictest measurement interval increment in microseconds")
         parser.add_option("", "--cyclictest-buckets", dest="cyclictest_buckets",
                           action="store", type="int",
@@ -468,7 +468,7 @@ class RtEval(object):
 
         self.debug("report tool: %s" % exe)
         options =  ['-k', 'rpm.rpmva=off',
-                    '--name=rteval', 
+                    '--name=rteval',
                     '--batch',
                     '--no-progressbar']
 
@@ -478,7 +478,7 @@ class RtEval(object):
         for s in glob.glob('/tmp/s?sreport-rteval-*'):
             self.debug("moving %s to %s" % (s, self.reportdir))
             shutil.move(s, self.reportdir)
-    
+
 
     def genxml(self, duration, accum, samples, xslt = None):
         seconds = duration.seconds
@@ -532,7 +532,7 @@ class RtEval(object):
             keys.sort()
             self.xmlreport.openblock('kthreads')
             for pid in keys:
-                self.xmlreport.taggedvalue('thread', self.kthreads[pid]['name'], 
+                self.xmlreport.taggedvalue('thread', self.kthreads[pid]['name'],
                                            { 'policy' : self.kthreads[pid]['policy'],
                                              'priority' : self.kthreads[pid]['priority'],
                                              })
@@ -633,7 +633,7 @@ class RtEval(object):
         # now generate the dmidecode data for this host
         d = dmi.DMIinfo(self.config.GetSection('rteval'))
         d.genxml(self.xmlreport)
-        
+
         # Close the report - prepare for return the result
         self.xmlreport.close()
 
@@ -706,7 +706,7 @@ class RtEval(object):
             i += 1
             self.reportdir = os.path.join(self.workdir,
                                           t.strftime('rteval-%Y%m%d-'+str(i)))
-        if not os.path.isdir(self.reportdir): 
+        if not os.path.isdir(self.reportdir):
             os.mkdir(self.reportdir)
             os.mkdir(os.path.join(self.reportdir, "logs"))
         return self.reportdir
@@ -759,7 +759,7 @@ class RtEval(object):
 
         self.info("setting up loads")
         self.loads = []
-        params = {'workdir':self.workdir, 
+        params = {'workdir':self.workdir,
                   'reportdir':self.reportdir,
                   'builddir':builddir,
                   'srcdir':self.config.srcdir,
@@ -771,7 +771,7 @@ class RtEval(object):
                   'numanodes':self.numanodes,
                   'duration':self.config.duration,
                   }
-        
+
         for m in self.load_modules:
             self.config.AppendConfig(m.__name__, params)
             self.info("creating load instance for %s" % m.__name__)
@@ -786,7 +786,7 @@ class RtEval(object):
         try:
             # start the loads
             self.start_loads()
-            
+
             print "rteval run on %s started at %s" % (os.uname()[2], time.asctime())
             print "started %d loads on %d cores" % (len(self.loads), self.numcores),
             if self.numanodes > 1:
@@ -794,20 +794,20 @@ class RtEval(object):
             else:
                 print ""
             print "Run duration: %d seconds" % self.config.duration
-            
+
             start = datetime.now()
-            
+
             if not onlyload:
                 # start the cyclictest thread
                 self.info("starting cyclictest")
                 self.cyclictest.start()
-            
+
             # turn loose the loads
             self.info("sending start event to all loads")
             for l in self.loads:
                 l.startevent.set()
                 nthreads += 1
-                
+
             accum = 0.0
             samples = 0
 
@@ -848,7 +848,7 @@ class RtEval(object):
             self.debug("out of measurement loop")
             signal.signal(signal.SIGINT, signal.SIG_DFL)
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
-                
+
         except RuntimeError, e:
             print "Runtime error during measurement: %s", e
             raise
@@ -857,7 +857,7 @@ class RtEval(object):
             if not onlyload:
                 # stop cyclictest
                 self.cyclictest.stopevent.set()
-            
+
             # stop the loads
             self.stop_loads()
 
@@ -985,7 +985,7 @@ class RtEval(object):
             print "Must be root to run rteval!"
             sys.exit(-1)
 
-        self.debug('''rteval options: 
+        self.debug('''rteval options:
         workdir: %s
         loaddir: %s
         reportdir: %s
@@ -995,7 +995,7 @@ class RtEval(object):
         duration: %f
         sysreport: %s
         inifile:  %s''' % (self.workdir, self.config.srcdir, self.reportdir, self.config.verbose,
-                           self.config.debugging, self.config.logging, self.config.duration, 
+                           self.config.debugging, self.config.logging, self.config.duration,
                            self.config.sysreport, self.inifile))
 
         if not os.path.isdir(self.workdir):
