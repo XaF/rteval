@@ -121,7 +121,7 @@ class RunData(object):
             varsum += float(((float(i) - self.mean) ** 2) * self.samples[i])
         self.mad = madsum / self.numsamples
         self.variance = varsum / (self.numsamples - 1)
-        
+
         # standard deviation
         self.stddev = math.sqrt(self.variance)
 
@@ -204,10 +204,10 @@ class Cyclictest(Thread):
 
     def run(self):
 
-        self.cmd = ['cyclictest', 
-                    '-qm', 
+        self.cmd = ['cyclictest',
+                    '-qm',
                     '-i %d' % self.interval,
-                    '-d %d' % self.distance, 
+                    '-d %d' % self.distance,
                     '-h %d' % self.buckets,
                     "-p %d" % self.priority,
                     self.getmode(),
@@ -231,8 +231,10 @@ class Cyclictest(Thread):
             os.kill(c.pid, signal.SIGINT)
         # now parse the histogram output
         for line in c.stdout:
-            if line.startswith('#'): continue
+            line = line.strip()
+            if line.startswith('#') or len(line) == 0: continue
             vals = line.split()
+            if len(vals) == 0: continue
             index = int(vals[0])
             for i in range(0, len(self.data)-1):
                 if str(i) not in self.data: continue
@@ -257,5 +259,3 @@ class Cyclictest(Thread):
 if __name__ == '__main__':
     c = CyclicTest()
     c.run()
-
-    
