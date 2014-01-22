@@ -299,7 +299,15 @@ class Cyclictest(rtevalModulePrototype):
                     self.__breaktraceval = int(line.split(':')[1])
                 continue
 
+            # Skipping blank lines
+            if len(line) == 0:
+                continue
+
             vals = line.split()
+            if len(vals) == 0:
+                # If we don't have any values, don't try parsing
+                continue
+
             index = int(vals[0])
             for i in range(0, len(self.__cyclicdata)-1):
                 if str(i) not in self.__cyclicdata: continue
