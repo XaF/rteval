@@ -207,7 +207,7 @@ rm -rf $RPM_BUILD_ROOT
   - added --annotate feature to rteval
   - updates to xmlrpc code
 
-* Thu Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
+* Tue Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
 - code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
 - from David Sommerseth <davids@redhat.com>:
   - xmlrpc server updates
@@ -372,7 +372,7 @@ rm -rf $RPM_BUILD_ROOT
 - added --summarize option to display summary of existing report
 - added helpfile target to Makefile
 
-* Tue Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
+* Thu Mar 26 2009 Clark Williams <williams@torg> - 0.7-1
 - added require for python-schedutils to specfile
 - added default for cyclictest output file
 - added help parameter to option parser data
