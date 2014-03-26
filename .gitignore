@@ -31,3 +31,4 @@ server/config.log
 server/config.status
 server/parser/Makefile
 server/parser/config.h
+rteval-[0-9]*
