@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	2.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -20,6 +20,7 @@ Requires:	rt-tests >= 0.65
 Requires:	rteval-loads >= 1.2
 Requires:	rteval-common => %{version}-%{release}
 Requires:	trace-cmd
+Requires:	sysstat
 BuildArch:	noarch
 Obsoletes:	rteval <= 1.7
 
@@ -90,6 +91,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Wed Mar 26 2014 Clark Williams <williams@redhat.com> - 2.1.3
+- added sysstat requires to specfile
+
 * Tue Mar 12 2013 David Sommerseth <davids@redhat.com> - 2.1-2
 - Migrated from libxslt-python to python-lxml
 
