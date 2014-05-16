@@ -476,10 +476,10 @@
             <value fid="3"><xsl:value-of select="samples"/></value>
             <value fid="4"><xsl:value-of select="minimum"/></value>
             <value fid="5"><xsl:value-of select="maximum"/></value>
-            <value fid="6"><xsl:value-of select="median"/></value>
+            <value fid="6"><xsl:value-of select="mean"/></value>
             <value fid="7"><xsl:value-of select="mode"/></value>
             <value fid="8"><xsl:value-of select="range"/></value>
-            <value fid="9"><xsl:value-of select="mean"/></value>
+            <value fid="9"><xsl:value-of select="median"/></value>
             <value fid="10"><xsl:value-of select="standard_deviation"/></value>
             <value fid="11"><xsl:value-of select="mean_absolute_deviation"/></value>
           </record>
