@@ -214,7 +214,11 @@ rm -rf $RPM_BUILD_ROOT
   - added --annotate feature to rteval
   - updates to xmlrpc code
 
+<<<<<<< HEAD
   * Tue Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
+=======
+* Tue Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
+>>>>>>> davids/davids/v2.0
 - code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
 - from David Sommerseth <davids@redhat.com>:
   - xmlrpc server updates
