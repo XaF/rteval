@@ -183,6 +183,11 @@ if __name__ == '__main__':
 
     dmi.ProcessWarnings()
 
+    # set LD_BIND_NOW to resolve shared library symbols
+    # note: any string will do, nothing significant about 'rteval'
+
+    os.environ['LD_BIND_NOW'] = 'rteval'
+
     try:
         # Prepare logging
         logger = Log()
