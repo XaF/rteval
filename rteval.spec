@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	2.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -91,10 +91,13 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
-* Thu Mar 27 2014 Clark Williams <williams@redhat.com> - 2.1.4
+* Mon Nov 10 2014 Luis Claudio R. Goncalves <lgoncalv@redhat.com> - 2.1-5
+- rebuild for RHEL-7.1 (1151567)
+
+* Thu Mar 27 2014 Clark Williams <williams@redhat.com> - 2.1-4
 - cherry-picked old commit to deal with installdir problem
 
-* Wed Mar 26 2014 Clark Williams <williams@redhat.com> - 2.1.3
+* Wed Mar 26 2014 Clark Williams <williams@redhat.com> - 2.1-3
 - added sysstat requires to specfile
 
 * Tue Mar 12 2013 David Sommerseth <davids@redhat.com> - 2.1-2
@@ -214,11 +217,7 @@ rm -rf $RPM_BUILD_ROOT
   - added --annotate feature to rteval
   - updates to xmlrpc code
 
-<<<<<<< HEAD
   * Tue Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
-=======
-* Tue Apr  6 2010 Clark Williams <williams@redhat.com> - 1.20-1
->>>>>>> davids/davids/v2.0
 - code fixes from Luis Claudio Goncalves <lgoncalv@redhat.com>
 - from David Sommerseth <davids@redhat.com>:
   - xmlrpc server updates
