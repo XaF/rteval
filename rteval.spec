@@ -3,7 +3,7 @@
 
 Name:		rteval
 Version:	2.1
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	Utility to evaluate system suitability for RT Linux
 
 Group:		Development/Tools
@@ -91,6 +91,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/rteval
 
 %changelog
+* Thu Jan  8 2015 Clark Williams <williams@redhat.com> - 2.1-6
+- cleaned up product documentation [1173315]
+
 * Mon Nov 10 2014 Luis Claudio R. Goncalves <lgoncalv@redhat.com> - 2.1-5
 - rebuild for RHEL-7.1 (1151567)
 
