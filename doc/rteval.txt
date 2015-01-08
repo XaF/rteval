@@ -22,7 +22,7 @@ of meeting its deadline(s), a realtime OS must minimize the time
 between event occurance and the servicing of that event (latency). 
 
 This paper describes the 'rteval' program, a Python 2.x program
-developed at Red Hat to help quantify realtime performance on the MRG
+developed at Red Hat to help quantify realtime performance on the
 Realtime kernel. Rteval is an attempt to put together a synthetic
 benchmark which mimics a well behaved realtime application, running on
 a heavily loaded realtime Linux system. It uses the 'cyclictest'
