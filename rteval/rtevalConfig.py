@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #   rteval - script for evaluating platform suitability for RT Linux
 #
@@ -9,6 +10,7 @@
 #
 #   Copyright 2009,2010   Clark Williams <williams@redhat.com>
 #   Copyright 2009,2010   David Sommerseth <davids@redhat.com>
+#   Copyright 2013-2015   Raphaël Beamonte <raphael.beamonte@gmail.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -30,8 +32,9 @@
 #   including keys needed to generate an equivalently functional executable
 #   are deemed to be part of the source code.
 #
-import os, sys
+import os
 import ConfigParser
+import paths
 from Log import Log
 
 
@@ -39,33 +42,22 @@ def default_config_search(relative_path, verifdef=os.path.isdir):
     ConfigDirectories=[
             os.path.join(os.path.expanduser("~" + \
                     (os.getenv('SUDO_USER') or os.getenv('USER'))), '.rteval'),
-            '/etc/rteval',
-            '/usr/share/rteval'
+            os.path.abspath(os.path.join(paths.RTEVAL_DIR_CONF, 'rteval')),
+            os.path.abspath(os.path.join(paths.RTEVAL_DIR_DATA, 'share', 'rteval'))
             ]
 
-    if os.path.dirname(os.path.abspath(__file__)) != '/usr/share/rteval':
+    if paths.RTEVAL_DIR_SCRIPTS == '.':
         ConfigDirectories = [
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'rteval')
                 ] + ConfigDirectories
 
-        for path in ConfigDirectories:
-            if verifdef(os.path.join(path, *relative_path)):
-                return os.path.join(path, *relative_path)
+    for path in ConfigDirectories:
+        if verifdef(os.path.join(path, *relative_path)):
+            return os.path.join(path, *relative_path)
 
     return False
 
-
-# HACK: A temporary hack to try to figure out where the install dir is.
-typical_install_paths = ('/usr/bin','/usr/local/bin')
-try:
-    if typical_install_paths.index(os.path.dirname(os.path.abspath(sys.argv[0]))):
-        installdir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    else:
-        installdir = '/usr/share/rteval'
-
-except ValueError:
-    installdir = '/usr/share/rteval'
 
 default_config = {
     'rteval': {
@@ -78,7 +70,7 @@ default_config = {
         'reportdir'  : None,
         'reportfile' : None,
         'workdir'    : os.getcwd(),
-        'installdir' : installdir,
+        'installdir' : os.path.abspath(paths.RTEVAL_DIR_SCRIPTS),
         'srcdir'     : default_config_search(['loadsource']),
         'xmlrpc'     : None,
         'xslt_report': default_config_search(['rteval_text.xsl'], os.path.isfile),
@@ -86,7 +78,6 @@ default_config = {
         'logging'    : False,
         }
     }
-
 
 class rtevalCfgSection(object):
     def __init__(self, section_cfg):
